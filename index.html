@@ -20,8 +20,14 @@ button.sec{background:#3a4a7a;color:#fff;font-size:14px;padding:5px 10px}
 .card canvas{width:100%;border-radius:8px}
 .badge{position:absolute;top:6px;right:6px;background:#e53935;border-radius:12px;padding:2px 9px;font-weight:700}
 #hud{position:fixed;top:12px;left:16px;font-size:26px;font-weight:700;text-shadow:0 2px 4px #000;display:none;line-height:1.3}
+#itemBox{position:fixed;top:12px;left:50%;transform:translateX(-50%);min-width:110px;height:84px;background:#0009;border:3px solid #fff;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:40px;line-height:1}
+#itemBox small{font-size:13px;margin-top:4px}
+#ink{position:fixed;inset:0;background:radial-gradient(circle,#0000 5%,#111 70%);opacity:0;pointer-events:none}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
 #menuBtn{position:fixed;top:12px;right:16px;display:none}
 #big{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:100px;font-weight:900;text-shadow:0 4px 10px #000;pointer-events:none;text-align:center}
+#ink{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s;background:radial-gradient(ellipse at 30% 40%,#000 0,#000c 28%,transparent 45%),radial-gradient(ellipse at 70% 60%,#000 0,#000c 30%,transparent 48%),radial-gradient(ellipse at 50% 20%,#000d 0,transparent 35%)}
+#flash{position:fixed;inset:0;pointer-events:none;opacity:0;background:#fff;transition:opacity .25s}
 #help{position:fixed;bottom:10px;left:16px;font-size:13px;opacity:.7;display:none}
 </style></head><body>
 
@@ -36,12 +42,12 @@ button.sec{background:#3a4a7a;color:#fff;font-size:14px;padding:5px 10px}
  <div><button class="sec" id="iAll">All on</button> <button class="sec" id="iNone">All off</button> <button class="sec" id="iRand">Random mix</button></div>
  <div id="items"></div>
  <button id="start">CHOOSE TRACK ▶</button>
- <small>W/A/S/D or arrows to drive · Space/Shift to drift (release for a boost) · R restart</small>
+ <small>W/A/S/D or arrows to drive · Space/Shift to drift (release for a boost) · E or Enter = use item (hold S/↓ to throw backwards) · E / Enter = use item (hold S/↓ to drop behind) · R restart</small>
 </div>
 
 <div id="vote" class="screen"><h1>VOTE FOR A TRACK</h1><h2 id="voteMsg"></h2><div class="cards" id="cards"></div></div>
 
 <button id="menuBtn" class="sec">☰ Menu</button>
-<div id="hud"></div><div id="big"></div><div id="help"></div>
+<div id="hud"><div id="hudText"></div><div id="itemBox"></div></div><div id="ink"></div><div id="flash"></div><div id="big"></div><div id="help"></div>
 <script type="module" src="js/main.js"></script>
 </body></html>
