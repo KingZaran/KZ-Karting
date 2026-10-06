@@ -4,20 +4,44 @@
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#111;font-family:system-ui,sans-serif;color:#fff}
 canvas{display:block}
-#menu{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(#2b3a67,#0b0f1f)}
-#menu h1{font-size:48px;margin:0;letter-spacing:2px}
-#menu label{display:flex;gap:10px;align-items:center}
-select,button{font-size:18px;padding:8px 14px;border-radius:8px;border:0}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(#2b3a67,#0b0f1f);overflow:auto;padding:20px;box-sizing:border-box}
+.screen.on{display:flex}
+h1{font-size:44px;margin:0;letter-spacing:2px} h2{margin:0}
+.grid{display:grid;gap:10px 22px;grid-template-columns:repeat(2,auto);align-items:center}
+.grid label{display:contents}
+select,button{font-size:17px;padding:8px 14px;border-radius:8px;border:0}
 button{background:#ffcc00;font-weight:700;cursor:pointer}
+button.sec{background:#3a4a7a;color:#fff;font-size:14px;padding:5px 10px}
+#items{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;max-width:760px;width:100%}
+#items label{background:#1a2347;padding:6px 10px;border-radius:6px;font-size:14px;cursor:pointer;display:flex;gap:8px;align-items:center}
+.cards{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;max-width:900px}
+.card{width:190px;background:#1a2347;border:3px solid transparent;border-radius:12px;padding:10px;cursor:pointer;text-align:center;position:relative}
+.card:hover{border-color:#ffcc0088}.card.sel{border-color:#ffcc00}.card.win{border-color:#4cff7a;box-shadow:0 0 20px #4cff7a}
+.card canvas{width:100%;border-radius:8px}
+.badge{position:absolute;top:6px;right:6px;background:#e53935;border-radius:12px;padding:2px 9px;font-weight:700}
 #hud{position:fixed;top:12px;left:16px;font-size:26px;font-weight:700;text-shadow:0 2px 4px #000;display:none;line-height:1.3}
-#big{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:120px;font-weight:900;text-shadow:0 4px 10px #000;pointer-events:none}
+#menuBtn{position:fixed;top:12px;right:16px;display:none}
+#big{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:100px;font-weight:900;text-shadow:0 4px 10px #000;pointer-events:none;text-align:center}
 #help{position:fixed;bottom:10px;left:16px;font-size:13px;opacity:.7;display:none}
 </style></head><body>
-<div id="menu"><h1>TURBO REALMS KART</h1>
-<label>Bots <select id="bots"></select></label>
-<label>Laps <select id="laps"><option>1</option><option selected>3</option><option>5</option></select></label>
-<button id="start">START RACE</button>
-<small>W/A/S/D or arrows to drive · Space/Shift to drift (release for a boost)</small></div>
-<div id="hud"></div><div id="big"></div><div id="help">R = restart</div>
+
+<div id="menu" class="screen on"><h1>TURBO REALMS KART</h1>
+ <div class="grid">
+  <label>Bots <select id="bots"></select></label>
+  <label>Bot difficulty <select id="diff"><option value="0.8">Easy</option><option value="0.9" selected>Normal</option><option value="1">Hard</option></select></label>
+  <label>Laps <select id="laps"><option>1</option><option>2</option><option>3</option><option>5</option><option>7</option></select></label>
+  <label>Engine class <select id="cls"><option value="0.8">50cc</option><option value="1" selected>100cc</option><option value="1.2">150cc</option><option value="1.4">200cc</option></select></label>
+ </div>
+ <h2>Items</h2>
+ <div><button class="sec" id="iAll">All on</button> <button class="sec" id="iNone">All off</button> <button class="sec" id="iRand">Random mix</button></div>
+ <div id="items"></div>
+ <button id="start">CHOOSE TRACK ▶</button>
+ <small>W/A/S/D or arrows to drive · Space/Shift to drift (release for a boost) · R restart</small>
+</div>
+
+<div id="vote" class="screen"><h1>VOTE FOR A TRACK</h1><h2 id="voteMsg"></h2><div class="cards" id="cards"></div></div>
+
+<button id="menuBtn" class="sec">☰ Menu</button>
+<div id="hud"></div><div id="big"></div><div id="help"></div>
 <script type="module" src="js/main.js"></script>
 </body></html>
