@@ -1,5 +1,6 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
 import { TRACKS, ITEMS } from './tracks.js';
+import { buildThemes } from './themes.js';
 const $ = id => document.getElementById(id);
 
 // ---------- settings ----------
@@ -41,55 +42,94 @@ sun.shadow.mapSize.set(2048, 2048);
 scene.add(sun, sun.target);
 
 // ---------- track ----------
-let curve, samples = [], N = 600, WIDTH = 20, trackGroup = null, trackDef = null, center = new THREE.Vector3();
+const THEMES = buildThemes(THREE);
+let curve, samples = [], N = 600, WIDTH = 20, trackGroup = null, trackDef = null, center = new THREE.Vector3(), zoneIds = [], lastTheme = null;
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshStandardMaterial({ color: 0x3f8f3f }));
 ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
 const hemi = scene.children.find(c => c.isHemisphereLight);
 const tangent = i => samples[(i + 1) % N].clone().sub(samples[(i - 1 + N) % N]).setY(0).normalize();
+const themeAt = i => THEMES[zoneIds[((i % N) + N) % N]];
+const env = { sky: new THREE.Color(0x87ceeb), near: 120, far: 500, hemi: .9, sun: 1.2 }, _c = new THREE.Color();
+function applyEnv(th, k = 1) {
+  env.sky.lerp(_c.set(th.sky), k); env.near += (th.fog[0] - env.near) * k; env.far += (th.fog[1] - env.far) * k;
+  env.hemi += (th.hemi - env.hemi) * k; env.sun += (th.sun - env.sun) * k;
+  scene.background.copy(env.sky); scene.fog.color.copy(env.sky); scene.fog.near = env.near; scene.fog.far = env.far;
+  hemi.intensity = env.hemi; sun.intensity = env.sun;
+}
+const R = (a, b) => a + Math.random() * (b - a);
 
 function loadTrack(def) {
-  if (trackGroup) { scene.remove(trackGroup); trackGroup.traverse(o => { o.geometry?.dispose(); o.material?.dispose?.(); }); }
+  if (trackGroup) { scene.remove(trackGroup); trackGroup.traverse(o => { if (o.geometry && !o.userData.shared) o.geometry.dispose(); }); }
   trackDef = def; WIDTH = def.width; trackGroup = new THREE.Group(); scene.add(trackGroup);
   curve = new THREE.CatmullRomCurve3(def.pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, 'catmullrom', 0.5);
   samples = curve.getSpacedPoints(N).slice(0, N);
   center.set(0, 0, 0); samples.forEach(p => center.add(p)); center.divideScalar(N);
-  scene.background = new THREE.Color(def.sky); scene.fog = new THREE.Fog(def.sky, 120, def.night ? 260 : 500);
-  ground.material.color.set(def.ground);
-  hemi.intensity = def.night ? 0.35 : 0.9; sun.intensity = def.night ? 0.3 : 1.2;
-  const pos = [], idx = [];
-  samples.forEach((p, i) => {
-    const t = tangent(i), n = new THREE.Vector3(-t.z, 0, t.x);
-    const l = p.clone().addScaledVector(n, WIDTH / 2), r = p.clone().addScaledVector(n, -WIDTH / 2);
-    pos.push(l.x, 0.05, l.z, r.x, 0.05, r.z);
-    const a = i * 2, b = ((i + 1) % N) * 2; idx.push(a, b, a + 1, a + 1, b, b + 1);
-  });
-  const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
-  const road = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: def.road, roughness: .9, side: THREE.DoubleSide }));
-  road.receiveShadow = true; trackGroup.add(road);
+  zoneIds = samples.map((_, i) => { const f = i / N; for (const [id, end] of def.zones) if (f < end) return id; return def.zones[def.zones.length - 1][0]; });
+  scene.background = new THREE.Color(); scene.fog = new THREE.Fog(0, 1, 2); applyEnv(themeAt(0));
+  ground.material.color.set(themeAt(0).ground);
+  const normal = i => { const t = tangent(i); return new THREE.Vector3(-t.z, 0, t.x); };
+  const ribbon = (half, y, colorOf) => {
+    const pos = [], col = [], idx = [];
+    samples.forEach((p, i) => {
+      const n = normal(i), l = p.clone().addScaledVector(n, half), r = p.clone().addScaledVector(n, -half), c = new THREE.Color(colorOf(i));
+      pos.push(l.x, y, l.z, r.x, y, r.z); col.push(c.r, c.g, c.b, c.r, c.g, c.b);
+      const a = i * 2, b = ((i + 1) % N) * 2; idx.push(a, b, a + 1, a + 1, b, b + 1);
+    });
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .9, side: THREE.DoubleSide })); m.receiveShadow = true; trackGroup.add(m);
+  };
+  ribbon(110, 0.02, i => themeAt(i).ground);
+  ribbon(WIDTH / 2, 0.05, i => themeAt(i).road);
   // start line
   const sl = new THREE.Group(), plane = new THREE.Mesh(new THREE.PlaneGeometry(WIDTH, 2), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-  plane.rotation.x = -Math.PI / 2; sl.add(plane); sl.position.set(samples[0].x, 0.1, samples[0].z);
-  const t0 = tangent(0); sl.rotation.y = Math.atan2(t0.x, t0.z); trackGroup.add(sl);
-  // edge markers on the road sides
-  const mk = new THREE.MeshStandardMaterial({ color: def.night ? 0x00ffe1 : 0xffffff, emissive: def.night ? 0x00ffe1 : 0x000000 });
-  for (let i = 0; i < N; i += 6) {
-    const t = tangent(i), n = new THREE.Vector3(-t.z, 0, t.x);
-    for (const side of [-1, 1]) { const m = new THREE.Mesh(new THREE.BoxGeometry(.6, .4, 1.6), (i / 6) % 2 ? mk : new THREE.MeshStandardMaterial({ color: 0xe53935 }));
-      m.position.copy(samples[i]).addScaledVector(n, side * (WIDTH / 2 + .3)).setY(.2); m.rotation.y = Math.atan2(t.x, t.z); trackGroup.add(m); }
+  plane.rotation.x = -Math.PI / 2; sl.add(plane); sl.position.set(samples[0].x, 0.1, samples[0].z); const t0 = tangent(0); sl.rotation.y = Math.atan2(t0.x, t0.z); trackGroup.add(sl);
+  // edge markers, walls, ceiling lights
+  const matCache = {}, mat = (c, e = 0) => matCache[c + '_' + e] || (matCache[c + '_' + e] = new THREE.MeshStandardMaterial({ color: c, emissive: e ? c : 0, emissiveIntensity: .8 }));
+  const wp = [], wc = [], wi = [];
+  for (let i = 0; i < N; i++) {
+    const th = themeAt(i), t = tangent(i), n = normal(i), yaw = Math.atan2(t.x, t.z);
+    if (i % 6 === 0 && !th.walls) for (const side of [-1, 1]) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(.6, .4, 1.6), (i / 6) % 2 ? mat(th.edge, 1) : mat(0xe53935)); m.userData.shared = false;
+      m.position.copy(samples[i]).addScaledVector(n, side * (WIDTH / 2 + .3)).setY(.2); m.rotation.y = yaw; trackGroup.add(m);
+    }
+    if (th.lights && i % 5 === 0) { const m = new THREE.Mesh(new THREE.BoxGeometry(4, .3, 1.6), mat(0xfffbe0, 1)); m.position.copy(samples[i]).setY(9); m.rotation.y = yaw; trackGroup.add(m); }
+    if (th.walls && themeAt(i + 1).walls) for (const side of [-1, 1]) {
+      const n2 = normal((i + 1) % N), off = WIDTH / 2 + 1.5, A = samples[i].clone().addScaledVector(n, side * off), B = samples[(i + 1) % N].clone().addScaledVector(n2, side * off);
+      const base = wp.length / 3, c = new THREE.Color(th.wallColor).multiplyScalar(i % 12 < 6 ? 1 : .88);
+      wp.push(A.x, 0, A.z, B.x, 0, B.z, B.x, 7, B.z, A.x, 7, A.z); for (let q = 0; q < 4; q++) wc.push(c.r, c.g, c.b);
+      wi.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    }
   }
-  // decor
-  const dm = new THREE.MeshStandardMaterial({ color: def.decorColor, emissive: def.night ? def.decorColor : 0x000000, emissiveIntensity: .6 });
-  for (let k = 0, placed = 0; k < 2000 && placed < 260; k++) {
-    const x = center.x + (Math.random() - .5) * 600, z = center.z + (Math.random() - .5) * 600;
-    if (nearest(x, z, 0, true).d < WIDTH + 8) continue; placed++;
-    const h = 4 + Math.random() * 8; let m;
-    if (def.decor === 'cone') m = new THREE.Mesh(new THREE.ConeGeometry(3, h * 1.5, 8), dm);
-    else if (def.decor === 'cyl') m = new THREE.Mesh(new THREE.CylinderGeometry(.9, 1.1, h, 8), dm);
-    else m = new THREE.Mesh(new THREE.BoxGeometry(2, h * 1.5, 2), dm);
-    m.position.set(x, h * .75, z); m.castShadow = true; trackGroup.add(m);
+  if (wp.length) {
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(wp, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(wc, 3)); g.setIndex(wi); g.computeVertexNormals();
+    trackGroup.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide })));
+  }
+  // decor + ink/lava splats, placed per zone
+  const byTheme = {}; zoneIds.forEach((id, i) => (byTheme[id] ||= []).push(i));
+  for (const [id, list] of Object.entries(byTheme)) {
+    const th = THEMES[id], share = list.length / N;
+    for (let k = 0, placed = 0, want = Math.round(230 * share); th.decor.length && placed < want && k < want * 8; k++) {
+      const i = list[Math.floor(Math.random() * list.length)], n = normal(i), off = (Math.random() < .5 ? -1 : 1) * (WIDTH / 2 + R(6, 70));
+      const p = samples[i].clone().addScaledVector(n, off);
+      if (nearest(p.x, p.z, 0, true).d < WIDTH / 2 + 6) continue; placed++;
+      const o = th.decor[Math.floor(Math.random() * th.decor.length)](); o.position.set(p.x, 0, p.z); o.rotation.y = Math.random() * 6.28; trackGroup.add(o);
+    }
+    if (th.flat) for (let k = 0; k < Math.round(th.flat.count * share * 3); k++) {
+      const i = list[Math.floor(Math.random() * list.length)], n = normal(i);
+      const off = th.flat.onRoad ? R(-(WIDTH / 2 - 1.5), WIDTH / 2 - 1.5) : (Math.random() < .5 ? -1 : 1) * R(WIDTH / 2 + 3, 60);
+      const p = samples[i].clone().addScaledVector(n, off), c = th.flat.colors[Math.floor(Math.random() * th.flat.colors.length)];
+      const d = new THREE.Mesh(new THREE.CircleGeometry(1, 14), th.flat.emissive ? mat(c, 1) : mat(c, 0));
+      d.rotation.x = -Math.PI / 2; d.position.set(p.x, .07 + Math.random() * .02, p.z); d.scale.set(R(1.2, 4.5), R(1.2, 4.5), 1); trackGroup.add(d);
+    }
   }
 }
+function confine(k) {
+  if (!themeAt(k.idx).walls) return;
+  const c = samples[k.idx], lim = WIDTH / 2 + 1, dx = k.pos.x - c.x, dz = k.pos.z - c.z, d = Math.hypot(dx, dz);
+  if (d > lim) { k.pos.x = c.x + dx / d * lim; k.pos.z = c.z + dz / d * lim; k.speed *= .97; }
+}
+function zoneBanner(name) { const el = $('zone'); el.textContent = name; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }
 
 function nearest(x, z, hint = 0, full = false) {
   let best = 1e9, bi = hint;
@@ -135,7 +175,7 @@ function startRace(o) {
     karts.push({ mesh: makeKart(COLORS[n % COLORS.length]), pos: p, heading: Math.atan2(t.x, t.z), speed: 0, idx, lap: -1, progress: -1 + idx/N, boost: 0, driftT: 0, item: null, spin: 0, star: 0, shrink: 0, rocket: 0, plantT: 0, invuln: 0, useCd: 0, inkT: 0, coins: 0, hopY: 0,
       isBot: n !== 0, name: n === 0 ? 'YOU' : 'Bot ' + n, skill: diff - Math.random() * 0.12, lane: (Math.random()-.5) * (WIDTH * .5), finished: false , immune: 0, starT: 0, rocketT: 0, ink: 0, useAt: 0, gotAt: 0 });
   }
-  player = karts[0]; ranked = [...karts]; spawnBoxes(); state = 'countdown'; countdown = 3.99; clock.getDelta();
+  lastTheme = null; player = karts[0]; ranked = [...karts]; spawnBoxes(); state = 'countdown'; countdown = 3.99; clock.getDelta();
   $('hud').style.display = $('menuBtn').style.display = 'block'; $('big').textContent = '';
 }
 function toMenu() { state = 'idle'; karts.forEach(k => scene.remove(k.mesh)); karts = []; clearWorld(); $('hud').style.display = $('menuBtn').style.display = 'none'; $('big').textContent = ''; show('menu'); }
@@ -144,13 +184,16 @@ $('menuBtn').onclick = toMenu;
 // ---------- track voting ----------
 function drawThumb(def) {
   const c = document.createElement('canvas'); c.width = 180; c.height = 120; const g = c.getContext('2d');
-  g.fillStyle = '#' + def.ground.toString(16).padStart(6, '0'); g.fillRect(0, 0, 180, 120);
-  const pts = new THREE.CatmullRomCurve3(def.pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), true).getPoints(100);
+  g.fillStyle = '#10152b'; g.fillRect(0, 0, 180, 120);
+  const pts = new THREE.CatmullRomCurve3(def.pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), true).getPoints(120);
   const xs = pts.map(p => p.x), zs = pts.map(p => p.z), minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs);
-  const sc = Math.min(150 / (maxx - minx), 96 / (maxz - minz));
-  g.lineWidth = 9; g.lineJoin = 'round'; g.strokeStyle = '#' + def.road.toString(16).padStart(6, '0'); g.beginPath();
-  pts.forEach((p, i) => { const x = 90 + (p.x - (minx + maxx) / 2) * sc, y = 60 + (p.z - (minz + maxz) / 2) * sc; i ? g.lineTo(x, y) : g.moveTo(x, y); });
-  g.closePath(); g.stroke(); return c;
+  const sc = Math.min(150 / (maxx - minx), 96 / (maxz - minz)), P = p => [90 + (p.x - (minx + maxx) / 2) * sc, 60 + (p.z - (minz + maxz) / 2) * sc];
+  g.lineWidth = 8; g.lineCap = 'round';
+  for (let i = 0; i < pts.length; i++) {
+    const f = i / pts.length, id = (def.zones.find(([, e]) => f < e) || def.zones[def.zones.length - 1])[0];
+    g.strokeStyle = THEMES[id].accent; g.beginPath(); g.moveTo(...P(pts[i])); g.lineTo(...P(pts[(i + 1) % pts.length])); g.stroke();
+  }
+  return c;
 }
 let voteTimer = null;
 function openVote(s) {
@@ -159,7 +202,7 @@ function openVote(s) {
   [...TRACKS, { id: 'random', name: '🎲 Random' }].forEach(def => {
     const el = document.createElement('div'); el.className = 'card';
     if (def.pts) el.append(drawThumb(def)); else { const d = document.createElement('div'); d.style.cssText = 'height:120px;display:flex;align-items:center;justify-content:center;font-size:56px'; d.textContent = '🎲'; el.append(d); }
-    const t = document.createElement('div'); t.textContent = def.name; t.style.marginTop = '6px'; el.append(t); cards.append(el); els[def.id] = el;
+    const t = document.createElement('div'); t.textContent = def.name; t.style.marginTop = '6px'; el.append(t); if (def.zones) { const z = document.createElement('div'); z.style.cssText = 'font-size:11px;opacity:.7;margin-top:3px'; z.textContent = def.zones.map(([id]) => THEMES[id].name).join(' · '); el.append(z); } cards.append(el); els[def.id] = el;
     el.onclick = () => { if (resolving) return; myVote = def.id; Object.values(els).forEach(e => e.classList.remove('sel')); el.classList.add('sel'); resolve(); };
   });
   const msg = $('voteMsg'); msg.textContent = `Pick a track — ${left}s`;
@@ -390,7 +433,7 @@ function loop() {
     karts.forEach(k => tick(k, dt));
     karts.forEach(k => (k.isBot || k.rocketT > 0) ? updateBot(k, dt) : updatePlayer(k, dt));
     if (state === 'racing') updateWorld(dt);
-    collide();
+    collide(); karts.forEach(confine);
     karts.forEach(k => {
       trackLap(k); k.mesh.position.set(k.pos.x, 0, k.pos.z); k.mesh.rotation.y = k.heading + k.spin * 12;
       const sc = k.shrink > 0 ? .5 : 1; k.mesh.scale.setScalar(k.mesh.scale.x + (sc - k.mesh.scale.x) * Math.min(1, 8*dt));
@@ -404,12 +447,13 @@ function loop() {
     $('itemBox').innerHTML = it ? `${ICON[it.id]}<small>${NAMES[it.id]}${it.uses > 1 ? ' ×' + it.uses : ''}</small>` : (race.items.length ? '<small>no item</small>' : '<small>items off</small>');
     $('ink').style.opacity = Math.min(1, player.ink);
     if (player.finished) $('big').textContent = `Finished ${place}${['st','nd','rd'][place-1]||'th'}! (R = restart)`;
+    { const th = themeAt(player.idx); applyEnv(th, 1 - Math.exp(-2.5 * dt)); if (th !== lastTheme) { lastTheme = th; zoneBanner(th.name); } }
     const back = V(-Math.sin(player.heading), 0, -Math.cos(player.heading));
     camera.position.lerp(player.pos.clone().addScaledVector(back, 11).setY(5.5), 1 - Math.pow(.001, dt));
     camera.lookAt(player.pos.x, 2, player.pos.z);
     camera.fov = 70 + Math.min(15, Math.abs(player.speed)*.25 + (player.boost>0?8:0)); camera.updateProjectionMatrix();
     sun.position.set(player.pos.x+100, 200, player.pos.z+60); sun.target.position.copy(player.pos);
-  } else if (trackDef) { const a = performance.now() / 6000; camera.position.set(center.x + Math.cos(a) * 260, 130, center.z + Math.sin(a) * 260); camera.lookAt(center); }
+  } else if (trackDef) { applyEnv(themeAt(0), .1); const a = performance.now() / 6000; camera.position.set(center.x + Math.cos(a) * 260, 130, center.z + Math.sin(a) * 260); camera.lookAt(center); }
   renderer.render(scene, camera);
 }
 loadTrack(TRACKS[0]);
