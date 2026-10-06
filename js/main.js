@@ -1,9 +1,26 @@
 import * as THREE from 'https://unpkg.com/three@0.160.0/build/three.module.js';
-
-const botSel = document.getElementById('bots');
-for (let i = 0; i <= 11; i++) botSel.add(new Option(i, i, i === 5, i === 5));
+import { TRACKS, ITEMS } from './tracks.js';
 const $ = id => document.getElementById(id);
-$('start').onclick = () => { $('menu').style.display = 'none'; $('hud').style.display = $('help').style.display = 'block'; startRace(+botSel.value, +$('laps').value); };
+
+// ---------- settings ----------
+const DEFAULTS = { bots: 5, diff: '0.9', laps: '3', cls: '1', items: ITEMS.map(i => i[0]) };
+let settings = { ...DEFAULTS };
+try { Object.assign(settings, JSON.parse(localStorage.getItem('trk-settings') || '{}')); } catch (e) {}
+const save = () => { try { localStorage.setItem('trk-settings', JSON.stringify(settings)); } catch (e) {} };
+for (let i = 0; i <= 11; i++) $('bots').add(new Option(i, i));
+$('bots').value = settings.bots; $('diff').value = settings.diff; $('laps').value = settings.laps; $('cls').value = settings.cls;
+const itemBoxes = ITEMS.map(([id, name]) => {
+  const l = document.createElement('label'), c = document.createElement('input'); c.type = 'checkbox'; c.checked = settings.items.includes(id);
+  l.append(c, name); $('items').append(l); return [id, c];
+});
+const readItems = () => itemBoxes.filter(([, c]) => c.checked).map(([id]) => id);
+$('iAll').onclick = () => itemBoxes.forEach(([, c]) => c.checked = true);
+$('iNone').onclick = () => itemBoxes.forEach(([, c]) => c.checked = false);
+$('iRand').onclick = () => itemBoxes.forEach(([, c]) => c.checked = Math.random() < .5);
+function readSettings() {
+  settings = { bots: +$('bots').value, diff: $('diff').value, laps: $('laps').value, cls: $('cls').value, items: readItems() }; save(); return settings;
+}
+function show(id) { for (const s of ['menu', 'vote']) $(s).classList.toggle('on', s === id); }
 
 // ---------- scene ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -24,39 +41,55 @@ sun.shadow.mapSize.set(2048, 2048);
 scene.add(sun, sun.target);
 
 // ---------- track ----------
-const pts = [[0,0],[80,-20],[140,40],[120,130],[40,170],[-60,140],[-120,70],[-90,-20],[-40,-40]].map(([x,z]) => new THREE.Vector3(x,0,z));
-const curve = new THREE.CatmullRomCurve3(pts, true, 'catmullrom', 0.5);
-const N = 600, WIDTH = 20;
-const samples = curve.getSpacedPoints(N).slice(0, N);
-const trackLen = curve.getLength();
-const tangent = i => samples[(i+1)%N].clone().sub(samples[(i-1+N)%N]).setY(0).normalize();
-(function buildTrack() {
+let curve, samples = [], N = 600, WIDTH = 20, trackGroup = null, trackDef = null, center = new THREE.Vector3();
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshStandardMaterial({ color: 0x3f8f3f }));
+ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+const hemi = scene.children.find(c => c.isHemisphereLight);
+const tangent = i => samples[(i + 1) % N].clone().sub(samples[(i - 1 + N) % N]).setY(0).normalize();
+
+function loadTrack(def) {
+  if (trackGroup) { scene.remove(trackGroup); trackGroup.traverse(o => { o.geometry?.dispose(); o.material?.dispose?.(); }); }
+  trackDef = def; WIDTH = def.width; trackGroup = new THREE.Group(); scene.add(trackGroup);
+  curve = new THREE.CatmullRomCurve3(def.pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, 'catmullrom', 0.5);
+  samples = curve.getSpacedPoints(N).slice(0, N);
+  center.set(0, 0, 0); samples.forEach(p => center.add(p)); center.divideScalar(N);
+  scene.background = new THREE.Color(def.sky); scene.fog = new THREE.Fog(def.sky, 120, def.night ? 260 : 500);
+  ground.material.color.set(def.ground);
+  hemi.intensity = def.night ? 0.35 : 0.9; sun.intensity = def.night ? 0.3 : 1.2;
   const pos = [], idx = [];
   samples.forEach((p, i) => {
     const t = tangent(i), n = new THREE.Vector3(-t.z, 0, t.x);
-    const l = p.clone().addScaledVector(n, WIDTH/2), r = p.clone().addScaledVector(n, -WIDTH/2);
+    const l = p.clone().addScaledVector(n, WIDTH / 2), r = p.clone().addScaledVector(n, -WIDTH / 2);
     pos.push(l.x, 0.05, l.z, r.x, 0.05, r.z);
-    const a = i*2, b = ((i+1)%N)*2;
-    idx.push(a, b, a+1, a+1, b, b+1);
+    const a = i * 2, b = ((i + 1) % N) * 2; idx.push(a, b, a + 1, a + 1, b, b + 1);
   });
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
-  const road = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x333338, roughness: .9, side: THREE.DoubleSide }));
-  road.receiveShadow = true; scene.add(road);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshStandardMaterial({ color: 0x3f8f3f }));
-  ground.rotation.x = -Math.PI/2; ground.receiveShadow = true; scene.add(ground);
-  // start line + trees
-  const sl = new THREE.Mesh(new THREE.PlaneGeometry(WIDTH, 2), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-  sl.rotation.x = -Math.PI/2; sl.position.set(samples[0].x, 0.1, samples[0].z); sl.rotation.z = Math.atan2(tangent(0).x, tangent(0).z) ; scene.add(sl);
-  for (let k = 0; k < 250; k++) {
-    const x = (Math.random()-.5)*500+10, z = (Math.random()-.5)*450+60;
-    if (nearest(x, z, 0, true).d < WIDTH + 6) continue;
-    const tree = new THREE.Group();
-    tree.add(new THREE.Mesh(new THREE.CylinderGeometry(.6,.8,4), new THREE.MeshStandardMaterial({ color: 0x6b4a2b })));
-    const top = new THREE.Mesh(new THREE.ConeGeometry(3.5,8,8), new THREE.MeshStandardMaterial({ color: 0x1f6b2f })); top.position.y = 6; top.castShadow = true;
-    tree.add(top); tree.position.set(x, 2, z); scene.add(tree);
+  const road = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: def.road, roughness: .9, side: THREE.DoubleSide }));
+  road.receiveShadow = true; trackGroup.add(road);
+  // start line
+  const sl = new THREE.Group(), plane = new THREE.Mesh(new THREE.PlaneGeometry(WIDTH, 2), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  plane.rotation.x = -Math.PI / 2; sl.add(plane); sl.position.set(samples[0].x, 0.1, samples[0].z);
+  const t0 = tangent(0); sl.rotation.y = Math.atan2(t0.x, t0.z); trackGroup.add(sl);
+  // edge markers on the road sides
+  const mk = new THREE.MeshStandardMaterial({ color: def.night ? 0x00ffe1 : 0xffffff, emissive: def.night ? 0x00ffe1 : 0x000000 });
+  for (let i = 0; i < N; i += 6) {
+    const t = tangent(i), n = new THREE.Vector3(-t.z, 0, t.x);
+    for (const side of [-1, 1]) { const m = new THREE.Mesh(new THREE.BoxGeometry(.6, .4, 1.6), (i / 6) % 2 ? mk : new THREE.MeshStandardMaterial({ color: 0xe53935 }));
+      m.position.copy(samples[i]).addScaledVector(n, side * (WIDTH / 2 + .3)).setY(.2); m.rotation.y = Math.atan2(t.x, t.z); trackGroup.add(m); }
   }
-})();
+  // decor
+  const dm = new THREE.MeshStandardMaterial({ color: def.decorColor, emissive: def.night ? def.decorColor : 0x000000, emissiveIntensity: .6 });
+  for (let k = 0, placed = 0; k < 2000 && placed < 260; k++) {
+    const x = center.x + (Math.random() - .5) * 600, z = center.z + (Math.random() - .5) * 600;
+    if (nearest(x, z, 0, true).d < WIDTH + 8) continue; placed++;
+    const h = 4 + Math.random() * 8; let m;
+    if (def.decor === 'cone') m = new THREE.Mesh(new THREE.ConeGeometry(3, h * 1.5, 8), dm);
+    else if (def.decor === 'cyl') m = new THREE.Mesh(new THREE.CylinderGeometry(.9, 1.1, h, 8), dm);
+    else m = new THREE.Mesh(new THREE.BoxGeometry(2, h * 1.5, 2), dm);
+    m.position.set(x, h * .75, z); m.castShadow = true; trackGroup.add(m);
+  }
+}
 
 function nearest(x, z, hint = 0, full = false) {
   let best = 1e9, bi = hint;
@@ -84,27 +117,70 @@ function makeKart(color) {
 }
 
 const keys = {};
-addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'KeyR') startRace(race.nBots, race.laps); });
+addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'KeyR' && state !== 'idle') startRace(lastOpts); });
 addEventListener('keyup', e => keys[e.code] = false);
 
-let race = { nBots: 5, laps: 3 }, karts = [], player, state = 'idle', countdown = 0, clock = new THREE.Clock();
+let race = { laps: 3 }, karts = [], player, state = 'idle', countdown = 0, lastOpts = null, clock = new THREE.Clock();
 
-function startRace(nBots, laps) {
+function startRace(o) {
+  lastOpts = o; loadTrack(o.track);
   karts.forEach(k => scene.remove(k.mesh)); karts = [];
-  race = { nBots, laps, finishOrder: [] };
-  const total = nBots + 1;
-  for (let n = 0; n < total; n++) {
+  race = { laps: +o.laps, items: o.items, finishOrder: [] };
+  MAX = 48 * +o.cls; const diff = +o.diff;
+  for (let n = 0; n < o.bots + 1; n++) {
     const row = Math.floor(n/2), side = n % 2 ? 1 : -1;
-    const idx = (N - 6 - row*8) % N, t = tangent(idx), nrm = new THREE.Vector3(-t.z,0,t.x);
+    const idx = (N - 6 - row*8 + N) % N, t = tangent(idx), nrm = new THREE.Vector3(-t.z,0,t.x);
     const p = samples[idx].clone().addScaledVector(nrm, side*4);
-    const k = { mesh: makeKart(COLORS[n % COLORS.length]), pos: p, heading: Math.atan2(t.x, t.z), speed: 0, idx, lap: 0, boost: 0, driftT: 0,
-      isBot: n !== 0, name: n === 0 ? 'YOU' : 'Bot ' + n, skill: 0.88 + Math.random()*0.12, lane: (Math.random()-.5)*10, u: idx/N, finished: false };
-    karts.push(k);
+    karts.push({ mesh: makeKart(COLORS[n % COLORS.length]), pos: p, heading: Math.atan2(t.x, t.z), speed: 0, idx, lap: 0, boost: 0, driftT: 0,
+      isBot: n !== 0, name: n === 0 ? 'YOU' : 'Bot ' + n, skill: diff - Math.random() * 0.12, lane: (Math.random()-.5) * (WIDTH * .5), finished: false });
   }
   player = karts[0]; state = 'countdown'; countdown = 3.99; clock.getDelta();
+  $('hud').style.display = $('menuBtn').style.display = 'block'; $('big').textContent = '';
 }
+function toMenu() { state = 'idle'; karts.forEach(k => scene.remove(k.mesh)); karts = []; $('hud').style.display = $('menuBtn').style.display = 'none'; $('big').textContent = ''; show('menu'); }
+$('menuBtn').onclick = toMenu;
 
-const MAX = 48, ACC = 30;
+// ---------- track voting ----------
+function drawThumb(def) {
+  const c = document.createElement('canvas'); c.width = 180; c.height = 120; const g = c.getContext('2d');
+  g.fillStyle = '#' + def.ground.toString(16).padStart(6, '0'); g.fillRect(0, 0, 180, 120);
+  const pts = new THREE.CatmullRomCurve3(def.pts.map(([x, z]) => new THREE.Vector3(x, 0, z)), true).getPoints(100);
+  const xs = pts.map(p => p.x), zs = pts.map(p => p.z), minx = Math.min(...xs), maxx = Math.max(...xs), minz = Math.min(...zs), maxz = Math.max(...zs);
+  const sc = Math.min(150 / (maxx - minx), 96 / (maxz - minz));
+  g.lineWidth = 9; g.lineJoin = 'round'; g.strokeStyle = '#' + def.road.toString(16).padStart(6, '0'); g.beginPath();
+  pts.forEach((p, i) => { const x = 90 + (p.x - (minx + maxx) / 2) * sc, y = 60 + (p.z - (minz + maxz) / 2) * sc; i ? g.lineTo(x, y) : g.moveTo(x, y); });
+  g.closePath(); g.stroke(); return c;
+}
+let voteTimer = null;
+function openVote(s) {
+  show('vote'); let myVote = null, resolving = false, left = 10;
+  const cards = $('cards'); cards.innerHTML = ''; const els = {};
+  [...TRACKS, { id: 'random', name: '🎲 Random' }].forEach(def => {
+    const el = document.createElement('div'); el.className = 'card';
+    if (def.pts) el.append(drawThumb(def)); else { const d = document.createElement('div'); d.style.cssText = 'height:120px;display:flex;align-items:center;justify-content:center;font-size:56px'; d.textContent = '🎲'; el.append(d); }
+    const t = document.createElement('div'); t.textContent = def.name; t.style.marginTop = '6px'; el.append(t); cards.append(el); els[def.id] = el;
+    el.onclick = () => { if (resolving) return; myVote = def.id; Object.values(els).forEach(e => e.classList.remove('sel')); el.classList.add('sel'); resolve(); };
+  });
+  const msg = $('voteMsg'); msg.textContent = `Pick a track — ${left}s`;
+  clearInterval(voteTimer);
+  voteTimer = setInterval(() => { if (resolving) return; left--; msg.textContent = `Pick a track — ${left}s`; if (left <= 0) { myVote = myVote || 'random'; resolve(); } }, 1000);
+  function resolve() {
+    resolving = true; clearInterval(voteTimer);
+    const ids = TRACKS.map(t => t.id);
+    const ballots = [{ who: 'You', pick: myVote }];
+    for (let i = 1; i <= s.bots; i++) ballots.push({ who: 'Bot ' + i, pick: Math.random() < .2 ? 'random' : ids[Math.floor(Math.random() * ids.length)] });
+    const tally = {}; ballots.forEach(b => tally[b.pick] = (tally[b.pick] || 0) + 1);
+    Object.entries(tally).forEach(([id, n]) => { const b = document.createElement('div'); b.className = 'badge'; b.textContent = n; els[id].append(b); });
+    const winner = ballots[Math.floor(Math.random() * ballots.length)];
+    const track = winner.pick === 'random' ? TRACKS[Math.floor(Math.random() * TRACKS.length)] : TRACKS.find(t => t.id === winner.pick);
+    msg.textContent = `${winner.who}'s ballot drawn${winner.pick === 'random' ? ' (random!)' : ''} → ${track.name}`;
+    els[track.id].classList.add('win');
+    setTimeout(() => startRace({ ...s, track }), 2800);
+  }
+}
+$('start').onclick = () => { const s = readSettings(); show(null); openVote(s); };
+
+let MAX = 48; const ACC = 30;
 function updatePlayer(k, dt) {
   const up = keys.KeyW || keys.ArrowUp, down = keys.KeyS || keys.ArrowDown;
   const steer = (keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0);
@@ -171,7 +247,8 @@ function loop() {
     camera.lookAt(player.pos.x, 2, player.pos.z);
     camera.fov = 70 + Math.min(15, Math.abs(player.speed)*.25 + (player.boost>0?8:0)); camera.updateProjectionMatrix();
     sun.position.set(player.pos.x+100, 200, player.pos.z+60); sun.target.position.copy(player.pos);
-  } else { camera.position.set(0, 120, 200); camera.lookAt(30, 0, 60); }
+  } else if (trackDef) { const a = performance.now() / 6000; camera.position.set(center.x + Math.cos(a) * 260, 130, center.z + Math.sin(a) * 260); camera.lookAt(center); }
   renderer.render(scene, camera);
 }
+loadTrack(TRACKS[0]);
 loop();
