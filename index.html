@@ -24,6 +24,9 @@ button.sec{background:#3a4a7a;color:#fff;font-size:14px;padding:5px 10px}
 #itemBox small{font-size:13px;margin-top:4px}
 #ink{position:fixed;inset:0;background:radial-gradient(circle,#0000 5%,#111 70%);opacity:0;pointer-events:none}
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+#zone{position:fixed;top:120px;left:50%;transform:translateX(-50%);font-size:34px;font-weight:800;text-shadow:0 3px 8px #000;opacity:0;pointer-events:none;letter-spacing:2px;white-space:nowrap}
+#zone.show{animation:zn 3s ease-out}
+@keyframes zn{0%{opacity:0;transform:translate(-50%,-10px)}12%{opacity:1;transform:translate(-50%,0)}80%{opacity:1}100%{opacity:0}}
 #menuBtn{position:fixed;top:12px;right:16px;display:none}
 #big{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:100px;font-weight:900;text-shadow:0 4px 10px #000;pointer-events:none;text-align:center}
 #ink{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s;background:radial-gradient(ellipse at 30% 40%,#000 0,#000c 28%,transparent 45%),radial-gradient(ellipse at 70% 60%,#000 0,#000c 30%,transparent 48%),radial-gradient(ellipse at 50% 20%,#000d 0,transparent 35%)}
@@ -48,6 +51,6 @@ button.sec{background:#3a4a7a;color:#fff;font-size:14px;padding:5px 10px}
 <div id="vote" class="screen"><h1>VOTE FOR A TRACK</h1><h2 id="voteMsg"></h2><div class="cards" id="cards"></div></div>
 
 <button id="menuBtn" class="sec">☰ Menu</button>
-<div id="hud"><div id="hudText"></div><div id="itemBox"></div></div><div id="ink"></div><div id="flash"></div><div id="big"></div><div id="help"></div>
+<div id="hud"><div id="hudText"></div><div id="itemBox"></div></div><div id="ink"></div><div id="flash"></div><div id="zone"></div><div id="big"></div><div id="help"></div>
 <script type="module" src="js/main.js"></script>
 </body></html>
