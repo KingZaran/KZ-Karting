@@ -26,5 +26,5 @@ export function initGarageUI({ $, audio, garage, lo0 }) {
     lo = { ...lo, [key]: key === 'paint' ? nx : list[nx].id }; update(); audio.sfx('tick');
   }
   update();
-  Object.assign(api, { rows, change, get: () => ({ ...lo }) }); return api;
+  Object.assign(api, { refresh: update, rows, change, get: () => ({ ...lo }) }); return api;
 }
