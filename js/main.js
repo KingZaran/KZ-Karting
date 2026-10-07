@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { createFx } from './fx.js';
 import { createAudio } from './audio.js';
+import { itemIcon } from './sprites.js';
+import { initMenus } from './menu.js';
 import { TRACKS, ITEMS } from './tracks.js';
 import { buildThemes } from './themes.js';
 const $ = id => document.getElementById(id);
@@ -13,17 +15,18 @@ const save = () => { try { localStorage.setItem('trk-settings', JSON.stringify(s
 for (let i = 0; i <= 11; i++) $('bots').add(new Option(i, i));
 $('bots').value = settings.bots; $('diff').value = settings.diff; $('laps').value = settings.laps; $('cls').value = settings.cls; $('gfx').value = settings.gfx;
 const itemBoxes = ITEMS.map(([id, name]) => {
-  const l = document.createElement('label'), c = document.createElement('input'); c.type = 'checkbox'; c.checked = settings.items.includes(id);
-  l.append(c, name); $('items').append(l); return [id, c];
+  const tile = document.createElement('div'), c = { checked: settings.items.includes(id) }; tile.className = 'tile';
+  tile.innerHTML = `<img src="${itemIcon(id)}" alt=""><span>${name}</span>`;
+  const sync = () => tile.classList.toggle('off', !c.checked); sync(); c.sync = sync;
+  tile.onclick = () => { c.checked = !c.checked; sync(); }; $('items').append(tile); return [id, c];
 });
 const readItems = () => itemBoxes.filter(([, c]) => c.checked).map(([id]) => id);
-$('iAll').onclick = () => itemBoxes.forEach(([, c]) => c.checked = true);
-$('iNone').onclick = () => itemBoxes.forEach(([, c]) => c.checked = false);
-$('iRand').onclick = () => itemBoxes.forEach(([, c]) => c.checked = Math.random() < .5);
+const setItems = fn => itemBoxes.forEach(([, c], i) => { c.checked = fn(i); c.sync(); });
+$('iAll').onclick = () => setItems(() => true); $('iNone').onclick = () => setItems(() => false); $('iRand').onclick = () => setItems(() => Math.random() < .5);
 function readSettings() {
   settings = { bots: +$('bots').value, diff: $('diff').value, laps: $('laps').value, cls: $('cls').value, items: readItems(), gfx: $('gfx').value }; save(); return settings;
 }
-function show(id) { for (const s of ['menu', 'vote']) $(s).classList.toggle('on', s === id); }
+function show(id) { for (const s of ['title', 'main', 'menu', 'vote']) $(s).classList.toggle('on', s === id); }
 
 // ---------- scene ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -211,7 +214,7 @@ addEventListener('keyup', e => keys[e.code] = false);
 let lastCd = -1, race = { laps: 3 }, karts = [], player, state = 'idle', countdown = 0, lastOpts = null, clock = new THREE.Clock();
 
 function startRace(o) {
-  lastOpts = o; applyGfx(o.gfx); lastCd = -1; $('mini').style.display = 'block'; show(null); clearWorld(); loadTrack(o.track);
+  lastOpts = o; stopShowcase(); applyGfx(o.gfx); lastCd = -1; $('mini').style.display = 'block'; show(null); clearWorld(); loadTrack(o.track);
   karts.forEach(k => scene.remove(k.mesh)); karts = [];
   race = { laps: +o.laps, items: o.items, finishOrder: [] };
   MAX = 48 * +o.cls; const diff = +o.diff;
@@ -225,7 +228,7 @@ function startRace(o) {
   lastTheme = null; player = karts[0]; ranked = [...karts]; spawnBoxes(); state = 'countdown'; countdown = 3.99; clock.getDelta();
   $('hud').style.display = $('menuBtn').style.display = 'block'; $('big').textContent = '';
 }
-function toMenu() { state = 'idle'; audio.silence(); $('mini').style.display = 'none'; karts.forEach(k => scene.remove(k.mesh)); karts = []; clearWorld(); $('hud').style.display = $('menuBtn').style.display = 'none'; $('big').textContent = ''; show('menu'); }
+function toMenu() { state = 'idle'; audio.silence(); $('mini').style.display = 'none'; karts.forEach(k => scene.remove(k.mesh)); karts = []; clearWorld(); $('hud').style.display = $('menuBtn').style.display = 'none'; $('big').textContent = ''; startShowcase(); menus.go('menu'); }
 $('menuBtn').onclick = toMenu;
 
 // ---------- track voting ----------
@@ -510,7 +513,7 @@ function loop() {
     ranked = [...karts].sort(rankSort);
     const place = ranked.indexOf(player) + 1, it = player.item;
     $('hudText').innerHTML = `Pos ${place}/${karts.length}<br>Lap ${Math.min(Math.max(player.lap+1,1), race.laps)}/${race.laps}<br>${Math.round(Math.abs(player.speed)*3)} km/h${player.boost>0?' 🔥':''}${player.coins ? '<br>🪙 ' + player.coins : ''}`;
-    $('itemBox').innerHTML = it ? `${ICON[it.id]}<small>${NAMES[it.id]}${it.uses > 1 ? ' ×' + it.uses : ''}</small>` : (race.items.length ? '<small>no item</small>' : '<small>items off</small>');
+    $('itemBox').innerHTML = it ? `<img src="${itemIcon(it.id)}" alt=""><small>${NAMES[it.id]}${it.uses > 1 ? ' ×' + it.uses : ''}</small>` : (race.items.length ? '<small>no item</small>' : '<small>items off</small>');
     $('ink').style.opacity = Math.min(1, player.ink);
     if (player.finished) $('big').textContent = `Finished ${place}${['st','nd','rd'][place-1]||'th'}! (R = restart)`;
     { const th = themeAt(player.idx); applyEnv(th, 1 - Math.exp(-2.5 * dt)); if (th !== lastTheme) { lastTheme = th; zoneBanner(th.name); audio.music(Object.keys(THEMES).find(k => THEMES[k] === th)); } }
@@ -521,8 +524,33 @@ function loop() {
     pfx.update(dt); drawMini(); audio.engine(s01, player.drifting ? 1 : (player.off && s01 > .2 ? .5 : 0), player.boost > 0 || player.rocketT > 0);
     camera.fov = 70 + Math.min(15, Math.abs(player.speed)*.25 + (player.boost>0?8:0)); camera.updateProjectionMatrix();
     sun.position.set(player.pos.x+100, 200, player.pos.z+60); sun.target.position.copy(player.pos);
-  } else if (trackDef) { applyEnv(themeAt(0), .1); const a = performance.now() / 6000; camera.position.set(center.x + Math.cos(a) * 260, 130, center.z + Math.sin(a) * 260); camera.lookAt(center); }
+  } else if (trackDef && showKarts.length) { updateShowcase(dt); }
   if (useBloom && composer) composer.render(); else renderer.render(scene, camera);
 }
-loadTrack(TRACKS[0]);
+// ---------- title-screen showcase: live "clips" of the game behind the menus ----------
+let showKarts = [], showT = 0, showShot = 0, showTrack = -1;
+function stopShowcase() { showKarts.forEach(k => scene.remove(k.mesh)); showKarts = []; }
+function startShowcase() {
+  stopShowcase(); showTrack = (showTrack + 1 + Math.floor(Math.random() * (TRACKS.length - 1))) % TRACKS.length; loadTrack(TRACKS[showTrack]);
+  showKarts = Array.from({ length: 8 }, (_, i) => ({ mesh: makeKart(COLORS[i % COLORS.length]), u: .02 + i * .011, v: .036 + Math.random() * .004, lane: (i % 3 - 1) * 5 }));
+  showT = 0; applyGfx('high'); camera.fov = 68; camera.updateProjectionMatrix();
+}
+function updateShowcase(dt) {
+  showT += dt; if (showT > 6.5) { showT = 0; showShot++; if (showShot % 3 === 0) { startShowcase(); } camera.fov = 58 + (showShot % 4) * 6; camera.updateProjectionMatrix(); }
+  let fp, ft, fn;
+  showKarts.forEach((k, i) => {
+    k.u = (k.u + k.v * dt) % 1; const idx = Math.floor(k.u * N) % N, t = tangent(idx), n = V(-t.z, 0, t.x), p = samples[idx].clone().addScaledVector(n, k.lane);
+    k.mesh.position.set(p.x, 0, p.z); k.mesh.rotation.set(0, Math.atan2(t.x, t.z), 0); if (i === 3) { fp = p; ft = t; fn = n; k.idx = idx; }
+  });
+  if (!fp) return;
+  const shot = showShot % 4, cp = fp.clone(), look = fp.clone();
+  if (shot === 0) { cp.addScaledVector(ft, -13).setY(4.5); look.addScaledVector(ft, 12); }
+  else if (shot === 1) { cp.addScaledVector(fn, 13).addScaledVector(ft, -3).setY(2.6); look.addScaledVector(ft, 1); }
+  else if (shot === 2) { cp.addScaledVector(ft, 15).addScaledVector(fn, 3).setY(2.4); }
+  else { cp.addScaledVector(ft, -26).setY(42); }
+  camera.position.copy(cp); camera.lookAt(look.setY(shot === 3 ? 0 : 1.6));
+  applyEnv(themeAt(showKarts[3].idx), 1 - Math.exp(-3 * dt));
+}
+const menus = initMenus({ $, show, audio, startFlow: () => $('start').onclick() });
+startShowcase();
 loop();
