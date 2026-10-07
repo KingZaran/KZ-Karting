@@ -3,6 +3,10 @@ import { createFx } from './fx.js';
 import { createAudio } from './audio.js';
 import { itemIcon } from './sprites.js';
 import { initMenus } from './menu.js';
+import { PAINT, computeStats, randomLoadout } from './roster.js';
+import { buildKart } from './karts3d.js';
+import { createGarage } from './garage.js';
+import { initGarageUI } from './garageui.js';
 import { TRACKS, ITEMS } from './tracks.js';
 import { buildThemes } from './themes.js';
 const $ = id => document.getElementById(id);
@@ -24,7 +28,7 @@ const readItems = () => itemBoxes.filter(([, c]) => c.checked).map(([id]) => id)
 const setItems = fn => itemBoxes.forEach(([, c], i) => { c.checked = fn(i); c.sync(); });
 $('iAll').onclick = () => setItems(() => true); $('iNone').onclick = () => setItems(() => false); $('iRand').onclick = () => setItems(() => Math.random() < .5);
 function readSettings() {
-  settings = { bots: +$('bots').value, diff: $('diff').value, laps: $('laps').value, cls: $('cls').value, items: readItems(), gfx: $('gfx').value }; save(); return settings;
+  settings = { bots: +$('bots').value, diff: $('diff').value, laps: $('laps').value, cls: $('cls').value, items: readItems(), gfx: $('gfx').value, lo: garageUI.get() }; save(); return settings;
 }
 function show(id) { for (const s of ['title', 'main', 'menu', 'vote']) $(s).classList.toggle('on', s === id); }
 
@@ -194,17 +198,7 @@ function nearest(x, z, hint = 0, full = false) {
 
 // ---------- karts ----------
 const COLORS = [0xe53935,0x1e88e5,0x43a047,0xfdd835,0x8e24aa,0xfb8c00,0x00acc1,0xd81b60,0x6d4c41,0x7cb342,0x3949ab,0xf4511e];
-function makeKart(color) {
-  const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.2, .8, 3.6), new THREE.MeshStandardMaterial({ color, metalness:.4, roughness:.35 })); body.position.y = 1; body.castShadow = true;
-  const seat = new THREE.Mesh(new THREE.BoxGeometry(1.4,.9,1), new THREE.MeshStandardMaterial({ color: 0x222222 })); seat.position.set(0,1.6,-.5);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(.55), new THREE.MeshStandardMaterial({ color: 0xffe0bd })); head.position.set(0,2.4,-.5);
-  g.add(body, seat, head);
-  for (const [x,z] of [[-1.2,1.2],[1.2,1.2],[-1.2,-1.2],[1.2,-1.2]]) {
-    const w = new THREE.Mesh(new THREE.CylinderGeometry(.55,.55,.5,14), new THREE.MeshStandardMaterial({ color: 0x111111 })); w.rotation.z = Math.PI/2; w.position.set(x,.55,z); g.add(w);
-  }
-  scene.add(g); return g;
-}
+function makeKart(color, lo) { const g = buildKart(THREE, lo || randomLoadout(), color); scene.add(g); return g; }
 
 const keys = {};
 addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'KeyM') zoneBanner(audio.toggle() ? '🔇 Sound off' : '🔊 Sound on'); if (e.code === 'KeyR' && state !== 'idle') startRace(lastOpts);
@@ -217,15 +211,16 @@ function startRace(o) {
   lastOpts = o; stopShowcase(); applyGfx(o.gfx); lastCd = -1; $('mini').style.display = 'block'; show(null); clearWorld(); loadTrack(o.track);
   karts.forEach(k => scene.remove(k.mesh)); karts = [];
   race = { laps: +o.laps, items: o.items, finishOrder: [] };
-  MAX = 48 * +o.cls; const diff = +o.diff;
+  MAX = 48 * +o.cls; const diff = +o.diff, usedChars = new Set([o.lo.char]), usedPaints = new Set([o.lo.paint]);
   for (let n = 0; n < o.bots + 1; n++) {
     const row = Math.floor(n/2), side = n % 2 ? 1 : -1;
     const idx = (N - 6 - row*8 + N) % N, t = tangent(idx), nrm = new THREE.Vector3(-t.z,0,t.x);
     const p = samples[idx].clone().addScaledVector(nrm, side*4);
-    karts.push({ col: COLORS[n % COLORS.length], mesh: makeKart(COLORS[n % COLORS.length]), pos: p, heading: Math.atan2(t.x, t.z), speed: 0, idx, lap: -1, progress: -1 + idx/N, boost: 0, driftT: 0, item: null, spin: 0, star: 0, shrink: 0, rocket: 0, plantT: 0, invuln: 0, useCd: 0, inkT: 0, coins: 0, hopY: 0,
+    const lo = n === 0 ? o.lo : randomLoadout(usedChars, usedPaints), st = computeStats(lo);
+    karts.push({ lo, col: PAINT[lo.paint].hex, mesh: makeKart(PAINT[lo.paint].hex, lo), top: MAX * st.speedMul, acc: ACC * st.accMul, hand: st.hand, driftMul: st.driftMul, mass: st.mass, size: st.size, spinMul: st.spinMul, offMul: st.offMul, pos: p, heading: Math.atan2(t.x, t.z), speed: 0, idx, lap: -1, progress: -1 + idx/N, boost: 0, driftT: 0, item: null, spin: 0, star: 0, shrink: 0, rocket: 0, plantT: 0, invuln: 0, useCd: 0, inkT: 0, coins: 0, hopY: 0,
       isBot: n !== 0, name: n === 0 ? 'YOU' : 'Bot ' + n, skill: diff - Math.random() * 0.12, lane: (Math.random()-.5) * (WIDTH * .5), finished: false , immune: 0, starT: 0, rocketT: 0, ink: 0, useAt: 0, gotAt: 0 });
   }
-  lastTheme = null; player = karts[0]; ranked = [...karts]; spawnBoxes(); state = 'countdown'; countdown = 3.99; clock.getDelta();
+  karts.forEach(k => k.mesh.scale.setScalar(k.size)); lastTheme = null; player = karts[0]; ranked = [...karts]; spawnBoxes(); state = 'countdown'; countdown = 3.99; clock.getDelta();
   $('hud').style.display = $('menuBtn').style.display = 'block'; $('big').textContent = '';
 }
 function toMenu() { state = 'idle'; audio.silence(); $('mini').style.display = 'none'; karts.forEach(k => scene.remove(k.mesh)); karts = []; clearWorld(); $('hud').style.display = $('menuBtn').style.display = 'none'; $('big').textContent = ''; startShowcase(); menus.go('menu'); }
@@ -308,7 +303,7 @@ function rollItem(k) {
 }
 function hit(k, power) {
   if (k.starT > 0 || k.rocketT > 0 || k.immune > 0) return false;
-  k.spin = power; k.immune = power + 1.2; k.speed *= .15; k.boost = 0; burst(k.pos, 0xffe14a, 14, 12); if (k === player) audio.sfx('hit'); return true;
+  k.spin = power * (k.spinMul || 1); k.immune = power + 1.2; k.speed *= .15; k.boost = 0; burst(k.pos, 0xffe14a, 14, 12); if (k === player) audio.sfx('hit'); return true;
 }
 function fx(pos, color, r) { const m = mk(new THREE.SphereGeometry(1, 16, 12), color, 1); m.material.transparent = true; m.position.copy(pos).setY(1); fxs.push({ mesh: m, life: .45, r }); }
 function explode(pos, r, power, color) { burst(pos, color, 60, 28); audio.sfx('boom', Math.max(.15, 1 - dist2(pos, player.pos) / 120)); karts.forEach(k => { if (dist2(k.pos, pos) < r) hit(k, power); }); fx(pos, color, r); }
@@ -442,7 +437,7 @@ function emitKartFx(k, dt) {
 
 // ---------- driving ----------
 const move = (k, dt) => { k.pos.x += Math.sin(k.heading) * k.speed * dt; k.pos.z += Math.cos(k.heading) * k.speed * dt; };
-const capOf = (k, off) => (off ? MAX * .4 : MAX) * (k.shrink > 0 ? .7 : 1) * (1 + k.coins * .012) + (k.boost > 0 ? 22 : 0) + (k.starT > 0 ? 6 : 0);
+const capOf = (k, off) => (off ? k.top * k.offMul : k.top) * (k.shrink > 0 ? .7 : 1) * (1 + k.coins * .012) + (k.boost > 0 ? 22 : 0) + (k.starT > 0 ? 6 : 0);
 function tick(k, dt) { for (const s of ['spin', 'immune', 'starT', 'rocketT', 'plantT', 'shrink', 'ink']) if (k[s] > 0) k[s] = Math.max(0, k[s] - dt); }
 function updatePlayer(k, dt) {
   const near = nearest(k.pos.x, k.pos.z, k.idx); k.idx = near.i;
@@ -450,13 +445,13 @@ function updatePlayer(k, dt) {
   const up = keys.KeyW || keys.ArrowUp, down = keys.KeyS || keys.ArrowDown;
   const steer = (keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0);
   const off = k.off = near.d > WIDTH/2 + 1, drifting = k.drifting = (keys.Space || keys.ShiftLeft) && Math.abs(k.speed) > 20 && steer !== 0, cap = capOf(k, off);
-  if (state === 'racing' && !k.finished) { if (up) k.speed += ACC*dt; else if (down) k.speed -= ACC*1.4*dt; else k.speed -= Math.sign(k.speed)*12*dt; }
+  if (state === 'racing' && !k.finished) { if (up) k.speed += k.acc*dt; else if (down) k.speed -= k.acc*1.4*dt; else k.speed -= Math.sign(k.speed)*12*dt; }
   else k.speed -= Math.sign(k.speed)*20*dt;
   if (k.speed > cap) k.speed = Math.max(cap, k.speed - 45*dt); k.speed = Math.max(-15, k.speed);
   const grip = Math.min(1, Math.abs(k.speed)/20) * Math.sign(k.speed || 1);
   k.steer = (k.steer || 0) + (steer - (k.steer || 0)) * Math.min(1, 9 * dt);
-  k.heading += k.steer * (drifting ? 2.4 : 1.6) * (1 - .25 * Math.min(1, Math.abs(k.speed) / MAX)) * grip * dt;
-  if (drifting) k.driftT += dt; else { if (k.driftT > 1.2) k.boost = Math.max(k.boost, 1.2); else if (k.driftT > .6) k.boost = Math.max(k.boost, .6); k.driftT = 0; }
+  k.heading += k.steer * (drifting ? 2.4 : 1.6) * k.hand * (1 - .25 * Math.min(1, Math.abs(k.speed) / MAX)) * grip * dt;
+  if (drifting) k.driftT += dt * k.driftMul; else { if (k.driftT > 1.2) k.boost = Math.max(k.boost, 1.2); else if (k.driftT > .6) k.boost = Math.max(k.boost, .6); k.driftT = 0; }
   k.boost = Math.max(0, k.boost - dt); move(k, dt);
 }
 function updateBot(k, dt) {
@@ -466,12 +461,12 @@ function updateBot(k, dt) {
   const rk = k.rocketT > 0, target = samples[(k.idx + 12) % N], t = tangent((k.idx + 12) % N), nrm = V(-t.z, 0, t.x);
   const aim = target.clone().addScaledVector(nrm, rk ? 0 : k.lane);
   let diff = Math.atan2(aim.x - k.pos.x, aim.z - k.pos.z) - k.heading; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-  k.heading += Math.max(-2.2*dt, Math.min(2.2*dt, diff*9*dt));
+  k.heading += Math.max(-2.2*k.hand*dt, Math.min(2.2*k.hand*dt, diff*9*dt));
   k.steer = (k.steer || 0) + (Math.max(-1, Math.min(1, diff * 2.5)) - (k.steer || 0)) * Math.min(1, 8 * dt); k.off = near.d > WIDTH/2 + 1; k.drifting = false;
   k.boost = Math.max(0, k.boost - dt);
-  let ts = state === 'racing' ? MAX * k.skill * (1 - Math.min(.35, Math.abs(diff)*.5)) : 0;
-  ts *= (k.shrink > 0 ? .7 : 1) * (1 + k.coins * .012); if (k.boost > 0 || k.starT > 0) ts *= 1.3; if (rk) ts = MAX * 1.6;
-  k.speed += Math.sign(ts - k.speed) * Math.min(Math.abs(ts - k.speed), ACC * (rk ? 3 : 1) * dt); move(k, dt);
+  let ts = state === 'racing' ? k.top * k.skill * (1 - Math.min(.35, Math.abs(diff)*.5)) : 0;
+  ts *= (k.shrink > 0 ? .7 : 1) * (1 + k.coins * .012); if (k.boost > 0 || k.starT > 0) ts *= 1.3; if (rk) ts = k.top * 1.6;
+  k.speed += Math.sign(ts - k.speed) * Math.min(Math.abs(ts - k.speed), k.acc * (rk ? 3 : 1) * dt); move(k, dt);
 }
 function trackLap(k) {
   const prev = k.prevIdx ?? k.idx, lap0 = k.lap;
@@ -482,9 +477,10 @@ function trackLap(k) {
 function collide() {
   for (let a = 0; a < karts.length; a++) for (let b = a+1; b < karts.length; b++) {
     const A = karts[a], B = karts[b], dx = B.pos.x-A.pos.x, dz = B.pos.z-A.pos.z, d = Math.hypot(dx,dz);
-    if (d < 3 && d > 0.001) { const push = (3-d)/2, nx = dx/d, nz = dz/d;
-      A.pos.x -= nx*push; A.pos.z -= nz*push; B.pos.x += nx*push; B.pos.z += nz*push;
-      const s = (A.speed + B.speed)/2; A.speed = A.speed*.8 + s*.2; B.speed = B.speed*.8 + s*.2;
+    const lim = 1.5 * (A.size + B.size);
+    if (d < lim && d > 0.001) { const tot = lim - d, mA = A.mass, mB = B.mass, pA = tot * mB / (mA + mB), pB = tot * mA / (mA + mB), nx = dx/d, nz = dz/d;
+      A.pos.x -= nx*pA; A.pos.z -= nz*pA; B.pos.x += nx*pB; B.pos.z += nz*pB;
+      const s = (mA * A.speed + mB * B.speed) / (mA + mB); A.speed = A.speed*.8 + s*.2; B.speed = B.speed*.8 + s*.2;
       if (A.starT > 0 || A.rocketT > 0) hit(B, 1.2); if (B.starT > 0 || B.rocketT > 0) hit(A, 1.2); }
   }
 }
@@ -505,7 +501,7 @@ function loop() {
       trackLap(k); const sp01 = Math.min(1, Math.abs(k.speed) / MAX); k.slide = (k.slide || 0) + ((k.drifting ? (k.steer || 0) * .5 : 0) - (k.slide || 0)) * Math.min(1, 10 * dt);
       k.mesh.rotation.order = 'YXZ'; k.mesh.position.set(k.pos.x, k.off && sp01 > .2 ? Math.abs(Math.sin(T * 45 + k.heading)) * .12 : 0, k.pos.z);
       k.mesh.rotation.set(0, k.heading + k.spin * 12 + k.slide, (k.steer || 0) * (.14 + (k.drifting ? .1 : 0)) * sp01); emitKartFx(k, dt);
-      const sc = k.shrink > 0 ? .5 : 1; k.mesh.scale.setScalar(k.mesh.scale.x + (sc - k.mesh.scale.x) * Math.min(1, 8*dt));
+      const sc = (k.shrink > 0 ? .5 : 1) * k.size; k.mesh.scale.setScalar(k.mesh.scale.x + (sc - k.mesh.scale.x) * Math.min(1, 8*dt));
       k.mesh.children[0].material.emissive.setHSL(k.starT > 0 ? (T * 2) % 1 : 0, 1, k.starT > 0 ? .5 : 0);
       if (!k.plantMesh) { k.plantMesh = new THREE.Mesh(new THREE.SphereGeometry(1.3, 12, 10), new THREE.MeshStandardMaterial({ color: 0x2e8b2e })); k.plantMesh.position.set(0, 1.4, 3.6); k.mesh.add(k.plantMesh); }
       k.plantMesh.visible = k.plantT > 0; if (k.plantT > 0) k.plantMesh.scale.setScalar(1 + .25 * Math.sin(T * 14));
@@ -524,7 +520,7 @@ function loop() {
     pfx.update(dt); drawMini(); audio.engine(s01, player.drifting ? 1 : (player.off && s01 > .2 ? .5 : 0), player.boost > 0 || player.rocketT > 0);
     camera.fov = 70 + Math.min(15, Math.abs(player.speed)*.25 + (player.boost>0?8:0)); camera.updateProjectionMatrix();
     sun.position.set(player.pos.x+100, 200, player.pos.z+60); sun.target.position.copy(player.pos);
-  } else if (trackDef && showKarts.length) { updateShowcase(dt); }
+  } else if (trackDef && showKarts.length) { updateShowcase(dt); garage.render(dt, menus.screen === 'menu'); }
   if (useBloom && composer) composer.render(); else renderer.render(scene, camera);
 }
 // ---------- title-screen showcase: live "clips" of the game behind the menus ----------
@@ -551,6 +547,7 @@ function updateShowcase(dt) {
   camera.position.copy(cp); camera.lookAt(look.setY(shot === 3 ? 0 : 1.6));
   applyEnv(themeAt(showKarts[3].idx), 1 - Math.exp(-3 * dt));
 }
-const menus = initMenus({ $, show, audio, startFlow: () => $('start').onclick() });
+const garage = createGarage(THREE, $('gcanvas')), garageUI = initGarageUI({ $, audio, garage, lo0: settings.lo });
+const menus = initMenus({ $, show, audio, garageUI, startFlow: () => $('start').onclick() });
 startShowcase();
 loop();
