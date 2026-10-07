@@ -32,6 +32,7 @@ export function createAudio() {
     const s = ctx.createBufferSource(), fl = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = b; fl.type = 'lowpass'; fl.frequency.value = f; g.gain.value = vol * gv; s.connect(fl); fl.connect(g); g.connect(master); s.start(t);
   }
   const S = {
+    tick: () => tone(1100, 1100, .04, 'square', .1), ok: () => { tone(660, 990, .12, 'triangle', .2); tone(990, 1320, .15, 'triangle', .15, .08); }, back: () => tone(500, 250, .12, 'triangle', .18),
     beep: () => tone(440, 440, .18, 'square', .25), go: () => tone(880, 880, .5, 'square', .3),
     pickup: () => [0, 1, 2].forEach(i => tone(520 * 1.26 ** i, 520 * 1.26 ** i, .09, 'triangle', .22, i * .07)),
     use: () => { noiseBurst(.18, .25, 1200); tone(300, 700, .15, 'sawtooth', .1); },
