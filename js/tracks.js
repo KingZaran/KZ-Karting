@@ -9,12 +9,12 @@ const SHAPE = {
   frost: ring(12, a => 140 + 35 * Math.sin(3 * a + 1)),
 };
 export const TRACKS = [
-  { id: 'circuit', name: 'Grand Circuit', width: 20, pts: SHAPE.loop, zones: [['meadow', .34], ['ink', .67], ['dunes', 1]] },
-  { id: 'hollow', name: 'Hollow Depths', width: 18, pts: SHAPE.twist, zones: [['hollow', .5], ['silk', 1]] },
-  { id: 'inkarena', name: 'Ink Arena Rush', width: 22, pts: SHAPE.kidney, zones: [['ink', .4], ['neon', .7], ['brawl', 1]] },
-  { id: 'halls', name: 'The Yellow Halls', width: 20, pts: SHAPE.wide, zones: [['backrooms', .6], ['neon', .8], ['backrooms', 1]] },
-  { id: 'mayhem', name: 'Crossover Mayhem', width: 22, pts: SHAPE.hairpin, zones: [['meadow', .16], ['hollow', .33], ['ink', .5], ['backrooms', .66], ['brawl', .83], ['silk', 1]] },
-  { id: 'frostfire', name: 'Frost & Fire', width: 24, pts: SHAPE.frost, zones: [['frost', .34], ['lava', .67], ['candy', 1]] },
+  { id: 'circuit', name: 'Grand Circuit', width: 20, elev: [15, 4, 2, 0, 2, 5, 1], pts: SHAPE.loop, zones: [['meadow', .34], ['ink', .67], ['dunes', 1]] },
+  { id: 'hollow', name: 'Hollow Depths', width: 18, elev: [16, 5, 3, .5, 2, 6, 2], pts: SHAPE.twist, zones: [['hollow', .5], ['silk', 1]] },
+  { id: 'inkarena', name: 'Ink Arena Rush', width: 22, elev: [17, 5, 2, 1, 3, 4, 0], pts: SHAPE.kidney, zones: [['ink', .4], ['neon', .7], ['brawl', 1]] },
+  { id: 'halls', name: 'The Yellow Halls', width: 20, elev: [14, 3, 2, 0, 1.5, 5, 1], pts: SHAPE.wide, zones: [['backrooms', .6], ['neon', .8], ['backrooms', 1]] },
+  { id: 'mayhem', name: 'Crossover Mayhem', width: 22, elev: [20, 6, 3, 0, 3, 5, 2], pts: SHAPE.hairpin, zones: [['meadow', .16], ['hollow', .33], ['ink', .5], ['backrooms', .66], ['brawl', .83], ['silk', 1]] },
+  { id: 'frostfire', name: 'Frost & Fire', width: 24, elev: [16, 4, 3, 1, 2, 6, 0], pts: SHAPE.frost, zones: [['frost', .34], ['lava', .67], ['candy', 1]] },
 ];
 export const ITEMS = [
   ['banana','Peel'],['banana3','Triple Peel'],['gshell','Bounce Shell'],['gshell3','Triple Bounce Shell'],
