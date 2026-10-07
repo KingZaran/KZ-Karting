@@ -1,19 +1,51 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Turbo Realms Kart</title>
-<style>
-html,body{margin:0;height:100%;overflow:hidden;background:#111;font-family:system-ui,sans-serif;color:#fff}
+<style>html,body{margin:0;height:100%;overflow:hidden;background:#111;font-family:"Arial Black",Impact,system-ui,sans-serif;color:#fff}
 canvas{display:block}
 .screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(#2b3a67,#0b0f1f);overflow:auto;padding:20px;box-sizing:border-box}
 .screen.on{display:flex}
+.screen.glass{background:linear-gradient(180deg,rgba(5,8,20,.72),rgba(5,8,20,.12) 42%,rgba(5,8,20,.78))}
 h1{font-size:44px;margin:0;letter-spacing:2px} h2{margin:0}
-.grid{display:grid;gap:10px 22px;grid-template-columns:repeat(2,auto);align-items:center}
-.grid label{display:contents}
-select,button{font-size:17px;padding:8px 14px;border-radius:8px;border:0}
+select,button{font-family:inherit;font-size:17px;padding:8px 14px;border-radius:8px;border:0}
 button{background:#ffcc00;font-weight:700;cursor:pointer}
-button.sec{background:#3a4a7a;color:#fff;font-size:14px;padding:5px 10px}
-#items{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px;max-width:760px;width:100%}
-#items label{background:#1a2347;padding:6px 10px;border-radius:6px;font-size:14px;cursor:pointer;display:flex;gap:8px;align-items:center}
+button.sec{background:#3a4a7a;color:#fff;font-size:13px;padding:6px 12px}
+/* title */
+.logo{font-size:min(14vw,150px);font-weight:900;font-style:italic;letter-spacing:-2px;line-height:1;transform:rotate(-4deg) skewX(-8deg);background:linear-gradient(180deg,#fff7a8 10%,#ffc400 45%,#ff6a00 90%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:5px #1a0a00;paint-order:stroke fill;filter:drop-shadow(0 8px 0 #c1121f) drop-shadow(0 18px 24px #000)}
+.logo i{font-style:normal;color:#e60012;-webkit-text-fill-color:#e60012}
+.logo.small{font-size:min(9vw,84px);margin-bottom:24px}
+.press{font-size:26px;letter-spacing:6px;animation:blink 1.1s infinite;text-shadow:0 3px 8px #000;margin-top:34px}
+@keyframes blink{50%{opacity:.25}}
+.credit{position:absolute;bottom:14px;font-size:12px;opacity:.6;letter-spacing:2px}
+/* main menu */
+.stack{display:flex;flex-direction:column;gap:18px;width:min(520px,90vw)}
+.big-btn{font-size:30px;font-style:italic;padding:22px 30px;border-radius:60px;background:linear-gradient(180deg,#fff,#d9dde8);color:#1a1f33;border:5px solid #1a1f33;box-shadow:0 8px 0 #0008;transition:transform .12s;text-transform:uppercase;letter-spacing:1px}
+.big-btn.sel{background:linear-gradient(180deg,#ff5a5a,#e60012);color:#fff;transform:scale(1.07) translateX(8px);border-color:#fff;box-shadow:0 10px 0 #7a0010,0 0 30px #e6001288}
+.big-btn.dim{opacity:.75}
+.big-btn.nope{animation:nope .35s}
+@keyframes nope{25%{transform:translateX(-12px)}75%{transform:translateX(12px)}}
+.hint{font-size:13px;opacity:.7;letter-spacing:2px;margin-top:20px}
+/* setup */
+.wrap{display:grid;grid-template-columns:1.15fr .85fr;gap:22px;width:min(1240px,97vw);height:min(88vh,780px)}
+.panel{background:rgba(8,12,30,.82);border:4px solid #ffffff30;border-radius:26px;padding:16px 22px;overflow:auto;backdrop-filter:blur(8px);display:flex;flex-direction:column;gap:8px}
+.ptitle{font-size:20px;letter-spacing:3px;font-style:italic;color:#ffd400;margin-bottom:6px;text-shadow:0 2px 0 #000}
+.row{display:flex;justify-content:space-between;align-items:center;padding:7px 20px;border-radius:40px;background:#ffffff16;font-size:16px;cursor:pointer;border:3px solid transparent;transition:transform .1s}
+.row.sel{background:linear-gradient(90deg,#e60012,#ff5a5a);transform:scale(1.025);border-color:#fff;box-shadow:0 0 22px #e6001266}
+.row .val{display:flex;align-items:center;gap:14px}.row em{font-style:normal;min-width:130px;text-align:center}
+.ar{cursor:pointer;opacity:.85;padding:0 6px}.ar:hover{transform:scale(1.35)}
+#itemsHead{border-radius:16px}#itemsHead .mini{display:flex;gap:6px}
+#items{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.tile{position:relative;background:#ffffff14;border:3px solid transparent;border-radius:14px;padding:4px 2px 3px;text-align:center;cursor:pointer;font-size:9px;line-height:1.1;transition:transform .1s,opacity .15s,filter .15s}
+.tile img{width:100%;max-width:42px;display:block;margin:0 auto 3px;image-rendering:auto}
+.tile.off{opacity:.3;filter:grayscale(1)}
+.tile.cur{border-color:#fff;transform:scale(1.1);background:#ffffff30;z-index:2}
+.tile:hover{transform:scale(1.07)}
+.foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;padding-top:10px}
+.foot small{font-size:10px;opacity:.6;max-width:55%;line-height:1.4;letter-spacing:.5px}
+button.go{font-size:24px;font-style:italic;padding:12px 34px;border-radius:50px;background:linear-gradient(180deg,#fff,#d9dde8);color:#1a1f33;border:4px solid #1a1f33}
+button.go.sel{background:linear-gradient(180deg,#ff5a5a,#e60012);color:#fff;border-color:#fff;transform:scale(1.08)}
+.soon{margin:auto;text-align:center;opacity:.55;font-size:16px;letter-spacing:2px;line-height:1.8}
+/* vote */
 .cards{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;max-width:900px}
 .card{width:190px;background:#1a2347;border:3px solid transparent;border-radius:12px;padding:10px;cursor:pointer;text-align:center;position:relative}
 .card:hover{border-color:#ffcc0088}.card.sel{border-color:#ffcc00}.card.win{border-color:#4cff7a;box-shadow:0 0 20px #4cff7a}
@@ -21,6 +53,7 @@ button.sec{background:#3a4a7a;color:#fff;font-size:14px;padding:5px 10px}
 .badge{position:absolute;top:6px;right:6px;background:#e53935;border-radius:12px;padding:2px 9px;font-weight:700}
 #hud{position:fixed;top:12px;left:16px;font-size:26px;font-weight:700;text-shadow:0 2px 4px #000;display:none;line-height:1.3}
 #itemBox{position:fixed;top:12px;left:50%;transform:translateX(-50%);min-width:110px;height:84px;background:#0009;border:3px solid #fff;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:40px;line-height:1}
+#itemBox img{width:52px;height:52px}
 #itemBox small{font-size:13px;margin-top:4px}
 #ink{position:fixed;inset:0;background:radial-gradient(circle,#0000 5%,#111 70%);opacity:0;pointer-events:none}
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
@@ -34,20 +67,28 @@ button.sec{background:#3a4a7a;color:#fff;font-size:14px;padding:5px 10px}
 #flash{position:fixed;inset:0;pointer-events:none;opacity:0;background:#fff;transition:opacity .25s}
 #help{position:fixed;bottom:10px;left:16px;font-size:13px;opacity:.7;display:none}
 </style></head><body>
+<div id="title" class="screen glass on"><div class="logo"><span>KZ</span><i>-</i>KARTING</div><div class="press">PRESS ENTER</div><div class="credit">KZ-KARTING · FRIENDS EDITION</div></div>
 
-<div id="menu" class="screen on"><h1>TURBO REALMS KART</h1>
- <div class="grid">
-  <label>Bots <select id="bots"></select></label>
-  <label>Bot difficulty <select id="diff"><option value="0.8">Easy</option><option value="0.9" selected>Normal</option><option value="1">Hard</option></select></label>
-  <label>Laps <select id="laps"><option>1</option><option>2</option><option>3</option><option>5</option><option>7</option></select></label>
-  <label>Graphics <select id="gfx"><option value="high" selected>High (bloom + shadows)</option><option value="low">Low (faster)</option></select></label>
-  <label>Engine class <select id="cls"><option value="0.8">50cc</option><option value="1" selected>100cc</option><option value="1.2">150cc</option><option value="1.4">200cc</option></select></label>
+<div id="main" class="screen glass"><div class="logo small"><span>KZ</span><i>-</i>KARTING</div>
+ <div class="stack"><button class="big-btn sel">Single Player</button><button class="big-btn dim">Online Multiplayer</button></div>
+ <div class="hint">↑ ↓ CHOOSE · ENTER CONFIRM · ESC BACK</div></div>
+
+<div id="menu" class="screen glass"><div class="wrap">
+ <div class="panel"><div class="ptitle">SINGLE PLAYER · RACE SETUP</div>
+  <div id="rows"></div>
+  <div class="row" id="itemsHead" style="cursor:default"><span>Items</span><span class="mini"><button class="sec" id="iAll">All on</button><button class="sec" id="iNone">All off</button><button class="sec" id="iRand">Random</button></span></div>
+  <div id="items"></div>
+  <div class="foot"><button class="sec" id="backBtn">◀ BACK</button><small>WASD / ARROWS DRIVE · SPACE DRIFT · E / ENTER ITEM (HOLD S TO DROP BEHIND) · R RESTART · M MUTE</small><button class="go" id="start">OK ▶</button></div>
  </div>
- <h2>Items</h2>
- <div><button class="sec" id="iAll">All on</button> <button class="sec" id="iNone">All off</button> <button class="sec" id="iRand">Random mix</button></div>
- <div id="items"></div>
- <button id="start">CHOOSE TRACK ▶</button>
- <small>W/A/S/D or arrows to drive · Space/Shift to drift (release for a boost) · E or Enter = use item (hold S/↓ to throw backwards) · E / Enter = use item (hold S/↓ to drop behind) · R restart · M mute</small>
+ <div class="panel" id="garage"><div class="ptitle">GARAGE</div><div class="soon">CHARACTERS · KARTS · STATS<br>COMING IN THE NEXT STEP</div></div>
+ </div>
+ <div style="display:none">
+  <select id="bots"></select>
+  <select id="diff"><option value="0.8">Easy</option><option value="0.9" selected>Normal</option><option value="1">Hard</option></select>
+  <select id="laps"><option>1</option><option>2</option><option>3</option><option>5</option><option>7</option></select>
+  <select id="cls"><option value="0.8">50cc</option><option value="1" selected>100cc</option><option value="1.2">150cc</option><option value="1.4">200cc</option></select>
+  <select id="gfx"><option value="high" selected>High</option><option value="low">Low (faster)</option></select>
+ </div>
 </div>
 
 <div id="vote" class="screen"><h1>VOTE FOR A TRACK</h1><h2 id="voteMsg"></h2><div class="cards" id="cards"></div></div>
