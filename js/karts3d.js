@@ -1,5 +1,6 @@
 // Procedural kart + character models (original designs). Child 0 is always the painted chassis.
 import { getChar, getKart, getWheel } from './roster.js';
+import { MODELS } from './models.js';
 export function buildKart(THREE, lo, paint) {
   const C = getChar(lo.char), K = getKart(lo.kart), Wh = getWheel(lo.wheel), g = new THREE.Group();
   const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .6, metalness: .1, ...o });
@@ -7,11 +8,13 @@ export function buildKart(THREE, lo, paint) {
   const G = { box: (w, h, d) => new THREE.BoxGeometry(w, h, d), cyl: (a, b, h, s = 12) => new THREE.CylinderGeometry(a, b, h, s), sph: r => new THREE.SphereGeometry(r, 14, 10), cone: (r, h, s = 10) => new THREE.ConeGeometry(r, h, s), tor: (r, t, arc = 6.2832) => new THREE.TorusGeometry(r, t, 8, 18, arc) };
   const put = (parent, geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.castShadow = true; parent.add(m); return m; };
   const dark = M(0x1c1c22), chrome = M(0xcfd4dc, { metalness: .8, roughness: .25 }), paintM = M(paint, { metalness: .5, roughness: .3 });
+  const base = .45 + Wh.r * .6, top = base + K.h, gk = MODELS.karts[lo.kart], L = K.l / 2;
+  if (gk) {
+    const m = gk.clone(true); m.traverse(o => { if (!o.isMesh) return; o.material = o.material.clone(); o.castShadow = true; if (!g.userData.body) g.userData.body = o; if (/paint|body/i.test(o.material.name)) { o.material.color.set(paint); g.userData.body = o; } }); g.add(m);
+  } else {
   // chassis (child 0)
-  const base = .45 + Wh.r * .6, top = base + K.h;
-  const chassis = put(g, G.box(K.w, K.h, K.l), paintM, 0, base + K.h / 2, 0);
+  const chassis = put(g, G.box(K.w, K.h, K.l), paintM, 0, base + K.h / 2, 0); g.userData.body = chassis;
   // style extras
-  const L = K.l / 2;
   if (K.id === 'standard') { put(g, G.box(K.w * .8, .35, .9), paintM, 0, base + K.h * .6, L + .35); put(g, G.cyl(.18, .18, .8), chrome, -.6, base + .3, -L - .3, Math.PI / 2); put(g, G.cyl(.18, .18, .8), chrome, .6, base + .3, -L - .3, Math.PI / 2); }
   if (K.id === 'hotrod') { put(g, G.cone(.9, 2, 12), paintM, 0, base + .3, L + .8, Math.PI / 2); put(g, G.box(2.4, .12, .7), dark, 0, top + .8, -L + .1); put(g, G.box(.12, .8, .12), dark, -.8, top + .4, -L + .1); put(g, G.box(.12, .8, .12), dark, .8, top + .4, -L + .1); for (const s of [-1, 1]) put(g, G.cyl(.14, .2, 1, 10), chrome, s * .5, base + .4, -L - .4, Math.PI / 2); put(g, G.box(K.w * 1.1, .12, .5), dark, 0, base - .05, L + 1.2); }
   if (K.id === 'cruiser') { put(g, G.box(K.w * .9, .5, .25), chrome, 0, base + .3, L + .15); for (const s of [-1, 1]) { put(g, G.sph(.28), E(0xfff3b0, .9), s * .8, base + .55, L + .1); put(g, G.box(.1, .9, .5), paintM, s * (K.w / 2 - .2), top + .45, -L + .3); } put(g, G.box(K.w * 1.05, .3, .3), chrome, 0, base + .1, -L - .1); }
@@ -25,11 +28,13 @@ export function buildKart(THREE, lo, paint) {
     put(g, G.cyl(r * .5, r * .5, Wh.wd + .06, 10), hub, wx, r, wz, 0, 0, Math.PI / 2);
     if (Wh.id === 'mud') for (let i = 0; i < 8; i++) { const a = i / 8 * 6.2832; put(g, G.box(Wh.wd * .95, .16, .2), wm, wx, r + Math.sin(a) * r, wz + Math.cos(a) * r, a, 0, 0); }
   }
+  }
   put(g, G.tor(.32, .06), dark, 0, top + .55, L * .35, -.9);       // steering wheel
   // driver
   const seatY = top, cg = new THREE.Group(); cg.position.set(0, seatY, -K.l * .14); cg.scale.setScalar(C.scale || 1); g.add(cg);
   put(g, G.box(K.w * .55, .9, .35), dark, 0, top + .45, -K.l * .14 - .65);   // seat back
-  buildChar(THREE, C, cg, M, E, G, put);
+  const gc = MODELS.chars[C.id];
+  if (gc) { const m = gc.clone(true); m.traverse(o => { if (o.isMesh) o.castShadow = true; }); cg.add(m); } else buildChar(THREE, C, cg, M, E, G, put);
   return g;
 }
 function buildChar(THREE, C, cg, M, E, G, put) {
