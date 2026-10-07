@@ -14,9 +14,9 @@ export function buildThemes(THREE) {
   const T = {
     meadow: { name: 'Sunny Meadow', sky: 0x87ceeb, ground: 0x3f8f3f, road: 0x333338, edge: 0xffffff, accent: '#5fd35f', fog: [120, 500], hemi: .9, sun: 1.2,
       decor: [() => { const h = R(6, 14); return grp(part('cyl', trunk, .7, h * .4, .7, h * .2), part('cone', leaf, 3.4, h, 3.4, h * .9)); }, () => part('sph', bush, 2, 1.4, 2, .7)] },
-    dunes: { name: 'Sun-baked Dunes', sky: 0xf2b266, ground: 0xd9b56c, road: 0x4a3f36, edge: 0xffe0a0, accent: '#ffb347', fog: [120, 450], hemi: .95, sun: 1.3,
+    dunes: { name: 'Sun-baked Dunes', sky: 0xf2b266, ground: 0xd9b56c, road: 0x4a3f36, edge: 0xffe0a0, accent: '#ffb347', fog: [120, 450], hemi: .8, sun: 1,
       decor: [() => { const h = R(4, 9); return grp(part('cyl', cac, .8, h, .8, h / 2), part('cyl', cac, .5, h * .4, .5, h * .55, 1.3)); }, () => part('dod', rock, R(1.5, 4), R(1, 3), R(1.5, 4), 1)] },
-    frost: { name: 'Frost Fields', sky: 0xcfe8f5, ground: 0xf2f7fa, road: 0x5d6b78, edge: 0x8fd4ff, accent: '#9fe0ff', fog: [100, 420], hemi: 1, sun: 1,
+    frost: { name: 'Frost Fields', sky: 0xbcd8e8, ground: 0xd3e0e8, road: 0x5d6b78, edge: 0x8fd4ff, accent: '#9fe0ff', fog: [100, 420], hemi: .8, sun: .75,
       decor: [() => { const h = R(8, 18); return part('cone', ice, R(2, 4), h, R(2, 4), h / 2); }, () => part('sph', snow, 3, 3, 3, 1.5)] },
     neon: { name: 'Neon Night', sky: 0x070818, ground: 0x10122a, road: 0x1b1b2e, edge: 0x00ffe1, accent: '#ff2bd6', fog: [60, 260], hemi: .35, sun: .3,
       decor: [() => { const w = R(1.5, 3), h = R(8, 24); return part('box', pick(glow), w, h, w, h / 2); }] },
