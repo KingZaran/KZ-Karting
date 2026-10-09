@@ -14,6 +14,7 @@ export const CHARS = [
   { id: 'yeti', name: 'Frost Yeti', cls: 'Heavy', kind: 'yeti', stats: { speed: 7, accel: 4, handling: 5, weight: 8, drift: 5 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
   { id: 'mario', name: 'Mario', cls: 'Medium', kind: '8-deluxe', stats: { speed: 6, accel: 6, handling: 6, weight: 6, drift: 5 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
   { id: 'luigi', name: 'Luigi', cls: 'Medium', kind: '8-deluxe', stats: { speed: 7, accel: 6, handling: 6, weight: 6, drift: 5 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
+  { id: 'donkey-kong', name: 'Donkey Kong', cls: 'Heavy', kind: '8-deluxe', stats: { speed: 9, accel: 4, handling: 4, weight: 8, drift: 4 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
 ];
 export const KARTS = [
   { id: 'standard', name: 'Standard Kart', mod: { speed: 0, accel: 0, handling: 0, weight: 0, drift: 0 }, l: 3.6, w: 2.2, h: .7, size: 1 },
