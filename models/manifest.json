@@ -1,7 +1,7 @@
 {
   "karts": {},
   "chars": {
-    "mario": "models/chars/mario.glb",
+    "mario": "models/chars/marios.glb",
     "luigi": "models/chars/luigi.glb"
   },
   "props": {}
