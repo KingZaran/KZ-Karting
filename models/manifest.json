@@ -17,7 +17,7 @@
     "roy": "models/chars/roy.glb",
     "waluigi": "models/chars/waluigi.glb",
     "wario": "models/chars/wario.glb",
-    "hazmat": "models/chars/hazmat.glb",
+    "hazmat-main": "models/chars/hazmat.glb",
     "skinwalker": "models/chars/skinwalker.glb",
     "steve": "models/chars/steve.glb"
   },
