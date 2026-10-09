@@ -67,7 +67,17 @@ export async function preloadModels(THREE) {
     obj.position.set(-c.x, -box.min.y, -c.z); const w = new THREE.Group(); w.add(obj); return w;
   };
   // characters: fit standing height, bend into a driving pose, then plant the hips on the seat (origin = seat centre)
+  // Console report so a grey/untextured import can be diagnosed (open the browser console with F12).
+  function report(id, obj) {
+    const rows = []; let textured = 0, total = 0;
+    obj.traverse(o => { if (!o.isMesh) return; (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => { total++; if (m.map) textured++;
+      rows.push(`${o.name || '(mesh)'} / ${m.name || '(material)'}: colour #${m.color ? m.color.getHexString() : '?'}, texture ${m.map ? (m.map.image ? m.map.image.width + 'x' + m.map.image.height : 'declared but image missing') : 'NONE'}`); }); });
+    console.info(`[KZ-Karting] model "${id}": ${total} material(s), ${textured} with a texture\n` + rows.join('\n'));
+    if (!textured) console.warn(`[KZ-Karting] "${id}" has NO textures in the .glb, so it will look flat/grey. Re-export from Blender with textures packed (see models/README.md). To tint it instead, add "color": "#ff0000" in manifest.json.`);
+  }
   function fitChar(obj, o) {
+    report(o.id || '', obj);
+    if (o.color) obj.traverse(n => { if (n.isMesh) (Array.isArray(n.material) ? n.material : [n.material]).forEach(m => { if (m.color) m.color.set(o.color); }); });
     tame(obj);
     const holder = new THREE.Group(); holder.add(obj); obj.rotation.y = THREE.MathUtils.degToRad(o.yaw || 0); holder.updateWorldMatrix(true, true);
     let box = new THREE.Box3().setFromObject(holder), h = box.getSize(V3()).y || 1;
@@ -81,7 +91,7 @@ export async function preloadModels(THREE) {
   }
   const jobs = [];
   for (const [id, v] of list(manifest.karts)) { const o = cfg(v); jobs.push(load(o.url).then(m => { if (m) { tame(m); MODELS.karts[id] = fit(m, 'z', o.length || getKart(id).l + .8); } })); }
-  for (const [id, v] of list(manifest.chars)) { const o = cfg(v); jobs.push(load(o.url).then(m => { if (m) MODELS.chars[id] = fitChar(m, o); })); }
+  for (const [id, v] of list(manifest.chars)) { const o = cfg(v); jobs.push(load(o.url).then(m => { if (m) MODELS.chars[id] = fitChar(m, { ...o, id }); })); }
   for (const [theme, urls] of list(manifest.props)) for (const u of urls) { const o = cfg(u); jobs.push(load(o.url).then(m => { if (m) { tame(m); (MODELS.props[theme] ||= []).push(fit(m, 'y', o.height || 12)); } })); }
   await Promise.all(jobs); return true;
 }
