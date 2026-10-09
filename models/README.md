@@ -27,3 +27,20 @@ Add the model to `models/chars/` and use the object form in `manifest.json`; the
 - `yaw` - degrees to turn him if he faces backwards or sideways (try 180, 90 or -90).
 - `pose` - `true` (default) bends arms/legs of skinned rigs into a seated driving pose; `false` keeps him exactly as exported.
 Characters are placed with the hips on the seat automatically, so the model's own origin no longer matters.
+
+### Character looks grey / untextured?
+Open the browser console (F12) after the game loads: it lists each material and whether it has a texture.
+If it says `texture NONE`, the colours never made it into the `.glb`. In Blender:
+1. Switch the viewport to *Material Preview* - if he is grey there too, the textures aren't linked to the material.
+2. For each texture image: *Image Editor > Image > Pack*, and make sure it is plugged into the Principled BSDF *Base Color*.
+3. *File > Export > glTF 2.0 (.glb)*, expand *Materials* and leave it on **Export** (not "No export"), image format *Automatic* or *PNG/JPEG*
+   (not WebP/KTX2 unless you're sure), and untick Draco compression.
+Quick fallback: `"color": "#ffffff"` in his manifest entry multiplies his colours, and a hex like `"#e53935"` tints him.
+
+## Posing, facing and materials are automatic now
+- **Posing** finds arms/legs from the skeleton's *shape* (long sideways chains = arms, long downward chains = legs), so Sketchfab bone names don't matter.
+  If a model has no skeleton (a static mesh) it can't be bent; the console says so. Export it with its armature or use `"pose": false`.
+- **Facing** is auto-detected (feet point forward). Only set `"yaw"` if one still faces the wrong way (try 180, 90 or -90).
+- **Old materials** (`KHR_materials_pbrSpecularGlossiness`, common on converted Sketchfab files) are recovered automatically.
+- **Extra junk in a file** (e.g. a hexagon/platform mesh): `"hide": ["hexagon"]` removes any node whose name contains that word.
+  Press F12 and read the `[KZ-Karting]` lines to see mesh names, sizes, textures, chosen yaw and how many limbs were posed.
