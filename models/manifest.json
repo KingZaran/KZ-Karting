@@ -3,7 +3,7 @@
   "chars": {
     "mario": "models/chars/mario.glb",
     "luigi": "models/chars/luigi.glb",
-    "donkey-kong": "models/chars/donkey-kong.glb"
+    "donkey-kong": "models/chars/donkey-kong.glb",
     "bowser": "models/chars/bowser.glb",
     "bowser-jr": "models/chars/bowser-jr.glb",
     "cat-peach": "models/chars/cat-peach.glb",
