@@ -4,6 +4,15 @@
     "mario": "models/chars/mario.glb",
     "luigi": "models/chars/luigi.glb",
     "donkey-kong": "models/chars/donkey-kong.glb"
+    "bowser": "models/chars/bowser.glb",
+    "bowser-jr": "models/chars/bowser-jr.glb",
+    "cat-peach": "models/chars/cat-peach.glb",
+    "daisy": "models/chars/daisy.glb",
+    "larry": "models/chars/larry.glb",
+    "lemmy": "models/chars/lemmy.glb",
+    "ludwig": "models/chars/ludwig.glb",
+    "morton": "models/chars/morton.glb",
+    "peach": "models/chars/peach.glb",
   },
   "props": {}
 }
