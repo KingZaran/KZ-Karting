@@ -15,6 +15,15 @@ export const CHARS = [
   { id: 'mario', name: 'Mario', cls: 'Medium', kind: '8-deluxe', stats: { speed: 6, accel: 6, handling: 6, weight: 6, drift: 5 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
   { id: 'luigi', name: 'Luigi', cls: 'Medium', kind: '8-deluxe', stats: { speed: 7, accel: 6, handling: 6, weight: 6, drift: 5 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
   { id: 'donkey-kong', name: 'Donkey Kong', cls: 'Heavy', kind: '8-deluxe', stats: { speed: 9, accel: 4, handling: 4, weight: 8, drift: 4 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
+  { id: 'bowser', name: 'Bowser', cls: 'Heavy', kind: '8-deluxe', stats: { speed: 10, accel: 3, handling: 3, weight: 10, drift: 3 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
+  { id: 'bowser-jr', name: 'Bowser Jr.', cls: 'Light', kind: '8-deluxe', stats: { speed: 4, accel: 8, handling: 8, weight: 3, drift: 7 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
+  { id: 'cat-peach', name: 'Cat Peach', cls: 'Medium', kind: '8-deluxe', stats: { speed: 6, accel: 6, handling: 7, weight: 5, drift: 7 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
+  { id: 'daisy', name: 'Daisy', cls: 'Medium', kind: '8-deluxe', stats: { speed: 7, accel: 6, handling: 7, weight: 5, drift: 6 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
+  { id: 'larry', name: 'Larry Koopa', cls: 'Light', kind: '8-deluxe', stats: { speed: 5, accel: 7, handling: 7, weight: 3, drift: 7 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
+  { id: 'lemmy', name: 'Lemmy Koopa', cls: 'Light', kind: '8-deluxe', stats: { speed: 2, accel: 10, handling: 10, weight: 1, drift: 10 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
+  { id: 'ludwig', name: 'Ludwig von Koopa', cls: 'Medium', kind: '8-deluxe', stats: { speed: 7, accel: 6, handling: 6, weight: 6, drift: 5 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
+  { id: 'morton', name: 'Morton Koopa Jr.', cls: 'Heavy', kind: '8-deluxe', stats: { speed: 10, accel: 4, handling: 3, weight: 10, drift: 3 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
+  { id: 'peach', name: 'Peach', cls: 'Medium', kind: '8-deluxe', stats: { speed: 7, accel: 6, handling: 7, weight: 5, drift: 6 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
 ];
 export const KARTS = [
   { id: 'standard', name: 'Standard Kart', mod: { speed: 0, accel: 0, handling: 0, weight: 0, drift: 0 }, l: 3.6, w: 2.2, h: .7, size: 1 },
