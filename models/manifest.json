@@ -1,5 +1,5 @@
 {
   "karts": {},
-  "chars": { "mario": "models/chars/mario.glb" },
+  "chars": { "mario": "models/chars/mario.glb" }, { "luigi": "models/chars/luigi.glb" },
   "props": {}
 }
