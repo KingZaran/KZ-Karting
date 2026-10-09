@@ -2,7 +2,8 @@
   "karts": {},
   "chars": {
     "mario": "models/chars/mario.glb",
-    "luigi": "models/chars/luigi.glb"
+    "luigi": "models/chars/luigi.glb",
+    "donkey-kong": "models/chars/donkey-kong.glb"
   },
   "props": {}
 }
