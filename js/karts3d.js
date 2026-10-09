@@ -1,48 +1,71 @@
-// Procedural kart + character models (original designs). Child 0 is always the painted chassis.
+// Procedural kart + character models (original designs): extruded smooth bodies, tyres with spokes, clear-coat paint, lit lamps.
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { getChar, getKart, getWheel } from './roster.js';
-import { MODELS } from './models.js';
-export function buildKart(THREE, lo, paint) {
+import { MODELS, cloneModel } from './models.js';
+export function buildKart(THREE, lo, paint, env = null) {
   const C = getChar(lo.char), K = getKart(lo.kart), Wh = getWheel(lo.wheel), g = new THREE.Group();
-  const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .6, metalness: .1, ...o });
-  const E = (c, i = 1) => M(c, { emissive: c, emissiveIntensity: i });
-  const G = { box: (w, h, d) => new THREE.BoxGeometry(w, h, d), cyl: (a, b, h, s = 12) => new THREE.CylinderGeometry(a, b, h, s), sph: r => new THREE.SphereGeometry(r, 14, 10), cone: (r, h, s = 10) => new THREE.ConeGeometry(r, h, s), tor: (r, t, arc = 6.2832) => new THREE.TorusGeometry(r, t, 8, 18, arc) };
+  const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .6, metalness: .1, envMap: env, envMapIntensity: .7, ...o });
+  const E = (c, i = 1) => M(c, { emissive: c, emissiveIntensity: i, envMap: null });
+  const G = { box: (w, h, d) => new RoundedBoxGeometry(w, h, d, 3, Math.min(w, h, d) * .3), cyl: (a, b, h, s = 24) => new THREE.CylinderGeometry(a, b, h, s), sph: r => new THREE.SphereGeometry(r, 28, 20), cone: (r, h, s = 20) => new THREE.ConeGeometry(r, h, s), tor: (r, t, arc = 6.2832) => new THREE.TorusGeometry(r, t, 12, 32, arc) };
   const put = (parent, geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); m.castShadow = true; parent.add(m); return m; };
-  const dark = M(0x1c1c22), chrome = M(0xcfd4dc, { metalness: .8, roughness: .25 }), paintM = M(paint, { metalness: .5, roughness: .3 });
-  const base = .45 + Wh.r * .6, top = base + K.h, gk = MODELS.karts[lo.kart], L = K.l / 2;
+  const dark = M(0x1c1c22, { roughness: .5 }), chrome = M(0xdfe4ec, { metalness: .95, roughness: .15, envMapIntensity: 1.2 }), seatM = M(0x26262e, { roughness: .8 });
+  const paintM = new THREE.MeshPhysicalMaterial({ color: paint, metalness: .35, roughness: .3, clearcoat: 1, clearcoatRoughness: .08, envMap: env, envMapIntensity: 1.1 });
+  const base = .45 + Wh.r * .6, top = base + K.h, gk = MODELS.karts[lo.kart], L = K.l / 2, W2 = K.w / 2;
+  g.userData.wheels = [];
   if (gk) {
-    const m = gk.clone(true); m.traverse(o => { if (!o.isMesh) return; o.material = o.material.clone(); o.castShadow = true; if (!g.userData.body) g.userData.body = o; if (/paint|body/i.test(o.material.name)) { o.material.color.set(paint); g.userData.body = o; } }); g.add(m);
+    const m = cloneModel(gk); m.traverse(o => { if (!o.isMesh) return; o.material = o.material.clone(); o.castShadow = true; if (env) { o.material.envMap = env; o.material.envMapIntensity = .8; } if (!g.userData.body) g.userData.body = o; if (/paint|body/i.test(o.material.name)) { o.material.color.set(paint); g.userData.body = o; } }); g.add(m);
   } else {
-  // chassis (child 0)
-  const chassis = put(g, G.box(K.w, K.h, K.l), paintM, 0, base + K.h / 2, 0); g.userData.body = chassis;
-  // style extras
-  if (K.id === 'standard') { put(g, G.box(K.w * .8, .35, .9), paintM, 0, base + K.h * .6, L + .35); put(g, G.cyl(.18, .18, .8), chrome, -.6, base + .3, -L - .3, Math.PI / 2); put(g, G.cyl(.18, .18, .8), chrome, .6, base + .3, -L - .3, Math.PI / 2); }
-  if (K.id === 'hotrod') { put(g, G.cone(.9, 2, 12), paintM, 0, base + .3, L + .8, Math.PI / 2); put(g, G.box(2.4, .12, .7), dark, 0, top + .8, -L + .1); put(g, G.box(.12, .8, .12), dark, -.8, top + .4, -L + .1); put(g, G.box(.12, .8, .12), dark, .8, top + .4, -L + .1); for (const s of [-1, 1]) put(g, G.cyl(.14, .2, 1, 10), chrome, s * .5, base + .4, -L - .4, Math.PI / 2); put(g, G.box(K.w * 1.1, .12, .5), dark, 0, base - .05, L + 1.2); }
-  if (K.id === 'cruiser') { put(g, G.box(K.w * .9, .5, .25), chrome, 0, base + .3, L + .15); for (const s of [-1, 1]) { put(g, G.sph(.28), E(0xfff3b0, .9), s * .8, base + .55, L + .1); put(g, G.box(.1, .9, .5), paintM, s * (K.w / 2 - .2), top + .45, -L + .3); } put(g, G.box(K.w * 1.05, .3, .3), chrome, 0, base + .1, -L - .1); }
-  if (K.id === 'buggy') { for (const [x, z] of [[-.85, .7], [.85, .7], [-.85, -.9], [.85, -.9]]) put(g, G.cyl(.07, .07, 1.7), chrome, x, top + .85, z); put(g, G.box(1.8, .08, 1.8), chrome, 0, top + 1.7, -.1); put(g, G.box(1.1, .7, .9), M(0x555a63, { metalness: .7 }), 0, top + .35, -L + .3); put(g, G.cyl(.25, .3, .6), chrome, 0, top + .9, -L + .3); }
-  if (K.id === 'bumper') { put(g, G.tor(K.w * .55, .26), M(0xffffff), 0, base + .35, 0, Math.PI / 2).scale.set(1, 1.15, 1); put(g, G.cyl(.15, .15, .9), chrome, 0, top + .45, -.9); }
-  if (K.id === 'tank') { for (const s of [-1, 1]) put(g, G.box(.3, .7, K.l * .9), M(0x4b5340, { metalness: .4 }), s * (K.w / 2 + .05), base + .45, 0); put(g, G.cyl(.55, .6, .6, 14), paintM, 0, top + .3, .6); put(g, G.cyl(.14, .14, 2, 10), dark, 0, top + .35, 1.8, Math.PI / 2); }
-  // wheels
-  const wr = Wh.r, wm = M(Wh.col), hub = M(0xb8bcc4, { metalness: .7 });
-  for (const [x, z, sc] of [[-1, .32, 1], [1, .32, 1], [-1, -.32, K.id === 'buggy' ? 1.25 : 1], [1, -.32, K.id === 'buggy' ? 1.25 : 1]]) {
-    const r = wr * sc, wx = x * (K.w / 2 + Wh.wd * .35), wz = z * K.l, w = put(g, G.cyl(r, r, Wh.wd, 16), wm, wx, r, wz, 0, 0, Math.PI / 2);
-    put(g, G.cyl(r * .5, r * .5, Wh.wd + .06, 10), hub, wx, r, wz, 0, 0, Math.PI / 2);
-    if (Wh.id === 'mud') for (let i = 0; i < 8; i++) { const a = i / 8 * 6.2832; put(g, G.box(Wh.wd * .95, .16, .2), wm, wx, r + Math.sin(a) * r, wz + Math.cos(a) * r, a, 0, 0); }
+    // ---- smooth body: side silhouette extruded across the kart's width
+    const SP = { standard: [1.2, 1.0, .85, .5], hotrod: [1.0, .9, 1.3, .45], cruiser: [1.25, 1.1, .9, .6], buggy: [1.0, .85, .75, .5], bumper: [1.1, 1.0, .9, .8], tank: [1.2, 1.05, .8, .55] }[K.id] || [1.2, 1, .85, .5];
+    const [tailK, rimK, hoodK, noseK] = SP, h = K.h, tail = h * tailK, rim = h * rimK, hood = h * hoodK * .75 + .1, nose = hood * noseK;
+    const s = new THREE.Shape();
+    s.moveTo(-L, 0); s.lineTo(-L, tail * .9); s.quadraticCurveTo(-L, tail + .12, -L + .5, tail + .12);
+    s.bezierCurveTo(-L * .55, tail + .14, -L * .45, rim + .12, -L * .15, rim + .12); s.lineTo(L * .02, rim + .1);
+    s.bezierCurveTo(L * .3, rim + .08, L * .45, hood + .1, L * .8, hood + .06); s.quadraticCurveTo(L, hood, L, nose); s.lineTo(L, 0); s.closePath();
+    const depth = K.w - .7, bevel = .32, geoB = new THREE.ExtrudeGeometry(s, { depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * .85, bevelSegments: 5, curveSegments: 24 });
+    geoB.rotateY(-Math.PI / 2); geoB.computeBoundingBox(); const bb = geoB.boundingBox; geoB.translate(-(bb.min.x + bb.max.x) / 2, 0, 0); geoB.computeVertexNormals();
+    const chassis = put(g, geoB, paintM, 0, base, 0); g.userData.body = chassis;
+    // underbody + seat tub + steering
+    put(g, G.box(K.w * .85, .22, K.l * .9), dark, 0, base + .05, 0);
+    put(g, G.box(K.w * .62, .55, K.l * .3), seatM, 0, base + rim + .16, -K.l * .14);
+    put(g, G.box(K.w * .55, 1.0, .35), seatM, 0, top + .55, -K.l * .14 - .7);
+    put(g, G.cyl(.06, .06, .8, 10), dark, 0, top + .38, L * .3, .9);
+    put(g, G.tor(.32, .06), dark, 0, top + .6, L * .35, -.75);
+    // lights
+    for (const sx of [-1, 1]) { const hl = put(g, G.sph(.26), E(0xfff4c0, 1.6), sx * K.w * .3, base + nose * .85 + .1, L - .05); hl.scale.set(1, .7, .5); put(g, G.box(.5, .16, .12), E(0xff2a2a, 1.6), sx * K.w * .3, base + tail * .62, -L - .1); }
+    // style extras
+    const fender = (wx, wz, wr) => put(g, G.box(Wh.wd + .35, .16, wr * 2.4), paintM, wx, wr * 2 + .1, wz);
+    if (K.id === 'standard') { for (const sx of [-1, 1]) { put(g, G.cyl(.17, .17, .9, 18), chrome, sx * .6, base + .45, -L - .35, Math.PI / 2); put(g, G.cyl(.1, .1, .12, 14), dark, sx * .6, base + .45, -L - .82, Math.PI / 2); } put(g, G.box(K.w * .85, .22, .5), chrome, 0, base + .3, L + .12); }
+    if (K.id === 'hotrod') { put(g, G.box(2.5, .12, .75), paintM, 0, top + .9, -L + .1); for (const sx of [-1, 1]) { put(g, G.box(.12, .9, .12), dark, sx * .85, top + .45, -L + .1); put(g, G.cyl(.13, .2, 1.1, 14), chrome, sx * .5, base + .45, -L - .45, Math.PI / 2); put(g, G.cone(.16, .5, 10), E(0xff7a1a, 1.3), sx * .5, base + .45, -L - 1.2, -Math.PI / 2); } put(g, G.box(K.w * 1.15, .12, .5), dark, 0, base - .02, L + 1.3); put(g, G.cyl(.3, .3, .5, 14), chrome, 0, base + hood + .3, L * .55); }
+    if (K.id === 'cruiser') { put(g, G.box(K.w * .92, .55, .26), chrome, 0, base + .3, L + .12); for (const sx of [-1, 1]) { put(g, G.box(.12, .95, .55), paintM, sx * (W2 - .15), top + .5, -L + .35); fender(sx * (W2 + Wh.wd * .35), -.32 * K.l, Wh.r); fender(sx * (W2 + Wh.wd * .35), .32 * K.l, Wh.r); } put(g, G.box(K.w * 1.05, .3, .3), chrome, 0, base + .12, -L - .12); }
+    if (K.id === 'buggy') { for (const [x, z] of [[-.85, .7], [.85, .7], [-.85, -.95], [.85, -.95]]) put(g, G.cyl(.07, .07, 1.7, 12), chrome, x, top + .85, z); for (const z of [.7, -.95]) put(g, G.cyl(.07, .07, 1.7, 12), chrome, 0, top + 1.7, z, 0, 0, Math.PI / 2).scale.set(1, 1, 1); put(g, G.cyl(.07, .07, 1.7, 12), chrome, -.85, top + 1.7, -.12, Math.PI / 2); put(g, G.cyl(.07, .07, 1.7, 12), chrome, .85, top + 1.7, -.12, Math.PI / 2); put(g, G.box(1.1, .75, .9), M(0x555a63, { metalness: .7 }), 0, top + .45, -L + .3); put(g, G.cyl(.22, .26, .7, 14), chrome, 0, top + 1.1, -L + .3); }
+    if (K.id === 'bumper') { put(g, G.tor(K.w * .56, .3), M(0xf2f2f2, { roughness: .35 }), 0, base + .4, 0, Math.PI / 2).scale.set(1, 1.2, 1); put(g, G.cyl(.14, .14, 1, 12), chrome, 0, top + .55, -.95); put(g, G.sph(.3), E(0xffd400, .8), 0, top + 1.15, -.95); }
+    if (K.id === 'tank') { for (const sx of [-1, 1]) put(g, G.box(.42, .85, K.l * .92), M(0x4b5340, { metalness: .45, roughness: .55 }), sx * (W2 + .08), base + .5, 0); put(g, G.cyl(.62, .7, .62, 24), paintM, 0, top + .34, .6); put(g, G.cyl(.15, .15, 2.2, 14), dark, 0, top + .38, 1.9, Math.PI / 2); for (const sx of [-1, 1]) fender(sx * (W2 + Wh.wd * .35), 0, Wh.r); }
+    // ---- wheels (front pair steers, all spin)
+    const wr = Wh.r, tube = Math.min(Wh.wd * .5, wr * .4), tyre = M(Wh.col, { roughness: .9, metalness: 0, envMapIntensity: .2 }), hub = M(0xc2c7d0, { metalness: .9, roughness: .25, envMapIntensity: 1 });
+    for (const [x, z, sc, front] of [[-1, .32, 1, true], [1, .32, 1, true], [-1, -.32, K.id === 'buggy' ? 1.25 : 1, false], [1, -.32, K.id === 'buggy' ? 1.25 : 1, false]]) {
+      const r = wr * sc, wx = x * (W2 + Wh.wd * .35), wz = z * K.l, steer = new THREE.Group(), spin = new THREE.Group(); steer.position.set(wx, r, wz); steer.add(spin); g.add(steer);
+      const tor = put(spin, G.tor(r - tube * .85, tube), tyre, 0, 0, 0, 0, Math.PI / 2, 0); tor.scale.set(1, 1, Wh.wd / (tube * 2));
+      put(spin, G.cyl(r - tube * 1.4, r - tube * 1.4, Wh.wd * .7, 28), hub, 0, 0, 0, 0, 0, Math.PI / 2);
+      for (let i = 0; i < 5; i++) { const a = i / 5 * 6.2832; put(spin, G.box(Wh.wd * .72, r * .26, r * 1.55), dark, 0, 0, 0, a, 0, 0); }
+      put(spin, G.sph(r * .2), chrome, x * (Wh.wd * .35), 0, 0);
+      if (Wh.id === 'mud') for (let i = 0; i < 12; i++) { const a = i / 12 * 6.2832; put(spin, G.box(Wh.wd * .95, .16, .26), tyre, 0, Math.sin(a) * (r - .02), Math.cos(a) * (r - .02), a, 0, 0); }
+      g.userData.wheels.push({ steer, spin, r, front, side: x });
+    }
   }
-  }
-  put(g, G.tor(.32, .06), dark, 0, top + .55, L * .35, -.9);       // steering wheel
-  // driver
+  // ---- driver
   const seatY = top, cg = new THREE.Group(); cg.position.set(0, seatY, -K.l * .14); cg.scale.setScalar(C.scale || 1); g.add(cg);
-  put(g, G.box(K.w * .55, .9, .35), dark, 0, top + .45, -K.l * .14 - .65);   // seat back
+  if (gk) { put(g, G.tor(.32, .06), dark, 0, top + .6, L * .35, -.75); put(g, G.box(K.w * .55, 1.0, .35), seatM, 0, top + .55, -K.l * .14 - .7); }
   const gc = MODELS.chars[C.id];
-  if (gc) { const m = gc.clone(true); m.traverse(o => { if (o.isMesh) o.castShadow = true; }); cg.add(m); } else buildChar(THREE, C, cg, M, E, G, put);
+  if (gc) { const m = cloneModel(gc); m.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.material && !o.material.userData.own) { o.material = o.material.clone(); o.material.userData.own = true; if (env) { o.material.envMap = env; o.material.envMapIntensity = .5; } } } }); cg.add(m); } else buildChar(THREE, C, cg, M, E, G, put);
   return g;
 }
 function buildChar(THREE, C, cg, M, E, G, put) {
   const { body, skin, accent } = C.c, bm = M(body), sm = M(skin), am = M(accent);
   const torso = (w = .95, h = .95, d = .7, mat = bm) => put(cg, G.box(w, h, d), mat, 0, .55, 0);
   const head = (r = .55, mat = sm, y = 1.45) => put(cg, G.sph(r), mat, 0, y, 0);
-  const arms = (mat = sm) => { for (const s of [-1, 1]) put(cg, G.cyl(.12, .12, .8), mat, s * .55, .6, .45, Math.PI / 2.2); };
-  const eyes = (y = 1.5, d = .2, z = .46, col = 0xffffff, r = .13) => { for (const s of [-1, 1]) { put(cg, G.sph(r), M(col), s * d, y, z); put(cg, G.sph(r * .5), M(0x111111), s * d, y, z + r * .75); } };
+  const arms = (mat = sm) => { for (const s of [-1, 1]) { put(cg, G.cyl(.13, .12, .85, 18), mat, s * .55, .6, .45, Math.PI / 2.2); put(cg, G.sph(.17), sm, s * .5, .52, .88); } };
+  const eyes = (y = 1.5, d = .2, z = .46, col = 0xffffff, r = .13) => { for (const s of [-1, 1]) { put(cg, G.sph(r), M(col, { roughness: .2 }), s * d, y, z); put(cg, G.sph(r * .55), M(0x111111, { roughness: .1 }), s * d, y, z + r * .72); put(cg, G.sph(r * .18), E(0xffffff, 1), s * d - r * .12, y + r * .2, z + r * 1.18); } };
   switch (C.kind) {
     case 'ink': torso(); head(); arms(); eyes(1.5); for (const [x, rz] of [[-.35, .35], [0, 0], [.35, -.35]]) put(cg, G.cone(.2, 1.2), am, x, 1.9, -.55, -1.05, 0, rz); break;
     case 'bun': torso(); head(.58); arms(); eyes(1.5); for (const s of [-1, 1]) { put(cg, G.cyl(.14, .16, 1.1), sm, s * .26, 2.15, -.1, -.15, 0, -s * .12); put(cg, G.cyl(.07, .09, .9), am, s * .26, 2.16, -.02, -.15, 0, -s * .12); } put(cg, G.sph(.1), am, 0, 1.38, .58); break;
