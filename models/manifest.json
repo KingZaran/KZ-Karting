@@ -12,7 +12,7 @@
     "lemmy": "models/chars/lemmy.glb",
     "ludwig": "models/chars/ludwig.glb",
     "morton": "models/chars/morton.glb",
-    "peach": "models/chars/peach.glb",
+    "peach": "models/chars/peach.glb"
   },
   "props": {}
 }
