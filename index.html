@@ -76,6 +76,7 @@ button.go.sel{background:linear-gradient(180deg,#ff5a5a,#e60012);color:#fff;bord
 #ink{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s;background:radial-gradient(ellipse at 30% 40%,#000 0,#000c 28%,transparent 45%),radial-gradient(ellipse at 70% 60%,#000 0,#000c 30%,transparent 48%),radial-gradient(ellipse at 50% 20%,#000d 0,transparent 35%)}
 #flash{position:fixed;inset:0;pointer-events:none;opacity:0;background:#fff;transition:opacity .25s}
 #help{position:fixed;bottom:10px;left:16px;font-size:13px;opacity:.7;display:none}
+.panel.guest #items,.panel.guest #itemsHead .mini{pointer-events:none;opacity:.45}#start:disabled{opacity:.6;cursor:default;filter:grayscale(.6)}
 </style></head><body>
 <div id="title" class="screen glass on"><div class="logo"><span>KZ</span><i>-</i>KARTING</div><div class="press">PRESS ENTER</div><div class="credit">KZ-KARTING · FRIENDS EDITION</div></div>
 
@@ -84,7 +85,7 @@ button.go.sel{background:linear-gradient(180deg,#ff5a5a,#e60012);color:#fff;bord
  <div class="hint">↑ ↓ CHOOSE · ENTER CONFIRM · ESC BACK</div></div>
 
 <div id="menu" class="screen glass"><div class="wrap">
- <div class="panel" id="leftPanel"><div class="ptitle">SINGLE PLAYER · RACE SETUP</div>
+ <div class="panel" id="leftPanel"><div class="ptitle" id="ptitle">SINGLE PLAYER · RACE SETUP</div>
   <div id="rows"></div>
   <div class="row" id="itemsHead" style="cursor:default"><span>Items</span><span class="mini"><button class="sec" id="iAll">All on</button><button class="sec" id="iNone">All off</button><button class="sec" id="iRand">Random</button></span></div>
   <div id="items"></div>
@@ -97,6 +98,7 @@ button.go.sel{background:linear-gradient(180deg,#ff5a5a,#e60012);color:#fff;bord
   <select id="diff"><option value="0.8">Easy</option><option value="0.9" selected>Normal</option><option value="1">Hard</option></select>
   <select id="laps"><option>1</option><option>2</option><option>3</option><option>5</option><option>7</option></select>
   <select id="cls"><option value="0.8">50cc</option><option value="1" selected>100cc</option><option value="1.2">150cc</option><option value="1.4">200cc</option></select>
+  <select id="otrack"></select>
   <select id="gfx"><option value="high" selected>High</option><option value="low">Low (faster)</option></select>
  </div>
 </div>
