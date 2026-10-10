@@ -1,12 +1,12 @@
 // Title -> main menu -> single-player setup, with keyboard + mouse control.
 import { itemIcon } from './sprites.js';
-export function initMenus({ $, show, audio, startFlow, garageUI }) {
+export function initMenus({ $, show, audio, startFlow, garageUI, onOnline }) {
   let screen = 'title', mainIdx = 0, f = 0, cursor = 0, panel = 'left', gf = 0;
   const go = s => { screen = s; show(s); if (s === 'menu') { f = 0; panel = 'left'; refocus(); } if (s === 'main') { mainIdx = 0; mainFocus(); } };
   // ---- main menu
   const mainBtns = [...document.querySelectorAll('#main .big-btn')];
   const mainFocus = () => mainBtns.forEach((b, i) => b.classList.toggle('sel', i === mainIdx));
-  const mainPick = i => { mainIdx = i; mainFocus(); if (i === 0) { audio.sfx('ok'); go('menu'); } else { const b = mainBtns[1]; b.classList.remove('nope'); void b.offsetWidth; b.classList.add('nope'); audio.sfx('back'); } };
+  const mainPick = i => { mainIdx = i; mainFocus(); audio.sfx('ok'); if (i === 0) go('menu'); else { screen = 'online'; onOnline(); } };
   mainBtns.forEach((b, i) => { b.onmouseenter = () => { mainIdx = i; mainFocus(); }; b.onclick = () => mainPick(i); });
   // ---- setup rows built from the hidden <select>s so main.js settings code keeps working
   const defs = [['bots', 'Bots'], ['diff', 'Bot Difficulty'], ['laps', 'Laps'], ['cls', 'Engine Class'], ['gfx', 'Graphics']];
