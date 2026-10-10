@@ -18,8 +18,7 @@
     "waluigi": "models/chars/waluigi.glb",
     "wario": "models/chars/wario.glb",
     "hazmat-main": "models/chars/hazmat.glb",
-    "skinwalker": "models/chars/skinwalker.glb",
-    "steve": "models/chars/steve.glb"
+    "skinwalker": "models/chars/skinwalker.glb"
   },
   "props": {}
 }
