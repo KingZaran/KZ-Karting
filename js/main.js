@@ -386,7 +386,7 @@ function useItem(k, back) {
   let id = it.id; if (id === 'eight') id = ['banana', 'gshell', 'rshell', 'bomb', 'mush', 'fire', 'boom', 'coin'][Math.floor(Math.random() * 8)];
   if (online.racing && (k === player || (k.isBot && online.isHost))) online.sendItem(id, back, k.pid);
   const base = id.replace('3', '');
-  if (k === player) audio.sfx(['mush', 'gmush', 'star', 'rocket'].includes(base) ? 'boost' : 'use'); else if (dist2(k.pos, player.pos) < 60) audio.sfx('use', .35);
+  { const fb = ['mush', 'gmush', 'star', 'rocket'].includes(base) ? 'boost' : 'use'; if (k === player) audio.sfx('use-' + base, 1, fb); else if (dist2(k.pos, player.pos) < 60) audio.sfx('use-' + base, .35, fb); }
   switch (base) {
     case 'banana': drop(k, 'banana', back); break;
     case 'gshell': case 'rshell': case 'bshell': case 'fire': case 'boom': shoot(k, base, back); break;
