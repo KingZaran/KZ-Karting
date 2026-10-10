@@ -14,7 +14,7 @@ export function createControls() {
 
   // ---- UI ----
   const css = document.createElement('style');
-  css.textContent = `#ctlBtn{position:fixed;right:14px;bottom:14px;z-index:60;background:#3a4a7a;color:#fff;font-size:13px;padding:7px 12px;border-radius:10px;opacity:.85}
+  css.textContent = `#ctlBtn{position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:60;background:#3a4a7a;color:#fff;font-size:13px;padding:7px 12px;border-radius:10px;opacity:.85}
   #ctlBtn:hover{opacity:1}
   #ctlOv{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(5,8,20,.82)}
   #ctlOv.on{display:flex}
