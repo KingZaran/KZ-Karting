@@ -46,6 +46,7 @@ export function createOnline({ TRACKS, getLoadout, onStart, onRoom, onRoomUpdate
       ch.on('broadcast', { event: 'start' }, ({ payload }) => { if (!inRace) begin(payload); });
       ch.on('broadcast', { event: 's' }, ({ payload }) => handlers.state && handlers.state(payload));
       ch.on('broadcast', { event: 'sb' }, ({ payload }) => handlers.state && payload.forEach(a => handlers.state(a)));
+      ch.on('broadcast', { event: 'ui' }, ({ payload }) => handlers.ui && handlers.ui(payload));
       ch.on('broadcast', { event: 'item' }, ({ payload }) => handlers.item && handlers.item(payload));
       ch.subscribe(async st => {
         if (st === 'SUBSCRIBED') { active = true; lastLo = JSON.stringify(getLoadout()); await ch.track({ name, lo: getLoadout(), t: joinedAt }); }
@@ -68,6 +69,7 @@ export function createOnline({ TRACKS, getLoadout, onStart, onRoom, onRoomUpdate
       ch.send({ type: 'broadcast', event: 's', payload: row(k) });
       if (bots && bots.length) ch.send({ type: 'broadcast', event: 'sb', payload: bots.map(row) });
     },
+    ui(m) { if (active && ch) ch.send({ type: 'broadcast', event: 'ui', payload: m }); },
     sendItem(type, back, pid) { if (active && ch) ch.send({ type: 'broadcast', event: 'item', payload: { id: pid || myId, type, back: back ? 1 : 0 } }); },
   };
 }
