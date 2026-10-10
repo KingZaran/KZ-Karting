@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { createFx } from './fx.js';
 import { createAudio } from './audio.js';
-import { itemIcon } from './sprites.js';
+import { itemIcon, fixItemImgs } from './sprites.js';
 import { initMenus } from './menu.js';
 import { PAINT, computeStats, randomLoadout } from './roster.js';
 import { buildKart } from './karts3d.js';
@@ -26,7 +26,7 @@ for (let i = 0; i <= 11; i++) $('bots').add(new Option(i, i));
 $('bots').value = settings.bots; $('diff').value = settings.diff; $('laps').value = settings.laps; $('cls').value = settings.cls; $('gfx').value = settings.gfx;
 const itemBoxes = ITEMS.map(([id, name]) => {
   const tile = document.createElement('div'), c = { checked: settings.items.includes(id) }; tile.className = 'tile';
-  tile.innerHTML = `<img src="${itemIcon(id)}" alt=""><span>${name}</span>`;
+  tile.innerHTML = `<img data-item="${id}" alt=""><span>${name}</span>`; fixItemImgs(tile);
   const sync = () => tile.classList.toggle('off', !c.checked); sync(); c.sync = sync;
   tile.onclick = () => { c.checked = !c.checked; sync(); }; $('items').append(tile); return [id, c];
 });
@@ -263,7 +263,7 @@ let lastCd = -1, race = { laps: 3 }, karts = [], player, state = 'idle', countdo
 function startRace(o) {
   lastOpts = o; stopShowcase(); applyGfx(o.gfx); flow.hideTag(); renderer.domElement.style.transform = $('mini').style.transform = o.mirror ? 'scaleX(-1)' : ''; lastCd = -1; $('mini').style.display = 'block'; show(null); clearWorld(); loadTrack(o.track);
   karts.forEach(k => scene.remove(k.mesh)); karts = [];
-  race = { laps: +o.laps, items: o.items, finishOrder: [], mirror: !!o.mirror };
+  race = { laps: +o.laps, items: o.items, finishOrder: [], mirror: !!o.mirror, over: false }; $('menuBtn').textContent = '☰ Menu'; hudSig = '';
   MAX = 48 * +o.cls; const diff = +o.diff, usedChars = new Set([o.lo.char]), usedPaints = new Set([o.lo.paint]);
   const OL = o.online, total = OL ? OL.roster.length : o.bots + 1;
   if (OL && OL.host) { /* host runs the CPU karts */ }
@@ -279,7 +279,8 @@ function startRace(o) {
   $('hud').style.display = $('menuBtn').style.display = 'block'; $('big').textContent = '';
 }
 function toMenu() { const inRoom = online.racing; renderer.domElement.style.transform = $('mini').style.transform = ''; state = 'idle'; audio.silence(); $('mini').style.display = 'none'; karts.forEach(k => scene.remove(k.mesh)); karts = []; clearWorld(); $('hud').style.display = $('menuBtn').style.display = 'none'; $('big').textContent = ''; startShowcase(); if (inRoom) online.backToLobby(); else flow.afterRace(); }
-$('menuBtn').onclick = toMenu;
+const PTS = [15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+$('menuBtn').onclick = () => { if (race.over && $('menuBtn').textContent.startsWith('NEXT')) { const rows = [...karts].sort(rankSort).map((k, i) => ({ pos: i + 1, name: k.remote || k.isBot || online.racing ? k.name : 'YOU', char: k.lo.char, pts: PTS[i] || 0, me: k === player })); $('hud').style.display = $('menuBtn').style.display = $('mini').style.display = 'none'; $('big').textContent = ''; flow.scoreboard(rows, toMenu); } else toMenu(); };
 
 // ---------- track voting ----------
 function drawThumb(def) {
@@ -331,7 +332,7 @@ const ICON = { banana:'🍌', banana3:'🍌', gshell:'🟢', gshell3:'🟢', rsh
 // weights for [front, middle, back] of the pack
 const WGT = { banana:[6,3,1], banana3:[4,2,1], gshell:[5,4,2], gshell3:[3,3,2], rshell:[2,5,4], rshell3:[1,4,5], bomb:[4,3,2], mush:[4,5,4], mush3:[2,4,5], gmush:[0,1,4],
   star:[0,1,5], ink:[1,3,3], bolt:[0,0,2], rocket:[0,1,5], bshell:[0,0,3], fire:[3,3,2], boom:[3,3,2], plant:[3,3,2], horn:[1,2,3], eight:[0,1,2], coin:[4,2,0] };
-let projs = [], hazards = [], boxes = [], fxs = [], ranked = [], T = 0;
+let hudSig = '', projs = [], hazards = [], boxes = [], fxs = [], ranked = [], T = 0;
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const fwd = k => V(Math.sin(k.heading), 0, Math.cos(k.heading));
 const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
@@ -354,7 +355,7 @@ function rollItem(k) {
   const pool = race.items; let x = Math.random() * pool.reduce((s, id) => s + WGT[id][cls] + .05, 0), pick = pool[0];
   for (const id of pool) { x -= WGT[id][cls] + .05; if (x <= 0) { pick = id; break; } }
   const uses = { banana3: 3, gshell3: 3, rshell3: 3, mush3: 3, boom: 3, fire: 8, eight: 8 }[pick] || 1;
-  k.item = { id: pick, uses }; k.gotAt = T; k.useAt = T + 1 + Math.random() * 2; if (k === player) audio.sfx('pickup');
+  const nit = { id: pick, uses }; if (!k.item) { k.item = nit; k.useAt = T + 1 + Math.random() * 2; } else k.item2 = nit; k.gotAt = T; if (k === player) audio.sfx('pickup');
 }
 function hit(k, power) {
   if (k.remote) return false;   // damage to other players is applied on their own screen
@@ -400,7 +401,7 @@ function useItem(k, back) {
     case 'bolt': karts.forEach(o => { if (o !== k && hit(o, .9)) o.shrink = 6; }); { const f = $('flash'); f.style.transition = 'none'; f.style.opacity = .9; setTimeout(() => { f.style.transition = 'opacity 1s'; f.style.opacity = 0; }, 40); } break;
     case 'horn': projs.forEach(p => { if (dist2(p.pos, k.pos) < 40) p.life = 0; }); fx(k.pos, 0xffffff, 40); break;
   }
-  if (--it.uses <= 0) k.item = null;
+  if (--it.uses <= 0) { k.item = k.item2 || null; k.item2 = null; k.useAt = T + 1 + Math.random() * 2; }
 }
 function updateWorld(dt) {
   for (const p of pads) for (const k of karts) if (dist2(k.pos, p.pos) < 4.2 && Math.abs(k.pos.y - p.pos.y) < 4 && k.boost < .6) { k.boost = 1; k.speed += 6; burst(k.pos, 0xffb040, 16, 10); if (k === player) audio.sfx('boost'); }
@@ -408,7 +409,7 @@ function updateWorld(dt) {
   for (const b of boxes) {
     if (b.respawn > 0) { b.respawn -= dt; b.mesh.visible = b.respawn <= 0; continue; }
     b.mesh.rotation.y += dt * 2; b.mesh.rotation.x += dt; b.mesh.position.y = b.pos.y + 2 + Math.sin(T * 3 + b.pos.x) * .3;
-    for (const k of karts) if (!k.item && k.rocketT <= 0 && !k.finished && dist2(k.pos, b.pos) < 3.2 && Math.abs(k.pos.y - b.pos.y) < 5) { rollItem(k); b.respawn = 4; b.mesh.visible = false; break; }
+    for (const k of karts) if (!k.item2 && k.rocketT <= 0 && !k.finished && dist2(k.pos, b.pos) < 3.2 && Math.abs(k.pos.y - b.pos.y) < 5) { rollItem(k); b.respawn = 4; b.mesh.visible = false; break; }
   }
   // projectiles
   for (let i = projs.length - 1; i >= 0; i--) {
@@ -561,6 +562,7 @@ const online = createOnline({ TRACKS, getLoadout: () => garageUI.get(), onStart:
   onRoom: info => flow.onRoom(info), onRoomUpdate: info => flow.onRoomUpdate(info), onError: m => flow.onError(m) });
 { const ot = $('otrack'); if (ot) ot.innerHTML = ''; }
 online.handlers = {
+  ui: m => flow.onUi(m),
   state: a => { const k = karts.find(q => q.pid === a[0]); if (k) k.net = { at: performance.now(), x: a[1], y: a[2], z: a[3], h: a[4], sp: a[5], spin: a[6], star: a[7], shr: a[8], boost: a[9], dr: a[10], steer: a[11] }; },
   item: m => { const k = karts.find(q => q.pid === m.id); if (!k || state === 'idle') return; k.item = { id: m.type, uses: 1 }; useItem(k, !!m.back); },
 };
@@ -619,9 +621,13 @@ function loop() {
       k.plantMesh.visible = k.plantT > 0; if (k.plantT > 0) k.plantMesh.scale.setScalar(1 + .25 * Math.sin(T * 14));
     });
     ranked = [...karts].sort(rankSort);
+    if (state === 'racing' && !race.over) { const hs = karts.filter(k => !k.isBot && !(k.remote && String(k.pid).startsWith('bot'))); if (hs.length && hs.every(k => k.finished)) { race.over = true; setTimeout(() => { if (state !== 'idle') $('menuBtn').textContent = 'NEXT ▶'; }, 2500); } }
     const place = ranked.indexOf(player) + 1, it = player.item;
-    $('hudText').innerHTML = `Pos ${place}/${karts.length}<br>Lap ${Math.min(Math.max(player.lap+1,1), race.laps)}/${race.laps}<br>${Math.round(Math.abs(player.speed)*3)} km/h${player.boost>0?' 🔥':''}${player.coins ? '<br>🪙 ' + player.coins : ''}`;
-    $('itemBox').innerHTML = it ? `<img src="${itemIcon(it.id)}" alt=""><small>${NAMES[it.id]}${it.uses > 1 ? ' ×' + it.uses : ''}</small>` : (race.items.length ? '<small>no item</small>' : '<small>items off</small>');
+    { const lap = Math.min(Math.max(player.lap + 1, 1), race.laps), spd = Math.round(Math.abs(player.speed) * 3), col = ['#ffd400', '#d8dde6', '#cd7f32'][place - 1] || '#ffffff';
+      $('posVal').textContent = `${place}/${karts.length}`; $('posVal').style.color = col; $('lapBox').textContent = `LAP ${lap}/${race.laps}`; $('spVal').textContent = spd;
+      $('spArc').setAttribute('stroke-dasharray', `${Math.min(100, spd / (MAX * 3 * 1.5) * 100).toFixed(1)} 100`); $('spArc').setAttribute('stroke', player.boost > 0 ? '#ff7a1a' : '#ffd400');
+      const sig = [player.item && player.item.id + player.item.uses, player.item2 && player.item2.id].join('|');
+      if (sig !== hudSig) { hudSig = sig; const f = (el, itm) => { el.style.display = itm ? 'flex' : 'none'; el.innerHTML = itm ? `<img data-item="${itm.id}" alt="">${itm.uses > 1 ? `<span class="cnt">×${itm.uses}</span>` : ''}` : ''; fixItemImgs(el); }; f($('it1'), player.item); f($('it2'), player.item2); } }
     $('ink').style.opacity = Math.min(1, player.ink);
     if (player.finished) $('big').textContent = `Finished ${place}${['st','nd','rd'][place-1]||'th'}! (R = restart)`;
     { const th = themeAt(player.idx); applyEnv(th, 1 - Math.exp(-2.5 * dt)); if (th !== lastTheme) { lastTheme = th; zoneBanner(th.name); audio.music(Object.keys(THEMES).find(k => THEMES[k] === th)); } }
@@ -664,8 +670,8 @@ function updateShowcase(dt) {
   applyEnv(themeAt(showKarts[3].idx), 1 - Math.exp(-3 * dt));
 }
 const garage = createGarage(THREE, $('gcanvas')), garageUI = initGarageUI({ $, audio, garage, lo0: settings.lo });
-const menus = initMenus({ $, show, audio, garageUI, startFlow: () => {}, onSingle: () => flow.startSingle(), onOnline: () => flow.startOnline(), onLeave: () => online.leave() });
-const flow = initFlow({ $, show, audio, garageUI, TRACKS, THEMES, ITEMS, itemIcon, drawThumb, online, startGame: o => startRace(o), toMain: () => menus.go('main') });
+const menus = initMenus({ $, show, audio, garageUI, startFlow: () => {}, onSingle: () => flow.startSingle(), onOnline: () => flow.startOnline(), onSettings: () => flow.startSettings(), onLeave: () => online.leave() });
+const flow = initFlow({ $, show, audio, garageUI, openControls: () => ctl.open(), TRACKS, THEMES, ITEMS, itemIcon, drawThumb, online, startGame: o => startRace(o), toMain: () => menus.go('main') });
 startShowcase();
 preloadModels(THREE).then(ok => { if (ok) { garageUI.refresh(); if (state === 'idle') startShowcase(); } });
 loop();
