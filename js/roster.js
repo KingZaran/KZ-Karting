@@ -30,7 +30,6 @@ export const CHARS = [
   { id: 'wario', name: 'Wario', cls: 'Heavy', kind: '8-deluxe', stats: { speed: 10, accel: 3, handling: 3, weight: 10, drift: 3 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
   { id: 'hazmat-main', name: 'Hazmat', cls: 'Medium', kind: 'backrooms', stats: { speed: 7, accel: 4, handling: 4, weight: 7, drift: 5 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
   { id: 'skinwalker', name: 'Skinwalker', cls: 'Heavy', kind: 'backrooms', stats: { speed: 9, accel: 3, handling: 4, weight: 9, drift: 4 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
-  { id: 'steve', name: 'Steve', cls: 'Medium', kind: '8-deluxe', stats: { speed: 7, accel: 5, handling: 4, weight: 6, drift: 4 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
 ];
 export const KARTS = [
   { id: 'standard', name: 'Standard Kart', mod: { speed: 0, accel: 0, handling: 0, weight: 0, drift: 0 }, l: 3.6, w: 2.2, h: .7, size: 1 },
