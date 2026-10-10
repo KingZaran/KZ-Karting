@@ -38,6 +38,7 @@ export const PAINT = [
   { name: 'Purple', hex: 0x8e24aa }, { name: 'Orange', hex: 0xfb8c00 }, { name: 'Cyan', hex: 0x00acc1 }, { name: 'Pink', hex: 0xd81b60 },
   { name: 'White', hex: 0xeeeeee }, { name: 'Black', hex: 0x2a2a2a },
 ];
+
 export const STAT_KEYS = [['speed', 'Speed'], ['accel', 'Acceleration'], ['handling', 'Handling'], ['weight', 'Weight'], ['drift', 'Drift']];
 const find = (list, id) => list.find(x => x.id === id) || list[0];
 export const getChar = id => find(CHARS, id), getKart = id => find(KARTS, id), getWheel = id => find(WHEELS, id);
@@ -46,9 +47,11 @@ export function validLoadout(lo = {}) {
 }
 export function computeStats(lo) {
   const C = getChar(lo.char), K = getKart(lo.kart), W = getWheel(lo.wheel), s = {};
-  for (const [k] of STAT_KEYS) s[k] = Math.max(0, Math.min(10, C.stats[k] + K.mod[k] + W.mod[k]));
-  return { ...s, speedMul: .9 + .02 * s.speed, accMul: .7 + .06 * s.accel, hand: .8 + .04 * s.handling, driftMul: .7 + .06 * s.drift,
-    mass: .7 + .12 * s.weight, size: (.9 + .03 * s.weight) * K.size, spinMul: 1.2 - .04 * s.weight, offMul: W.off };
+  // shown stat = average of the character's stat and the kart's and wheels' stats (kart/wheel mods are centred on 5)
+  const cl = v => Math.max(0, Math.min(10, v)), e = {};
+  for (const [k] of STAT_KEYS) { s[k] = Math.round((C.stats[k] + cl(5 + K.mod[k] * 1.5) + cl(5 + W.mod[k] * 1.5)) / 3 * 10) / 10; e[k] = cl(5 + (s[k] - 5) * 1.6); }   // e = spread back out for the physics so characters still feel different
+  return { ...s, speedMul: .9 + .02 * e.speed, accMul: .7 + .06 * e.accel, hand: .8 + .04 * e.handling, driftMul: .7 + .06 * e.drift,
+    mass: .7 + .12 * e.weight, size: (.9 + .03 * e.weight) * K.size, spinMul: 1.2 - .04 * e.weight, offMul: W.off };
 }
 export function randomLoadout(usedChars = new Set(), usedPaints = new Set()) {
   const pick = a => a[Math.floor(Math.random() * a.length)];
