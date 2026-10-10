@@ -1,17 +1,5 @@
 // Characters, karts, wheels and paint. Stats are 0-10 and feed straight into the physics.
 export const CHARS = [
-  { id: 'inkkid', name: 'Ink Kid', cls: 'Light', kind: 'ink', stats: { speed: 3, accel: 8, handling: 8, weight: 2, drift: 7 }, c: { body: 0xff2d95, skin: 0xe8dcff, accent: 0xff2d95 } },
-  { id: 'bunbun', name: 'Bun Bun', cls: 'Light', kind: 'bun', stats: { speed: 4, accel: 8, handling: 7, weight: 2, drift: 6 }, c: { body: 0x7ad7ff, skin: 0xffffff, accent: 0xffb3d1 } },
-  { id: 'sprout', name: 'Sprout', cls: 'Light', kind: 'sprout', stats: { speed: 3, accel: 7, handling: 9, weight: 1, drift: 6 }, c: { body: 0x8a5a2b, skin: 0x7bd45a, accent: 0x2f9d3a } },
-  { id: 'smiler', name: 'The Smiler', cls: 'Light', kind: 'smiler', stats: { speed: 5, accel: 7, handling: 7, weight: 2, drift: 8 }, c: { body: 0x0b0b0b, skin: 0x050505, accent: 0xffffff } },
-  { id: 'nightmask', name: 'Nightmask', cls: 'Medium', kind: 'mask', stats: { speed: 5, accel: 5, handling: 6, weight: 5, drift: 5 }, c: { body: 0x1a1d2b, skin: 0xf2f2f2, accent: 0xf2f2f2 } },
-  { id: 'dancer', name: 'Needle Dancer', cls: 'Medium', kind: 'dancer', stats: { speed: 6, accel: 5, handling: 7, weight: 4, drift: 6 }, c: { body: 0xb3122e, skin: 0xf3e3d3, accent: 0xd9d9e0 } },
-  { id: 'brawler', name: 'Brawler', cls: 'Medium', kind: 'brawler', stats: { speed: 6, accel: 5, handling: 5, weight: 6, drift: 5 }, c: { body: 0x2f6fd6, skin: 0xe0a878, accent: 0xe53935 } },
-  { id: 'partygoer', name: 'Partygoer', cls: 'Medium', kind: 'party', stats: { speed: 5, accel: 6, handling: 6, weight: 4, drift: 7 }, c: { body: 0xffd400, skin: 0xf6ece6, accent: 0xff3d8b } },
-  { id: 'hazmat', name: 'Hazmat Wanderer', cls: 'Heavy', kind: 'hazmat', stats: { speed: 8, accel: 3, handling: 4, weight: 8, drift: 4 }, c: { body: 0xe6c200, skin: 0xcfd8dc, accent: 0x222222 } },
-  { id: 'golem', name: 'Stone Golem', cls: 'Heavy', kind: 'golem', stats: { speed: 8, accel: 2, handling: 3, weight: 10, drift: 3 }, c: { body: 0x7b8088, skin: 0x8d939b, accent: 0x57e0ff } },
-  { id: 'brute', name: 'Magma Brute', cls: 'Heavy', kind: 'brute', stats: { speed: 9, accel: 3, handling: 3, weight: 9, drift: 4 }, c: { body: 0x4a1410, skin: 0x5a1c14, accent: 0xff7a00 } },
-  { id: 'yeti', name: 'Frost Yeti', cls: 'Heavy', kind: 'yeti', stats: { speed: 7, accel: 4, handling: 5, weight: 8, drift: 5 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
   { id: 'mario', name: 'Mario', cls: 'Medium', kind: '8-deluxe', stats: { speed: 6, accel: 6, handling: 6, weight: 6, drift: 5 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
   { id: 'luigi', name: 'Luigi', cls: 'Medium', kind: '8-deluxe', stats: { speed: 7, accel: 6, handling: 6, weight: 6, drift: 5 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
   { id: 'donkey-kong', name: 'Donkey Kong', cls: 'Heavy', kind: '8-deluxe', stats: { speed: 9, accel: 4, handling: 4, weight: 8, drift: 4 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
