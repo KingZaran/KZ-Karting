@@ -1,6 +1,6 @@
 {
   "karts": {
-    "standard": "models/karts/standard.glb
+    "standard": "models/karts/standard.glb"
   },
   "chars": {
     "mario": "models/chars/mario.glb",
