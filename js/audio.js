@@ -1,8 +1,16 @@
-// Procedural sound: engine, skid, effects and a tiny per-zone music loop. No audio files needed.
+// Sound: engine, skid, effects and a per-zone music loop. All of it is synthesised by default, but any of it can be replaced
+// by dropping .wav (or .mp3) files into the  audio/  folder - see audio/README.md for the file names.
 export function createAudio() {
   let ctx, master, o1, o2, filt, engG, nFilt, nG, muted = false, timer = null, step = 0, gv = 1;
   const MUS = { meadow: [120, 'square'], dunes: [110, 'triangle'], frost: [100, 'sine'], neon: [130, 'square'], hollow: [80, 'sine'], silk: [96, 'triangle'], ink: [150, 'square'], backrooms: [55, 'sawtooth'], brawl: [140, 'sawtooth'], lava: [118, 'sawtooth'], candy: [135, 'triangle'] };
   const ok = () => ctx && ctx.state !== 'closed';
+  const FILES = ['tick', 'ok', 'back', 'fall', 'beep', 'go', 'pickup', 'use', 'boost', 'hit', 'boom', 'lap', 'engine', 'drift', 'music', ...Object.keys(MUS).map(k => 'music-' + k)];
+  const bufs = {}; let engSrc = null, engCG = null, skSrc = null, skCG = null, musSrc = null, musG = null;
+  function loadFiles() {
+    for (const n of FILES) (async () => { for (const ext of ['wav', 'mp3']) { try { const r = await fetch(`audio/${n}.${ext}`); if (!r.ok) continue; bufs[n] = await ctx.decodeAudioData(await r.arrayBuffer()); return; } catch (e) {} } })();
+  }
+  const loop = (buf, vol) => { const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = buf; src.loop = true; g.gain.value = vol; src.connect(g); g.connect(master); src.start(); return [src, g]; };
+  function play(buf, vol) { const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = buf; g.gain.value = vol; src.connect(g); g.connect(master); src.start(); }
   function init() {
     if (ctx) { ctx.resume && ctx.resume(); return; }
     try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
@@ -13,14 +21,16 @@ export function createAudio() {
     const buf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), d = buf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     const n = ctx.createBufferSource(); n.buffer = buf; n.loop = true; nFilt = ctx.createBiquadFilter(); nFilt.type = 'bandpass'; nG = ctx.createGain(); nG.gain.value = 0;
     n.connect(nFilt); nFilt.connect(nG); nG.connect(master); n.start();
+    loadFiles();
   }
   function engine(sp, skid, boost) {
     if (!ok()) return; const t = ctx.currentTime;
-    o1.frequency.setTargetAtTime(48 + sp * 150 + (boost ? 30 : 0), t, .05); o2.frequency.setTargetAtTime(24 + sp * 75, t, .05);
-    filt.frequency.setTargetAtTime(350 + sp * 1500, t, .08); engG.gain.setTargetAtTime(.05 + sp * .05, t, .1);
-    nG.gain.setTargetAtTime(skid * .09, t, .05); nFilt.frequency.setTargetAtTime(skid > .7 ? 2200 : 900, t, .1);
+    if (bufs.engine) { if (!engSrc) [engSrc, engCG] = loop(bufs.engine, 0); engSrc.playbackRate.setTargetAtTime(.6 + sp * 1.5 + (boost ? .15 : 0), t, .08); engCG.gain.setTargetAtTime(muted ? 0 : .25 + sp * .35, t, .1); engG.gain.setTargetAtTime(0, t, .05); }
+    if (bufs.drift) { if (!skSrc) [skSrc, skCG] = loop(bufs.drift, 0); skCG.gain.setTargetAtTime(muted ? 0 : skid * .6, t, .05); nG.gain.setTargetAtTime(0, t, .05); }
+    if (!bufs.engine) { o1.frequency.setTargetAtTime(48 + sp * 150 + (boost ? 30 : 0), t, .05); o2.frequency.setTargetAtTime(24 + sp * 75, t, .05); filt.frequency.setTargetAtTime(350 + sp * 1500, t, .08); engG.gain.setTargetAtTime(.05 + sp * .05, t, .1); }
+    if (!bufs.drift) { nG.gain.setTargetAtTime(skid * .09, t, .05); nFilt.frequency.setTargetAtTime(skid > .7 ? 2200 : 900, t, .1); }
   }
-  function silence() { if (!ok()) return; engG.gain.setTargetAtTime(0, ctx.currentTime, .1); nG.gain.setTargetAtTime(0, ctx.currentTime, .1); music(null); }
+  function silence() { if (!ok()) return; const t = ctx.currentTime; engG.gain.setTargetAtTime(0, t, .1); nG.gain.setTargetAtTime(0, t, .1); if (engCG) engCG.gain.setTargetAtTime(0, t, .1); if (skCG) skCG.gain.setTargetAtTime(0, t, .1); music(null); }
   function tone(f0, f1, dur, type = 'square', vol = .2, delay = 0) {
     if (!ok()) return; const t = ctx.currentTime + delay, o = ctx.createOscillator(), g = ctx.createGain();
     o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
@@ -42,9 +52,10 @@ export function createAudio() {
     boom: () => { noiseBurst(.7, .5, 300); tone(120, 30, .6, 'sine', .4); },
     lap: () => [0, 1].forEach(i => tone(660 * (1 + i * .5), 660 * (1 + i * .5), .15, 'triangle', .25, i * .12)),
   };
-  function sfx(name, v = 1) { if (!ok() || muted) return; gv = v; S[name] && S[name](); gv = 1; }
+  function sfx(name, v = 1) { if (!ok() || muted) return; if (bufs[name]) { play(bufs[name], v); return; } gv = v; S[name] && S[name](); gv = 1; }
   function music(id) {
-    clearInterval(timer); timer = null; if (!id || !ok()) return;
+    clearInterval(timer); timer = null; if (musSrc) { try { musSrc.stop(); } catch (e) {} musSrc = null; } if (!id || !ok()) return;
+    const mb = bufs['music-' + id] || bufs.music; if (mb) { [musSrc, musG] = loop(mb, muted ? 0 : .5); return; }
     const [bpm, type] = MUS[id] || [120, 'square'], ms = 60000 / bpm / 2; step = 0;
     timer = setInterval(() => {
       if (muted || !ok()) return; const chord = [0, 8, 3, 10][(step >> 4) & 3], pat = [0, 12, 7, 12, 15, 12, 7, 12][step & 7];
@@ -52,6 +63,6 @@ export function createAudio() {
       if (step % 8 === 0) { const b = 55 * 2 ** (chord / 12); tone(b, b, ms / 1000 * 3, 'triangle', .12); } step++;
     }, ms);
   }
-  function toggle() { muted = !muted; if (master) master.gain.value = muted ? 0 : .6; return muted; }
+  function toggle() { muted = !muted; if (master) master.gain.value = muted ? 0 : .6; if (musG) musG.gain.value = muted ? 0 : .5; return muted; }
   return { init, engine, silence, sfx, music, toggle };
 }
