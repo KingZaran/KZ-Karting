@@ -38,3 +38,9 @@ export function itemIcon(id) {
   if (triple) [[.62, 30, 10], [.62, 10, 44], [.62, 50, 44]].forEach(([s, x, y]) => { g.save(); g.translate(x, y); g.scale(s, s); art(g); g.restore(); }); else art(g);
   return cache[id] = c.toDataURL();
 }
+
+// Custom item art: drop PNGs in  icons/items/<item id>.png  (ids: banana, banana3, gshell, gshell3, rshell, rshell3, bomb, mush, mush3, gmush, star, ink, bolt, rocket, bshell, fire, boom, plant, horn, eight, coin).
+// Any <img data-item="id"> inside `root` gets the PNG, falling back to the built-in sprite when there isn't one.
+export function fixItemImgs(root) {
+  root.querySelectorAll('img[data-item]').forEach(img => { const id = img.dataset.item; if (img.dataset.set === id) return; img.dataset.set = id; img.onerror = () => { img.onerror = null; img.src = itemIcon(id); }; img.src = 'icons/items/' + id + '.png'; });
+}
