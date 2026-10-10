@@ -1,12 +1,12 @@
 // Title -> main menu -> single-player setup, with keyboard + mouse control.
 import { itemIcon } from './sprites.js';
-export function initMenus({ $, show, audio, startFlow, garageUI, onOnline, onSingle, onLeave }) {
+export function initMenus({ $, show, audio, startFlow, garageUI, onOnline, onSingle, onSettings, onLeave }) {
   let screen = 'title', mainIdx = 0, f = 0, cursor = 0, panel = 'left', gf = 0;
   const go = s => { screen = s; show(s); if (s === 'menu') { f = 0; panel = 'left'; refocus(); } if (s === 'main') { mainIdx = 0; mainFocus(); } };
   // ---- main menu
   const mainBtns = [...document.querySelectorAll('#main .big-btn')];
   const mainFocus = () => mainBtns.forEach((b, i) => b.classList.toggle('sel', i === mainIdx));
-  const mainPick = i => { mainIdx = i; mainFocus(); audio.sfx('ok'); if (i === 0) onSingle(); else onOnline(); };
+  const mainPick = i => { mainIdx = i; mainFocus(); audio.sfx('ok'); if (i === 0) onSingle(); else if (i === 1) onOnline(); else onSettings(); };
   mainBtns.forEach((b, i) => { b.onmouseenter = () => { mainIdx = i; mainFocus(); }; b.onclick = () => mainPick(i); });
   // ---- setup rows built from the hidden <select>s so main.js settings code keeps working
   let onl = false, isHostNow = true;   // online room mode: Bots row becomes Track, Bot Difficulty is hidden, only the host's settings count
@@ -55,8 +55,8 @@ export function initMenus({ $, show, audio, startFlow, garageUI, onOnline, onSin
     if (!$(screen).classList.contains('on')) return;
     if (screen === 'title') { if (c === 'Enter' || c === 'Space') { audio.init(); audio.sfx('ok'); go('main'); } }
     else if (screen === 'main') {
-      if (c === 'ArrowDown' || c === 'KeyS') { mainIdx = (mainIdx + 1) % 2; mainFocus(); audio.sfx('tick'); }
-      else if (c === 'ArrowUp' || c === 'KeyW') { mainIdx = (mainIdx + 1) % 2; mainFocus(); audio.sfx('tick'); }
+      if (c === 'ArrowDown' || c === 'KeyS') { mainIdx = (mainIdx + 1) % mainBtns.length; mainFocus(); audio.sfx('tick'); }
+      else if (c === 'ArrowUp' || c === 'KeyW') { mainIdx = (mainIdx + mainBtns.length - 1) % mainBtns.length; mainFocus(); audio.sfx('tick'); }
       else if (c === 'Enter' || c === 'Space') mainPick(mainIdx);
       else if (c === 'Escape') { audio.sfx('back'); go('title'); }
     } else if (screen === 'menu') {
