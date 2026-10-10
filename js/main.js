@@ -12,6 +12,7 @@ import { createScenery, makeEnv } from './scenery.js';
 import { TRACKS, ITEMS } from './tracks.js';
 import { buildThemes } from './themes.js';
 import { createOnline } from './online.js';
+import { initFlow } from './flow.js';
 import { createControls } from './controls.js';
 const ctl = createControls();
 const $ = id => document.getElementById(id);
@@ -35,7 +36,7 @@ $('iAll').onclick = () => setItems(() => true); $('iNone').onclick = () => setIt
 function readSettings() {
   settings = { bots: +$('bots').value, diff: $('diff').value, laps: $('laps').value, cls: $('cls').value, items: readItems(), gfx: $('gfx').value, lo: garageUI.get() }; save(); return settings;
 }
-function show(id) { for (const s of ['title', 'main', 'menu', 'vote', 'online']) $(s).classList.toggle('on', s === id); }
+function show(id) { for (const s of ['title', 'main', 'menu', 'vote', 'flow']) { const e = $(s); if (e) e.classList.toggle('on', s === id); } }
 
 // ---------- scene ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -260,23 +261,24 @@ addEventListener('keyup', e => keys[e.code] = false);
 let lastCd = -1, race = { laps: 3 }, karts = [], player, state = 'idle', countdown = 0, lastOpts = null, clock = new THREE.Clock();
 
 function startRace(o) {
-  lastOpts = o; stopShowcase(); applyGfx(o.gfx); lastCd = -1; $('mini').style.display = 'block'; show(null); clearWorld(); loadTrack(o.track);
+  lastOpts = o; stopShowcase(); applyGfx(o.gfx); flow.hideTag(); renderer.domElement.style.transform = $('mini').style.transform = o.mirror ? 'scaleX(-1)' : ''; lastCd = -1; $('mini').style.display = 'block'; show(null); clearWorld(); loadTrack(o.track);
   karts.forEach(k => scene.remove(k.mesh)); karts = [];
-  race = { laps: +o.laps, items: o.items, finishOrder: [] };
+  race = { laps: +o.laps, items: o.items, finishOrder: [], mirror: !!o.mirror };
   MAX = 48 * +o.cls; const diff = +o.diff, usedChars = new Set([o.lo.char]), usedPaints = new Set([o.lo.paint]);
   const OL = o.online, total = OL ? OL.roster.length : o.bots + 1;
+  if (OL && OL.host) { /* host runs the CPU karts */ }
   for (let n = 0; n < total; n++) {
     const row = Math.floor(n/2), side = n % 2 ? 1 : -1;
     const idx = (N - 6 - row*8 + N) % N, t = tangent(idx), nrm = new THREE.Vector3(-t.z,0,t.x);
     const p = samples[idx].clone().addScaledVector(nrm, side*4);
     const lo = OL ? (OL.roster[n].lo || randomLoadout()) : n === 0 ? o.lo : randomLoadout(usedChars, usedPaints), st = computeStats(lo);
     karts.push({ lo, col: PAINT[lo.paint].hex, mesh: makeKart(PAINT[lo.paint].hex, lo), top: MAX * st.speedMul, acc: ACC * st.accMul, hand: st.hand, driftMul: st.driftMul, mass: st.mass, size: st.size, spinMul: st.spinMul, offMul: st.offMul, pos: p, heading: Math.atan2(t.x, t.z), speed: 0, idx, lap: -1, progress: -1 + idx/N, boost: 0, driftT: 0, item: null, spin: 0, star: 0, shrink: 0, rocket: 0, plantT: 0, invuln: 0, useCd: 0, inkT: 0, coins: 0, hopY: 0,
-      isBot: OL ? false : n !== 0, remote: OL ? OL.roster[n].id !== OL.me : false, pid: OL ? OL.roster[n].id : null, name: OL ? OL.roster[n].name : n === 0 ? 'YOU' : 'Bot ' + n, skill: diff - Math.random() * 0.12, lane: (Math.random()-.5) * (WIDTH * .5), finished: false , immune: 0, starT: 0, rocketT: 0, ink: 0, useAt: 0, gotAt: 0 });
+      isBot: OL ? !!(OL.roster[n].bot && OL.host) : n !== 0, remote: OL ? (OL.roster[n].bot ? !OL.host : OL.roster[n].id !== OL.me) : false, pid: OL ? OL.roster[n].id : null, name: OL ? OL.roster[n].name : n === 0 ? 'YOU' : 'Bot ' + n, skill: diff - Math.random() * 0.12, lane: (Math.random()-.5) * (WIDTH * .5), finished: false , immune: 0, starT: 0, rocketT: 0, ink: 0, useAt: 0, gotAt: 0 });
   }
   karts.forEach(k => k.mesh.scale.setScalar(k.size)); lastTheme = null; player = karts.find(k => !k.isBot && !k.remote) || karts[0]; ranked = [...karts]; spawnBoxes(); state = 'countdown'; countdown = 3.99; clock.getDelta();
   $('hud').style.display = $('menuBtn').style.display = 'block'; $('big').textContent = '';
 }
-function toMenu() { const inRoom = online.racing; state = 'idle'; audio.silence(); $('mini').style.display = 'none'; karts.forEach(k => scene.remove(k.mesh)); karts = []; clearWorld(); $('hud').style.display = $('menuBtn').style.display = 'none'; $('big').textContent = ''; startShowcase(); if (inRoom) online.backToLobby(); else menus.go('menu'); }
+function toMenu() { const inRoom = online.racing; renderer.domElement.style.transform = $('mini').style.transform = ''; state = 'idle'; audio.silence(); $('mini').style.display = 'none'; karts.forEach(k => scene.remove(k.mesh)); karts = []; clearWorld(); $('hud').style.display = $('menuBtn').style.display = 'none'; $('big').textContent = ''; startShowcase(); if (inRoom) online.backToLobby(); else flow.afterRace(); }
 $('menuBtn').onclick = toMenu;
 
 // ---------- track voting ----------
@@ -381,7 +383,7 @@ function drop(k, type, back) {
 function useItem(k, back) {
   const it = k.item; if (!it) return;
   let id = it.id; if (id === 'eight') id = ['banana', 'gshell', 'rshell', 'bomb', 'mush', 'fire', 'boom', 'coin'][Math.floor(Math.random() * 8)];
-  if (k === player && online.racing) online.sendItem(id, back);
+  if (online.racing && (k === player || (k.isBot && online.isHost))) online.sendItem(id, back, k.pid);
   const base = id.replace('3', '');
   if (k === player) audio.sfx(['mush', 'gmush', 'star', 'rocket'].includes(base) ? 'boost' : 'use'); else if (dist2(k.pos, player.pos) < 60) audio.sfx('use', .35);
   switch (base) {
@@ -534,7 +536,7 @@ function updatePlayer(k, dt) {
   const near = nearest(k.pos.x, k.pos.z, k.idx); k.idx = near.i; if (grounding(k, near, dt)) return;
   if (k.spin > 0) { k.drifting = false; k.speed *= Math.pow(.2, dt); move(k, dt); return; }
   const up = ctl.held('up'), down = ctl.held('down');
-  const steer = (ctl.held('left') ? 1 : 0) - (ctl.held('right') ? 1 : 0);
+  const steer = ((ctl.held('left') ? 1 : 0) - (ctl.held('right') ? 1 : 0)) * (race.mirror ? -1 : 1);
   const off = k.off = near.d > WIDTH/2 + 1, drifting = k.drifting = ctl.held('drift') && Math.abs(k.speed) > 20 && steer !== 0, cap = capOf(k, off);
   if (state === 'racing' && !k.finished) { if (up) k.speed += k.acc*dt; else if (down) k.speed -= k.acc*1.4*dt; else k.speed -= Math.sign(k.speed)*12*dt; }
   else k.speed -= Math.sign(k.speed)*20*dt;
@@ -555,10 +557,9 @@ function updateRemote(k, dt) {
   k.speed = n.sp; k.spin = n.spin; k.starT = n.star; k.shrink = n.shr; k.boost = n.boost; k.drifting = !!n.dr; k.steer = n.steer;
   k.off = false; k.air = false; k.lift = false;
 }
-const online = createOnline({ $, show, audio, TRACKS, ITEMS, getLoadout: () => garageUI.get(), getSettings: () => ({ trackId: $('otrack').value, laps: $('laps').value, cls: $('cls').value, items: readItems(), gfx: $('gfx').value }),
-  onStart: o => startRace(o), onBack: () => menus.go('main'),
-  onRoom: info => { menus.setOnline(true, info); menus.go('menu'); }, onRoomUpdate: info => menus.setOnline(true, info) });
-{ const ot = $('otrack'); ot.innerHTML = '<option value="random">🎲 Random</option>' + TRACKS.map(t => `<option value="${t.id}">${t.name}</option>`).join(''); }
+const online = createOnline({ TRACKS, getLoadout: () => garageUI.get(), onStart: o => startRace(o),
+  onRoom: info => flow.onRoom(info), onRoomUpdate: info => flow.onRoomUpdate(info), onError: m => flow.onError(m) });
+{ const ot = $('otrack'); if (ot) ot.innerHTML = ''; }
 online.handlers = {
   state: a => { const k = karts.find(q => q.pid === a[0]); if (k) k.net = { at: performance.now(), x: a[1], y: a[2], z: a[3], h: a[4], sp: a[5], spin: a[6], star: a[7], shr: a[8], boost: a[9], dr: a[10], steer: a[11] }; },
   item: m => { const k = karts.find(q => q.pid === m.id); if (!k || state === 'idle') return; k.item = { id: m.type, uses: 1 }; useItem(k, !!m.back); },
@@ -604,7 +605,7 @@ function loop() {
     ranked = [...karts].sort(rankSort);
     karts.forEach(k => tick(k, dt));
     karts.forEach(k => k.remote ? updateRemote(k, dt) : (k.isBot || k.rocketT > 0) ? updateBot(k, dt) : updatePlayer(k, dt));
-    if (online.racing && player) online.sendState(player, performance.now());
+    if (online.racing && player) online.sendState(player, online.isHost ? karts.filter(k => k.isBot) : null, performance.now());
     if (state === 'racing') updateWorld(dt);
     collide(); karts.forEach(confine);
     karts.forEach(k => {
@@ -633,7 +634,7 @@ function loop() {
     camera.fov = 70 + Math.min(15, Math.abs(player.speed)*.25 + (player.boost>0?8:0)); camera.updateProjectionMatrix();
     blurNow += (((player.boost > 0 || player.starT > 0 || player.rocketT > 0) ? .16 : Math.max(0, s01 - .75) * .18) - blurNow) * Math.min(1, dt * 5); if (gradePass) gradePass.uniforms.blur.value = blurNow;
     sun.position.set(player.pos.x+100, player.pos.y+200, player.pos.z+60); sun.target.position.copy(player.pos);
-  } else if (trackDef && showKarts.length) { updateShowcase(dt); garage.render(dt, menus.screen === 'menu'); }
+  } else if (trackDef && showKarts.length) { updateShowcase(dt); garage.render(dt, flow.preview); }
   SC.follow(camera, performance.now() / 1000);
   if (ceilGroup) { const ry = state !== 'idle' && player ? (player.ty ?? player.pos.y) : (showKarts[3] ? showKarts[3].mesh.position.y : 0); ceilGroup.visible = camera.position.y < ry + 11; }
   if (useBloom && composer) composer.render(); else renderer.render(scene, camera);
@@ -663,7 +664,8 @@ function updateShowcase(dt) {
   applyEnv(themeAt(showKarts[3].idx), 1 - Math.exp(-3 * dt));
 }
 const garage = createGarage(THREE, $('gcanvas')), garageUI = initGarageUI({ $, audio, garage, lo0: settings.lo });
-const menus = initMenus({ $, show, audio, garageUI, startFlow: () => $('start').onclick(), onOnline: () => online.open(), onLeave: () => online.leave() });
+const menus = initMenus({ $, show, audio, garageUI, startFlow: () => {}, onSingle: () => flow.startSingle(), onOnline: () => flow.startOnline(), onLeave: () => online.leave() });
+const flow = initFlow({ $, show, audio, garageUI, TRACKS, THEMES, ITEMS, itemIcon, drawThumb, online, startGame: o => startRace(o), toMain: () => menus.go('main') });
 startShowcase();
 preloadModels(THREE).then(ok => { if (ok) { garageUI.refresh(); if (state === 'idle') startShowcase(); } });
 loop();
