@@ -20,7 +20,7 @@ export const CHARS = [
   { id: 'skinwalker', name: 'Skinwalker', cls: 'Heavy', kind: 'backrooms', stats: { speed: 9, accel: 3, handling: 4, weight: 9, drift: 4 }, c: { body: 0xf0f6fa, skin: 0x8fd0ff, accent: 0x8fd0ff } },
 ];
 export const KARTS = [
-  { id: 'standard', name: 'Standard Kart', mod: { speed: 0, accel: 0, handling: 0, weight: 0, drift: 0 }, l: 3.6, w: 2.2, h: .7, size: 1 },
+  { id: 'standard', name: 'Standard Kart', mod: { speed: 6, accel: 5, handling: 5, weight: 6, drift: 6 }, l: 3.6, w: 2.2, h: .7, size: 1 },
   { id: 'hotrod', name: 'Hot Rod', mod: { speed: 2, accel: -2, handling: -1, weight: 0, drift: 0 }, l: 4.2, w: 1.9, h: .6, size: 1 },
   { id: 'cruiser', name: 'Cruiser', mod: { speed: 1, accel: -1, handling: -1, weight: 2, drift: 0 }, l: 4, w: 2.5, h: .8, size: 1.1 },
   { id: 'buggy', name: 'Dune Buggy', mod: { speed: -1, accel: 2, handling: 1, weight: -1, drift: 1 }, l: 3.4, w: 2.1, h: .6, size: 1 },
