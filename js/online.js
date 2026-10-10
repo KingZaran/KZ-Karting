@@ -6,10 +6,10 @@ const SUPABASE_URL = 'https://fbcyonrppxttuaiwikmb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Q9yPEkVjcySlAsEJfuu-4A_-aBWewGs';   // publishable key: safe to ship in client code
 const MAX_PLAYERS = 8;
 
-export function createOnline({ $, show, audio, TRACKS, ITEMS, getLoadout, getGfx, onStart, onBack }) {
+export function createOnline({ $, show, audio, TRACKS, ITEMS, getLoadout, getSettings, onStart, onBack, onRoom, onRoomUpdate }) {
   const myId = Math.random().toString(36).slice(2, 10);
   const joinedAt = Date.now();
-  let sb = null, ch = null, code = '', name = '', players = [], active = false, inRace = false, handlers = {}, lastSend = 0, status = '';
+  let entered = false, sb = null, ch = null, code = '', name = '', players = [], active = false, inRace = false, handlers = {}, lastSend = 0, status = '';
   try { name = localStorage.getItem('kz-name') || ''; } catch (e) {}
 
   // ---------- UI ----------
@@ -44,59 +44,53 @@ export function createOnline({ $, show, audio, TRACKS, ITEMS, getLoadout, getGfx
   const sorted = () => [...players].sort((a, b) => (a.t - b.t) || (a.id < b.id ? -1 : 1)).slice(0, MAX_PLAYERS);
   const isHost = () => { const s = sorted(); return s.length && s[0].id === myId; };
 
-  function renderLobby() {
-    if (inRace) return;
-    const host = isHost(), list = sorted();
-    el.innerHTML = `<h1>ROOM</h1><div class="box"><div class="code">${code}</div><div class="msg">Share this code with your friends</div>
-      ${list.map((p, i) => `<div class="pl"><span>${esc(p.name)}${p.id === myId ? ' (you)' : ''}</span><b>${i === 0 ? 'HOST' : ''}</b></div>`).join('')}
-      ${host ? `<div class="row"><select id="onTrack"><option value="random">🎲 Random track</option>${TRACKS.map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select>
-        <select id="onLaps"><option>1</option><option selected>3</option><option>5</option></select></div>
-        <button class="go" id="onStart">Start race</button>` : '<div class="msg">Waiting for the host to start…</div>'}
-      <div class="msg" id="onMsg"></div><button class="sec" id="onLeave">Leave room</button></div>`;
-    $('onLeave').onclick = () => { audio.sfx('back'); leave(); renderEntry(); };
-    if (host) $('onStart').onclick = () => {
-      audio.init(); audio.sfx('ok');
-      const tid = $('onTrack').value, track = tid === 'random' ? TRACKS[Math.floor(Math.random() * TRACKS.length)] : TRACKS.find(t => t.id === tid);
-      const msg = { track: track.id, laps: $('onLaps').value, order: sorted().map(p => p.id) };
-      ch.send({ type: 'broadcast', event: 'start', payload: msg }); begin(msg);
-    };
+  const info = () => ({ code, host: isHost(), names: sorted().map(p => p.name + (p.id === myId ? ' (you)' : '')), count: sorted().length });
+  function hostStart() {
+    if (!active || !isHost()) return; pushLoadout();
+    const st = getSettings(), tid = st.trackId, track = tid === 'random' ? TRACKS[Math.floor(Math.random() * TRACKS.length)] : TRACKS.find(t => t.id === tid) || TRACKS[0];
+    const msg = { track: track.id, laps: st.laps, cls: st.cls, items: st.items, order: sorted().map(p => p.id) };
+    ch.send({ type: 'broadcast', event: 'start', payload: msg }); setTimeout(() => begin(msg), 0);
   }
+  let lastLo = '';
+  function pushLoadout() { if (!ch || !active) return; const lo = getLoadout(), j = JSON.stringify(lo); if (j === lastLo) return; lastLo = j; ch.track({ name: name || 'Player', lo, t: joinedAt }); }
+  setInterval(pushLoadout, 1000);
 
   function begin(msg) {
     const byId = Object.fromEntries(players.map(p => [p.id, p])), track = TRACKS.find(t => t.id === msg.track) || TRACKS[0];
     const roster = msg.order.filter(id => byId[id]).map(id => ({ id, name: byId[id].name, lo: byId[id].lo }));
     inRace = true;
-    onStart({ track, laps: msg.laps, cls: '1', diff: '0.9', bots: 0, items: ITEMS.map(i => i[0]), gfx: getGfx(), lo: getLoadout(), online: { me: myId, roster } });
+    onStart({ track, laps: msg.laps, cls: msg.cls || '1', diff: '0.9', bots: 0, items: msg.items || ITEMS.map(i => i[0]), gfx: getSettings().gfx, lo: getLoadout(), online: { me: myId, roster } });
   }
 
   async function join(c) {
-    leave(); code = c; setMsg(''); el.innerHTML = '<h1>ONLINE</h1><div class="box"><div class="msg">Connecting…</div></div>';
+    leave(); entered = false; lastLo = ''; code = c; setMsg(''); el.innerHTML = '<h1>ONLINE</h1><div class="box"><div class="msg">Connecting…</div></div>';
     try {
       if (!sb) { const { createClient } = await import(SB_CDN); sb = createClient(SUPABASE_URL, SUPABASE_KEY, { realtime: { params: { eventsPerSecond: 30 } } }); }
       ch = sb.channel('kz-room-' + code, { config: { presence: { key: myId }, broadcast: { self: false } } });
       ch.on('presence', { event: 'sync' }, () => {
         players = Object.entries(ch.presenceState()).map(([id, v]) => ({ id, ...v[0] }));
-        if (!inRace) renderLobby();
+        if (inRace) return; if (!entered) { entered = true; onRoom(info()); } else onRoomUpdate(info());
       });
       ch.on('broadcast', { event: 'start' }, ({ payload }) => { if (!inRace) begin(payload); });
       ch.on('broadcast', { event: 's' }, ({ payload }) => handlers.state && handlers.state(payload));
       ch.on('broadcast', { event: 'item' }, ({ payload }) => handlers.item && handlers.item(payload));
       ch.subscribe(async st => {
-        if (st === 'SUBSCRIBED') { active = true; await ch.track({ name: name || 'Player', lo: getLoadout(), t: joinedAt }); }
+        if (st === 'SUBSCRIBED') { active = true; lastLo = JSON.stringify(getLoadout()); await ch.track({ name: name || 'Player', lo: getLoadout(), t: joinedAt }); }
         else if (st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') { active = false; setMsg('Could not connect — check your internet and try again'); renderEntry(); }
       });
     } catch (e) { console.warn('online join failed', e); setMsg('Could not connect to the server'); renderEntry(); }
   }
 
-  function leave() { if (ch) { try { ch.untrack(); sb.removeChannel(ch); } catch (e) {} } ch = null; active = false; inRace = false; players = []; }
+  function leave() { if (ch) { try { ch.untrack(); sb.removeChannel(ch); } catch (e) {} } ch = null; active = false; inRace = false; entered = false; players = []; }
 
   return {
-    open() { if (active) renderLobby(); else renderEntry(); show('online'); },
+    open() { if (active) onRoom(info()); else { renderEntry(); show('online'); } },
     get active() { return active; },
     get racing() { return active && inRace; },
     set handlers(h) { handlers = h; },
     // back from a race: stay in the room so the host can start another one
-    backToLobby() { inRace = false; renderLobby(); show('online'); },
+    backToLobby() { inRace = false; onRoom(info()); },
+    hostStart, info,
     leave,
     // own kart state, throttled to ~15/s
     sendState(k, now) {
