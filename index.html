@@ -61,16 +61,21 @@ button.go.sel{background:linear-gradient(180deg,#ff5a5a,#e60012);color:#fff;bord
 .card:hover{border-color:#ffcc0088}.card.sel{border-color:#ffcc00}.card.win{border-color:#4cff7a;box-shadow:0 0 20px #4cff7a}
 .card canvas{width:100%;border-radius:8px}
 .badge{position:absolute;top:6px;right:6px;background:#e53935;border-radius:12px;padding:2px 9px;font-weight:700}
-#hud{position:fixed;top:12px;left:16px;font-size:26px;font-weight:700;text-shadow:0 2px 4px #000;display:none;line-height:1.3}
-#itemBox{position:fixed;top:12px;left:50%;transform:translateX(-50%);min-width:110px;height:84px;background:#0009;border:3px solid #fff;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:40px;line-height:1}
-#itemBox img{width:52px;height:52px}
-#itemBox small{font-size:13px;margin-top:4px}
+#hud{position:fixed;inset:0;pointer-events:none;display:none;font-weight:800;font-style:italic;text-shadow:0 2px 5px #000}
+#itWrap{position:fixed;top:16px;left:22px;width:150px;height:130px}
+.itc{position:absolute;border-radius:50%;background:radial-gradient(#ffffff55,#000a);border:4px solid #fff;display:flex;align-items:center;justify-content:center;overflow:visible;box-shadow:0 4px 12px #0008}
+#it1{left:30px;top:30px;width:98px;height:98px}#it2{left:0;top:0;width:58px;height:58px;border-width:3px}
+.itc img{width:76%;height:76%;object-fit:contain}.itc .cnt{position:absolute;right:-4px;bottom:-4px;background:#e60012;border:2px solid #fff;border-radius:12px;padding:0 7px;font-size:16px}
+#speedo{position:fixed;left:26px;bottom:18px;width:200px;text-align:center;line-height:1}
+#speedo svg{width:200px;display:block}#spVal{font-size:56px;margin-top:-46px}#speedo small{display:block;font-size:14px;letter-spacing:4px;opacity:.85}
+#lapBox{margin-top:8px;font-size:30px;letter-spacing:2px}
+#posBox{position:fixed;right:24px;bottom:14px;text-align:right;line-height:1}#posBox small{display:block;font-size:24px;letter-spacing:6px;opacity:.9}#posVal{font-size:92px}
 #ink{position:fixed;inset:0;background:radial-gradient(circle,#0000 5%,#111 70%);opacity:0;pointer-events:none}
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
 #zone{position:fixed;top:120px;left:50%;transform:translateX(-50%);font-size:34px;font-weight:800;text-shadow:0 3px 8px #000;opacity:0;pointer-events:none;letter-spacing:2px;white-space:nowrap}
 #zone.show{animation:zn 3s ease-out}
 @keyframes zn{0%{opacity:0;transform:translate(-50%,-10px)}12%{opacity:1;transform:translate(-50%,0)}80%{opacity:1}100%{opacity:0}}
-#mini{position:fixed;right:14px;bottom:14px;width:160px;height:160px;background:#0007;border:2px solid #fff6;border-radius:12px;display:none;pointer-events:none}
+#mini{position:fixed;right:18px;bottom:128px;width:176px;height:176px;background:transparent;display:none;pointer-events:none;opacity:.75}
 #menuBtn{position:fixed;top:12px;right:16px;display:none}
 #big{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:100px;font-weight:900;text-shadow:0 4px 10px #000;pointer-events:none;text-align:center}
 #ink{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s;background:radial-gradient(ellipse at 30% 40%,#000 0,#000c 28%,transparent 45%),radial-gradient(ellipse at 70% 60%,#000 0,#000c 30%,transparent 48%),radial-gradient(ellipse at 50% 20%,#000d 0,transparent 35%)}
@@ -81,7 +86,7 @@ button.go.sel{background:linear-gradient(180deg,#ff5a5a,#e60012);color:#fff;bord
 <div id="title" class="screen glass on"><div class="logo"><span>KZ</span><i>-</i>KARTING</div><div class="press">PRESS ENTER</div><div class="credit">KZ-KARTING · FRIENDS EDITION</div></div>
 
 <div id="main" class="screen glass"><div class="logo small"><span>KZ</span><i>-</i>KARTING</div>
- <div class="stack"><button class="big-btn sel">Single Player</button><button class="big-btn">Online Multiplayer</button></div>
+ <div class="stack"><button class="big-btn sel">Single Player</button><button class="big-btn">Online Multiplayer</button><button class="big-btn">Settings</button></div>
  <div class="hint">↑ ↓ CHOOSE · ENTER CONFIRM · ESC BACK</div></div>
 
 <div id="menu" class="screen glass"><div class="wrap">
@@ -106,7 +111,9 @@ button.go.sel{background:linear-gradient(180deg,#ff5a5a,#e60012);color:#fff;bord
 <div id="vote" class="screen"><h1>VOTE FOR A TRACK</h1><h2 id="voteMsg"></h2><div class="cards" id="cards"></div></div>
 
 <button id="menuBtn" class="sec">☰ Menu</button>
-<div id="hud"><div id="hudText"></div><div id="itemBox"></div></div><div id="ink"></div><div id="flash"></div><canvas id="mini" width="160" height="160"></canvas><div id="zone"></div><div id="big"></div><div id="help"></div>
+<div id="hud"><div id="itWrap"><div id="it2" class="itc"></div><div id="it1" class="itc"></div></div>
+ <div id="speedo"><svg viewBox="0 0 120 66"><path d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="#ffffff30" stroke-width="10" stroke-linecap="round"/><path id="spArc" d="M10 60 A50 50 0 0 1 110 60" fill="none" stroke="#ffd400" stroke-width="10" stroke-linecap="round" pathLength="100" stroke-dasharray="0 100"/></svg><div id="spVal">0</div><small>KM/H</small><div id="lapBox">LAP 1/3</div></div>
+ <div id="posBox"><small>POS</small><b id="posVal">1/1</b></div></div><div id="ink"></div><div id="flash"></div><canvas id="mini" width="160" height="160"></canvas><div id="zone"></div><div id="big"></div><div id="help"></div>
 <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 <script type="module" src="js/main.js"></script>
 </body></html>
