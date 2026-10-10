@@ -44,23 +44,34 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
 scene.fog = new THREE.Fog(0x87ceeb, 120, 500);
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 1, 1000);
-addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight); } pfx.setScale(innerHeight * renderer.getPixelRatio() * .9); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
+addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight); if (gradePass) gradePass.uniforms.aspect.value = innerWidth / innerHeight; } pfx.setScale(innerHeight * renderer.getPixelRatio() * .9); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 // post-processing (optional, loaded lazily so the game still runs if it fails)
-let composer = null, useBloom = true;
+let composer = null, useBloom = true, gradePass = null;
+// cinematic grade (linear space, before tone-mapping): radial speed blur on boost, chromatic fringe, contrast/saturation, vignette
+const GRADE = { uniforms: { tDiffuse: { value: null }, blur: { value: 0 }, vig: { value: .32 }, sat: { value: 1.12 }, con: { value: 1.06 }, aspect: { value: 1 } },
+  vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
+  fragmentShader: `uniform sampler2D tDiffuse; uniform float blur, vig, sat, con, aspect; varying vec2 vUv;
+    void main(){ vec2 d = vUv - .5; float r = length(d * vec2(aspect, 1.));
+      vec3 c = vec3(0.); float w = 0.;
+      for (int i = 0; i < 8; i++) { float t = float(i) / 7.; vec2 o = d * (1. - blur * t * smoothstep(.1, .7, r)); float ca = blur * .012 * r;
+        c += vec3(texture2D(tDiffuse, .5 + o * (1. + ca)).r, texture2D(tDiffuse, .5 + o).g, texture2D(tDiffuse, .5 + o * (1. - ca)).b); w += 1.; }
+      c /= w; float l = dot(c, vec3(.2126, .7152, .0722)); c = mix(vec3(l), c, sat); c = (c - .18) * con + .18; c = max(c, 0.);
+      c *= 1. - vig * smoothstep(.35, .95, r); gl_FragColor = vec4(c, 1.); }` };
+let blurNow = 0;
 (async () => { try {
-  const [{ EffectComposer }, { RenderPass }, { UnrealBloomPass }, { OutputPass }] = await Promise.all(['EffectComposer', 'RenderPass', 'UnrealBloomPass', 'OutputPass'].map(n => import(`three/addons/postprocessing/${n}.js`)));
+  const [{ EffectComposer }, { RenderPass }, { UnrealBloomPass }, { OutputPass }, { ShaderPass }] = await Promise.all(['EffectComposer', 'RenderPass', 'UnrealBloomPass', 'OutputPass', 'ShaderPass'].map(n => import(`three/addons/postprocessing/${n}.js`)));
   const pr = renderer.getPixelRatio(), rt = new THREE.WebGLRenderTarget(innerWidth * pr, innerHeight * pr, { type: THREE.HalfFloatType, samples: 4 });
-  const c = new EffectComposer(renderer, rt); c.setPixelRatio(pr); c.addPass(new RenderPass(scene, camera)); c.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .3, .5, 1.0)); c.addPass(new OutputPass());
-  c.setSize(innerWidth, innerHeight); composer = c;
+  const c = new EffectComposer(renderer, rt); c.setPixelRatio(pr); c.addPass(new RenderPass(scene, camera)); c.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .3, .5, 1.0)); c.addPass(gradePass = new ShaderPass(GRADE)); c.addPass(new OutputPass());
+  c.setSize(innerWidth, innerHeight); composer = c; gradePass.uniforms.aspect.value = innerWidth / innerHeight;
 } catch (e) { console.warn('Bloom unavailable:', e); } })();
 const pfx = createFx(THREE, scene), audio = createAudio(), SC = createScenery(THREE, renderer), mainEnv = makeEnv(THREE, renderer);
-function applyGfx(g) { useBloom = g !== 'low'; renderer.setPixelRatio(useBloom ? Math.min(devicePixelRatio, 1.5) : 1); renderer.setSize(innerWidth, innerHeight); if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight); } sun.castShadow = useBloom; pfx.setScale(innerHeight * renderer.getPixelRatio() * .9); }
+function applyGfx(g) { useBloom = g !== 'low'; renderer.setPixelRatio(useBloom ? Math.min(devicePixelRatio, 1.5) : 1); renderer.setSize(innerWidth, innerHeight); if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight); } sun.castShadow = useBloom; if (gradePass) gradePass.enabled = useBloom; pfx.setScale(innerHeight * renderer.getPixelRatio() * .9); }
 scene.add(SC.sky);
 scene.add(new THREE.HemisphereLight(0xffffff, 0x446644, 0.9));
 const sun = new THREE.DirectionalLight(0xffffff, 1.2);
 sun.position.set(100, 200, 60); sun.castShadow = true;
-sun.shadow.camera.left = -60; sun.shadow.camera.right = 60; sun.shadow.camera.top = 60; sun.shadow.camera.bottom = -60;
-sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = .45;
+sun.shadow.camera.left = -42; sun.shadow.camera.right = 42; sun.shadow.camera.top = 42; sun.shadow.camera.bottom = -42; sun.shadow.camera.far = 600; sun.shadow.radius = 3; sun.color.set(0xfff1dc);
+sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.0003; sun.shadow.normalBias = .3;
 scene.add(sun, sun.target);
 
 // ---------- track ----------
@@ -595,6 +606,7 @@ function loop() {
     camera.lookAt(player.pos.x, (player.air || player.lift ? (player.ty + player.pos.y) / 2 : player.pos.y) + 2, player.pos.z); camera.rotateZ(-(player.steer || 0) * .035 * s01);
     pfx.update(dt); drawMini(); audio.engine(s01, player.drifting ? 1 : (player.off && s01 > .2 ? .5 : 0), player.boost > 0 || player.rocketT > 0);
     camera.fov = 70 + Math.min(15, Math.abs(player.speed)*.25 + (player.boost>0?8:0)); camera.updateProjectionMatrix();
+    blurNow += (((player.boost > 0 || player.starT > 0 || player.rocketT > 0) ? .16 : Math.max(0, s01 - .75) * .18) - blurNow) * Math.min(1, dt * 5); if (gradePass) gradePass.uniforms.blur.value = blurNow;
     sun.position.set(player.pos.x+100, player.pos.y+200, player.pos.z+60); sun.target.position.copy(player.pos);
   } else if (trackDef && showKarts.length) { updateShowcase(dt); garage.render(dt, menus.screen === 'menu'); }
   SC.follow(camera, performance.now() / 1000);
