@@ -1,0 +1,13 @@
+# Custom audio
+
+Drop `.wav` (or `.mp3`) files in this folder. Any file that exists replaces the built-in synthesised sound; missing ones keep the default.
+
+**Sound effects** (played once): `tick` (menu move), `ok`, `back`, `beep` (countdown), `go`, `pickup` (item box), `use` (item used), `boost`, `hit`, `boom` (explosion), `lap`, `fall` (falling off the map)
+
+**Loops**
+- `engine.wav` - engine loop (pitch rises with speed)
+- `drift.wav` - tyre skid loop (louder while drifting / off-road)
+- `music.wav` - race music for every zone
+- `music-<zone>.wav` - music for one zone only, e.g. `music-meadow.wav`. Zones: meadow, dunes, frost, neon, hollow, silk, ink, backrooms, brawl (plus any others defined in `js/themes.js`)
+
+Keep loops seamless (they repeat) and fairly short; every file is downloaded when the game starts.
