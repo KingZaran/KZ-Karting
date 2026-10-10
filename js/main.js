@@ -320,7 +320,7 @@ function openVote(s) {
     setTimeout(() => startRace({ ...s, track }), 2800);
   }
 }
-$('start').onclick = () => { audio.init(); const s = readSettings(); show(null); openVote(s); };
+$('start').onclick = () => { audio.init(); if (menus.online) { online.hostStart(); return; } const s = readSettings(); show(null); openVote(s); };
 
 let MAX = 48; const ACC = 30;
 // ---------- items ----------
@@ -555,8 +555,10 @@ function updateRemote(k, dt) {
   k.speed = n.sp; k.spin = n.spin; k.starT = n.star; k.shrink = n.shr; k.boost = n.boost; k.drifting = !!n.dr; k.steer = n.steer;
   k.off = false; k.air = false; k.lift = false;
 }
-const online = createOnline({ $, show, audio, TRACKS, ITEMS, getLoadout: () => garageUI.get(), getGfx: () => (settings && settings.gfx) || 'high',
-  onStart: o => startRace(o), onBack: () => menus.go('main') });
+const online = createOnline({ $, show, audio, TRACKS, ITEMS, getLoadout: () => garageUI.get(), getSettings: () => ({ trackId: $('otrack').value, laps: $('laps').value, cls: $('cls').value, items: readItems(), gfx: $('gfx').value }),
+  onStart: o => startRace(o), onBack: () => menus.go('main'),
+  onRoom: info => { menus.setOnline(true, info); menus.go('menu'); }, onRoomUpdate: info => menus.setOnline(true, info) });
+{ const ot = $('otrack'); ot.innerHTML = '<option value="random">🎲 Random</option>' + TRACKS.map(t => `<option value="${t.id}">${t.name}</option>`).join(''); }
 online.handlers = {
   state: a => { const k = karts.find(q => q.pid === a[0]); if (k) k.net = { at: performance.now(), x: a[1], y: a[2], z: a[3], h: a[4], sp: a[5], spin: a[6], star: a[7], shr: a[8], boost: a[9], dr: a[10], steer: a[11] }; },
   item: m => { const k = karts.find(q => q.pid === m.id); if (!k || state === 'idle') return; k.item = { id: m.type, uses: 1 }; useItem(k, !!m.back); },
@@ -661,7 +663,7 @@ function updateShowcase(dt) {
   applyEnv(themeAt(showKarts[3].idx), 1 - Math.exp(-3 * dt));
 }
 const garage = createGarage(THREE, $('gcanvas')), garageUI = initGarageUI({ $, audio, garage, lo0: settings.lo });
-const menus = initMenus({ $, show, audio, garageUI, startFlow: () => $('start').onclick(), onOnline: () => online.open() });
+const menus = initMenus({ $, show, audio, garageUI, startFlow: () => $('start').onclick(), onOnline: () => online.open(), onLeave: () => online.leave() });
 startShowcase();
 preloadModels(THREE).then(ok => { if (ok) { garageUI.refresh(); if (state === 'idle') startShowcase(); } });
 loop();
