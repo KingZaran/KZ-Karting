@@ -11,6 +11,8 @@ import { MODELS, preloadModels, cloneModel } from './models.js';
 import { createScenery, makeEnv } from './scenery.js';
 import { TRACKS, ITEMS } from './tracks.js';
 import { buildThemes } from './themes.js';
+import { createControls } from './controls.js';
+const ctl = createControls();
 const $ = id => document.getElementById(id);
 
 // ---------- settings ----------
@@ -250,8 +252,8 @@ const COLORS = [0xe53935,0x1e88e5,0x43a047,0xfdd835,0x8e24aa,0xfb8c00,0x00acc1,0
 function makeKart(color, lo) { const g = buildKart(THREE, lo || randomLoadout(), color, mainEnv); scene.add(g); return g; }
 
 const keys = {};
-addEventListener('keydown', e => { keys[e.code] = true; if (e.code === 'KeyM') zoneBanner(audio.toggle() ? '🔇 Sound off' : '🔊 Sound on'); if (e.code === 'KeyR' && state !== 'idle') startRace(lastOpts);
-  if (!e.repeat && (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'KeyF') && state === 'racing' && player && !player.finished && player.spin <= 0) useItem(player, keys.KeyS || keys.ArrowDown); });
+addEventListener('keydown', e => { keys[e.code] = true; if (ctl.is('mute', e.code)) zoneBanner(audio.toggle() ? '🔇 Sound off' : '🔊 Sound on'); if (ctl.is('restart', e.code) && state !== 'idle') startRace(lastOpts);
+  if (!e.repeat && ctl.is('item', e.code) && state === 'racing' && player && !player.finished && player.spin <= 0) useItem(player, ctl.held('down')); });
 addEventListener('keyup', e => keys[e.code] = false);
 
 let lastCd = -1, race = { laps: 3 }, karts = [], player, state = 'idle', countdown = 0, lastOpts = null, clock = new THREE.Clock();
@@ -527,9 +529,9 @@ function tick(k, dt) { for (const s of ['spin', 'immune', 'starT', 'rocketT', 'p
 function updatePlayer(k, dt) {
   const near = nearest(k.pos.x, k.pos.z, k.idx); k.idx = near.i; if (grounding(k, near, dt)) return;
   if (k.spin > 0) { k.drifting = false; k.speed *= Math.pow(.2, dt); move(k, dt); return; }
-  const up = keys.KeyW || keys.ArrowUp, down = keys.KeyS || keys.ArrowDown;
-  const steer = (keys.KeyA || keys.ArrowLeft ? 1 : 0) - (keys.KeyD || keys.ArrowRight ? 1 : 0);
-  const off = k.off = near.d > WIDTH/2 + 1, drifting = k.drifting = (keys.Space || keys.ShiftLeft) && Math.abs(k.speed) > 20 && steer !== 0, cap = capOf(k, off);
+  const up = ctl.held('up'), down = ctl.held('down');
+  const steer = (ctl.held('left') ? 1 : 0) - (ctl.held('right') ? 1 : 0);
+  const off = k.off = near.d > WIDTH/2 + 1, drifting = k.drifting = ctl.held('drift') && Math.abs(k.speed) > 20 && steer !== 0, cap = capOf(k, off);
   if (state === 'racing' && !k.finished) { if (up) k.speed += k.acc*dt; else if (down) k.speed -= k.acc*1.4*dt; else k.speed -= Math.sign(k.speed)*12*dt; }
   else k.speed -= Math.sign(k.speed)*20*dt;
   if (k.speed > cap) k.speed = Math.max(cap, k.speed - 45*dt); k.speed = Math.max(-15, k.speed);
