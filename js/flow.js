@@ -2,6 +2,7 @@
 //   single : character -> kart combo -> game setup -> items -> map -> START
 //   online : name/host/join -> character -> kart combo -> waiting room -> (host) setup -> items -> map -> START
 // Character icons: drop PNGs in  icons/chars/<character id>.png  (e.g. icons/chars/mario.png); a coloured tile is used when there is none.
+import { fixItemImgs } from './sprites.js';
 import { CHARS, KARTS, WHEELS, PAINT, STAT_KEYS, computeStats, getChar } from './roster.js';
 
 const SPEEDS = ['50cc', '100cc', '150cc', '200cc', 'Mirror'], CLS = ['0.8', '1', '1.2', '1.4', '1.2'], DIFFS = ['Easy', 'Normal', 'Hard'], DIFFV = ['0.8', '0.9', '1'];
@@ -70,10 +71,13 @@ const CSS = `
 #flow input{font:inherit;font-size:22px;font-weight:700;padding:12px 18px;border-radius:30px;border:4px solid #ffffff55;background:#0a1236;color:#fff;text-align:center;min-width:0}
 #flow .erow{display:flex;gap:12px;align-items:center;justify-content:center}
 #flow .msg{min-height:22px;font-size:15px;opacity:.85}
+#flow .sb{display:grid;grid-template-columns:70px 64px 1fr 110px;align-items:center;gap:14px;padding:8px 22px;border-radius:40px;background:#0a1236d9;border:3px solid #ffffff30;font-size:24px;font-weight:800;font-style:italic;width:min(780px,100%);align-self:center}
+#flow .sb .n{font-size:34px;text-align:center}#flow .sb .ic{width:56px;height:56px;border-radius:50%;overflow:hidden;position:relative;border:3px solid #fff;font-size:20px;display:flex;align-items:center;justify-content:center}#flow .sb .ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#flow .sb .p{text-align:right;color:#ffd400}#flow .sb.me{background:linear-gradient(90deg,#e60012,#ff5a5a);border-color:#fff}
 #roomTag{position:fixed;top:14px;right:18px;z-index:70;display:none;background:#0a1236e6;border:3px solid #ffd400;border-radius:14px;padding:6px 16px;font-size:20px;font-weight:900;font-style:italic;letter-spacing:5px;color:#ffd400}
 #roomTag small{display:block;font-size:9px;letter-spacing:3px;color:#fff;font-style:normal;opacity:.8}`;
 
-export function initFlow({ $, show, audio, garageUI, TRACKS, THEMES, ITEMS, itemIcon, drawThumb, online, startGame, toMain }) {
+export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEMES, ITEMS, itemIcon, drawThumb, online, startGame, toMain }) {
   const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
   const root = document.createElement('div'); root.id = 'flow'; root.className = 'screen'; document.body.appendChild(root);
   const tag = document.createElement('div'); tag.id = 'roomTag'; document.body.appendChild(tag);
@@ -148,11 +152,11 @@ export function initFlow({ $, show, audio, garageUI, TRACKS, THEMES, ITEMS, item
         const r = room || { code: '----', players: [], host: true, count: 0 };
         frame('Waiting for Players', `<div class="center"><div class="msg">SHARE THIS ROOM CODE</div><div class="bigcode">${r.code}</div>
           ${r.players.map((p, i) => `<div class="pl"><span>${esc(p.name)}${p.me ? ' (you)' : ''}</span><b>${i === 0 ? 'HOST' : ''}</b></div>`).join('')}
-          <button class="fb${wc === 0 ? ' sel' : ''}" id="wCust" style="font-size:20px"><i>C</i>Customise character / kart</button>
+          <div class="erow"><button class="fb" id="wCust" style="font-size:20px"><i>C</i>Customise character / kart</button><button class="fb" id="wSet" style="font-size:20px"><i>S</i>Settings</button></div>
           <div class="msg">${r.host ? (r.count < 2 ? 'Waiting for at least 2 players…' : 'Press OK when everyone has joined') : 'Waiting for the host to start the race…'}</div></div>`, '', { one: true, ok: r.host ? 'OK' : '', back: true });
-        $('wCust').onclick = () => { audio.sfx('ok'); wcFromWait = true; go('char'); };
+        $('wCust').onclick = () => { audio.sfx('ok'); wcFromWait = true; go('char'); }; $('wSet').onclick = () => { audio.sfx('ok'); settingsFrom = 'wait'; go('settings'); };
       },
-      key(c) { if (c === 'KeyC') { wcFromWait = true; go('char'); return true; } return false; },
+      key(c) { if (c === 'KeyC') { wcFromWait = true; go('char'); return true; } if (c === 'KeyS') { settingsFrom = 'wait'; go('settings'); return true; } return false; },
       back() { online.leave(); room = null; mode = 'single'; go('entry'); }, ok() { if (room && room.host) go('setup'); },
     },
     setup: {
@@ -169,7 +173,6 @@ export function initFlow({ $, show, audio, garageUI, TRACKS, THEMES, ITEMS, item
         R.push({ label: 'CPU Difficulty', off, val: () => DIFFS[S.diff], chg: d => { if (!off) S.diff = wrap(S.diff, d, 3); } });
         R.push({ label: 'Number of CPUs', off, val: () => S.bots, chg: d => { if (!off) S.bots = wrap(S.bots, d, mode === 'online' ? 12 - Math.max(2, room ? room.count : 2) + 1 : 12); } });
         R.push({ label: 'Laps', val: () => S.laps, chg: d => { const L = [1, 2, 3, 5, 7]; S.laps = L[wrap(L.indexOf(S.laps), d, L.length)]; } });
-        R.push({ label: 'Graphics', val: () => S.gfx === 'high' ? 'High' : 'Low (faster)', chg: () => { S.gfx = S.gfx === 'high' ? 'low' : 'high'; } });
         return R;
       },
       key(c) { const R = this.rows(); if (c === 'ArrowUp') sr = (sr + R.length - 1) % R.length; else if (c === 'ArrowDown') sr = (sr + 1) % R.length; else if (c === 'ArrowLeft' || c === 'ArrowRight') { if (sr >= R.length) sr = 0; R[sr].chg(c === 'ArrowRight' ? 1 : -1); save(); } else return false; tick(); this.draw(); return true; },
@@ -178,9 +181,9 @@ export function initFlow({ $, show, audio, garageUI, TRACKS, THEMES, ITEMS, item
     items: {
       draw() {
         const nb = 4;
-        frame('Items', `<div class="igrid">${ITEMS.map(([id, name], i) => `<div class="it${S.items.includes(id) ? '' : ' off'}${ic === i ? ' cur' : ''}" data-i="${i}"><img src="${itemIcon(id)}" alt="">${esc(name)}</div>`).join('')}</div>
+        frame('Items', `<div class="igrid">${ITEMS.map(([id, name], i) => `<div class="it${S.items.includes(id) ? '' : ' off'}${ic === i ? ' cur' : ''}" data-i="${i}"><img data-item="${id}" alt="">${esc(name)}</div>`).join('')}</div>
           <div class="ibtns">${['Random', 'All On', 'All Off'].map((t, i) => `<button class="fb${ic === ITEMS.length + i ? ' sel' : ''}" data-b="${i}">${t}</button>`).join('')}</div>`, '', { one: true, sub: `${S.items.length} / ${ITEMS.length} ON` });
-        root.querySelectorAll('.it').forEach(t => t.onclick = () => { ic = +t.dataset.i; toggle(); });
+        fixItemImgs(root); root.querySelectorAll('.it').forEach(t => t.onclick = () => { ic = +t.dataset.i; toggle(); });
         root.querySelectorAll('[data-b]').forEach(b => b.onclick = e => { e.stopPropagation(); bulk(+b.dataset.b); });
       },
       key(c) {
@@ -189,31 +192,48 @@ export function initFlow({ $, show, audio, garageUI, TRACKS, THEMES, ITEMS, item
         else if (c === 'ArrowDown' && ic + 7 >= n) ic = n; else ic = Math.max(0, Math.min(n - 1, ic + d));
         tick(); this.draw(); return true;
       },
-      back() { go('setup'); }, ok() { if (ic >= ITEMS.length) bulk(ic - ITEMS.length); else go('map'); },
+      back() { go('setup'); }, ok() { if (ic >= ITEMS.length) bulk(ic - ITEMS.length); else if (online_()) { votes = {}; online.ui({ k: 'phase', s: 'map' }); go('map'); } else go('map'); },
     },
     map: {
       draw() {
         const n = TRACKS.length;
-        frame('Select Map', `<div class="mgrid">${TRACKS.map((t, i) => `<div class="mt${mc === i ? ' cur' : ''}" data-i="${i}"><span class="th"></span>${esc(t.name)}<small>${t.zones.map(([id]) => THEMES[id].name).join(' · ')}</small></div>`).join('')}</div>
-          <div class="mt mrand${mc === n ? ' cur' : ''}" data-i="${n}">🎲 RANDOM</div>`, '', { one: true });
-        root.querySelectorAll('.mt').forEach(t => { const i = +t.dataset.i; if (i < n) t.querySelector('.th').replaceWith(drawThumb(TRACKS[i])); t.onclick = () => { mc = i; S.track = i < n ? TRACKS[i].id : 'random'; save(); audio.sfx('ok'); go('start'); }; });
+        frame(online_() ? `Vote for a Map` : 'Select Map', `<div class="mgrid">${TRACKS.map((t, i) => `<div class="mt${mc === i ? ' cur' : ''}" data-i="${i}"><span class="th"></span>${esc(t.name)}<small>${t.zones.map(([id]) => THEMES[id].name).join(' · ')}</small></div>`).join('')}</div>
+          <div class="mt mrand${mc === n ? ' cur' : ''}" data-i="${n}">🎲 RANDOM</div>`, '', { one: true, sub: online_() ? `${Object.keys(votes).length} / ${room.count} VOTED` + (room.host ? ' · TAB = PICK WINNER' : '') : '', ok: online_() ? '' : 'OK' });
+        root.querySelectorAll('.mt').forEach(t => { const i = +t.dataset.i; if (i < n) t.querySelector('.th').replaceWith(drawThumb(TRACKS[i])); t.onclick = () => { mc = i; audio.sfx('ok'); SCR.map.ok(); }; const cnt = Object.values(votes).filter(v => v === (i < n ? TRACKS[i].id : 'random')).length; if (online_() && cnt) t.insertAdjacentHTML('beforeend', `<b style="position:absolute;top:6px;right:8px;background:#ffd400;color:#000;border-radius:12px;padding:1px 9px;font-size:15px">${cnt}</b>`); t.style.position = 'relative'; });
+        if (online_()) { const ff = root.querySelector('.ffoot'); if (room.host) { ff.lastElementChild.outerHTML = '<button class="fb ok" id="mDone"><i>★</i>Pick winner ▶</button>'; $('mDone').onclick = () => { audio.sfx('ok'); resolveVotes(); }; } }
       },
-      key(c) { const n = TRACKS.length; let d = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 }[c]; if (!d) return false; if (c === 'ArrowDown' && mc + 3 >= n && mc < n) mc = n; else if (c === 'ArrowUp' && mc === n) mc = Math.max(0, n - 3); else if (mc < n || c === 'ArrowUp') mc = Math.max(0, Math.min(n - 1, mc + d)); tick(); this.draw(); return true; },
-      back() { go('items'); }, ok() { S.track = mc < TRACKS.length ? TRACKS[mc].id : 'random'; save(); go('start'); },
+      key(c) { if (c === 'Tab' && online_() && room.host) { resolveVotes(); return true; } const n = TRACKS.length; let d = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 }[c]; if (!d) return false; if (c === 'ArrowDown' && mc + 3 >= n && mc < n) mc = n; else if (c === 'ArrowUp' && mc === n) mc = Math.max(0, n - 3); else if (mc < n || c === 'ArrowUp') mc = Math.max(0, Math.min(n - 1, mc + d)); tick(); this.draw(); return true; },
+      back() { go(online_() && !room.host ? 'wait' : online_() ? 'items' : 'items'); },
+      ok() { const t = mc < TRACKS.length ? TRACKS[mc].id : 'random'; if (online_()) { vote(t); return; } S.track = t; save(); go('start'); },
+    },
+    settings: {
+      rows() { return [{ label: 'Graphics', val: () => S.gfx === 'high' ? 'High' : 'Low (faster)', chg: () => { S.gfx = S.gfx === 'high' ? 'low' : 'high'; save(); } }, { label: 'Controls', val: () => 'Change keys ▶', chg: () => openControls() }]; },
+      draw() {
+        const R = this.rows();
+        frame('Settings', R.map((r, i) => `<div class="srow${i === sr2 ? ' cur' : ''}" data-i="${i}"><span>${r.label}</span><span class="v"><b class="ar" data-d="-1">◀</b><em>${r.val()}</em><b class="ar" data-d="1">▶</b></span></div>`).join(''), '', { one: true, ok: '' });
+        root.querySelectorAll('.srow').forEach(r => { r.onclick = () => { sr2 = +r.dataset.i; if (sr2 === 1) openControls(); this.draw(); }; r.querySelectorAll('.ar').forEach(a => a.onclick = e => { e.stopPropagation(); sr2 = +r.dataset.i; R[sr2].chg(); tick(); this.draw(); }); });
+      },
+      key(c) { const R = this.rows(); if (c === 'ArrowUp' || c === 'ArrowDown') sr2 = (sr2 + 1) % R.length; else if (c === 'ArrowLeft' || c === 'ArrowRight') R[sr2].chg(); else return false; tick(); this.draw(); return true; },
+      back() { if (settingsFrom === 'wait' && room) go('wait'); else toMain(); }, ok() { if (sr2 === 1) openControls(); else { this.rows()[0].chg(); this.draw(); } },
     },
     start: {
       draw() {
-        const o = opts(), t = S.track === 'random' ? null : TRACKS.find(x => x.id === S.track), many = mode === 'online' && room && room.count < 2;
+        const o = opts(), t = S.track === 'random' ? null : TRACKS.find(x => x.id === S.track), many = mode === 'online' && room && room.count < 2, guest = mode === 'online' && room && !room.host;
         frame('Ready?', `<div class="card"><div><span>Map</span>${t ? esc(t.name) : '🎲 Random'}</div><div><span>Speed</span>${SPEEDS[S.speed]}</div><div><span>CPUs</span>${o.bots ? o.bots + ' · ' + DIFFS[S.diff] : 'Off'}</div><div><span>Laps</span>${S.laps}</div><div><span>Items</span>${S.items.length} / ${ITEMS.length}</div>${mode === 'online' && room ? `<div><span>Players</span>${room.count}</div>` : ''}</div>
-          <div class="center"><div class="msg">${many ? 'Need at least 2 players in the room to start' : ''}</div><button class="fb ok bigok" id="bigOk"${many ? ' disabled' : ''}><i>A</i>START RACE</button></div>`, '', { one: true, ok: '' });
-        $('bigOk').onclick = () => { audio.sfx('ok'); SCR.start.ok(); };
+          <div class="center"><div class="msg">${many ? 'Need at least 2 players in the room to start' : guest ? 'Waiting for the host to start the race…' : ''}</div>${guest ? '' : `<button class="fb ok bigok" id="bigOk"${many ? ' disabled' : ''}><i>A</i>START RACE</button>`}</div>`, '', { one: true, ok: '' });
+        if (!guest) $('bigOk').onclick = () => { audio.sfx('ok'); SCR.start.ok(); };
       },
       key() { return false; },
-      back() { go('map'); },
-      ok() { const o = opts(); if (mode === 'online') { if (room && room.count >= 2) online.hostStart({ trackId: o.trackId, laps: o.laps, cls: o.cls, items: o.items, bots: o.bots, diff: o.diff, mirror: o.mirror, gfx: o.gfx }); return; }
+      back() { if (mode === 'online' && room && !room.host) return go('wait'); go('map'); },
+      ok() { if (mode === 'online' && room && !room.host) return; const o = opts(); if (mode === 'online') { if (room && room.count >= 2) online.hostStart({ trackId: o.trackId, laps: o.laps, cls: o.cls, items: o.items, bots: o.bots, diff: o.diff, mirror: o.mirror, gfx: o.gfx }); return; }
         const t = S.track === 'random' ? TRACKS[Math.floor(Math.random() * TRACKS.length)] : TRACKS.find(x => x.id === S.track) || TRACKS[0];
         audio.init(); startGame({ ...o, track: t }); },
     },
+  };
+  let scoreRows = [], scoreDone = () => {}, sr2 = 0, settingsFrom = 'main', openedAt = 0, votes = {};
+  SCR.score = {
+    draw() { frame('Results', scoreRows.map(r => { const c = getChar(r.char), col = ['#ffd400', '#d8dde6', '#cd7f32'][r.pos - 1] || '#fff'; return `<div class="sb${r.me ? ' me' : ''}"><span class="n" style="color:${col}">${r.pos}</span><span class="ic" style="background:${hex(c.c.body === 0xf0f6fa ? 0x3b5bd6 : c.c.body)}">${esc(c.name[0])}<img src="icons/chars/${c.id}.png" alt="" onerror="this.remove()"></span><span>${esc(r.name)}</span><span class="p">+${r.pts}</span></div>`; }).join(''), '', { one: true, back: false, ok: 'OK' }); },
+    key() { return false; }, back() {}, ok() { scoreDone(); },
   };
   let wcFromWait = false;
   function pickChar() { setLo({ char: CHARS[ci].id }); const C = getChar(lo.char); const pv = $('pv'); if (pv) pv.querySelector('.pvn').innerHTML = `${esc(C.name)}<small>${C.cls.toUpperCase()}</small>`; root.querySelectorAll('.ct').forEach((t, i) => t.classList.toggle('cur', i === ci)); const s = root.querySelector('.stats'); if (s) s.outerHTML = statsHtml(); const c = root.querySelector('.ct.cur'); c && c.scrollIntoView({ block: 'nearest' }); }
@@ -223,12 +243,15 @@ export function initFlow({ $, show, audio, garageUI, TRACKS, THEMES, ITEMS, item
   }
   function toggle() { const id = ITEMS[ic][0]; S.items = S.items.includes(id) ? S.items.filter(x => x !== id) : [...S.items, id]; save(); audio.sfx('tick'); SCR.items.draw(); }
   function bulk(b) { S.items = b === 0 ? ALL.filter(() => Math.random() < .5) : b === 1 ? [...ALL] : []; save(); audio.sfx('ok'); SCR.items.draw(); }
+  const online_ = () => mode === 'online' && room;
+  function vote(t) { votes[online.myId] = t; online.ui({ k: 'vote', id: online.myId, t }); audio.sfx('ok'); SCR.map.draw(); }
+  function resolveVotes() { const b = Object.values(votes), pick = b.length ? b[Math.floor(Math.random() * b.length)] : 'random', id = pick === 'random' ? TRACKS[Math.floor(Math.random() * TRACKS.length)].id : pick; S.track = id; save(); online.ui({ k: 'result', t: id }); go('start'); }
   const back_ = () => SCR[cur] && SCR[cur].back(), ok_ = () => SCR[cur] && SCR[cur].ok();
 
   function go(s) { cur = s; racingHidden = false; if (s === 'wait') wcFromWait = false; show('flow'); SCR[s].draw(); }
 
   addEventListener('keydown', e => {
-    if (!root.classList.contains('on') || !SCR[cur]) return;
+    if (!root.classList.contains('on') || !SCR[cur] || e.repeat || performance.now() - openedAt < 300) return;
     const inField = e.target && e.target.tagName === 'INPUT';
     if (inField) { if (e.key === 'Escape') { e.target.blur(); e.preventDefault(); } return; }
     const c = e.code;
@@ -238,11 +261,19 @@ export function initFlow({ $, show, audio, garageUI, TRACKS, THEMES, ITEMS, item
   });
 
   return {
-    startSingle() { mode = 'single'; room = null; ci = Math.max(0, CHARS.findIndex(c => c.id === lo.char)); go('char'); },
-    startOnline() { mode = 'online'; msg = ''; if (online.active && room) go('wait'); else go('entry'); },
+    startSettings() { settingsFrom = 'main'; openedAt = performance.now(); go('settings'); },
+    startSingle() { openedAt = performance.now(); mode = 'single'; room = null; ci = Math.max(0, CHARS.findIndex(c => c.id === lo.char)); go('char'); },
+    startOnline() { openedAt = performance.now(); mode = 'online'; msg = ''; if (online.active && room) go('wait'); else go('entry'); },
     onRoom(info) { room = info; mode = 'online'; wcFromWait = false; if (cur === 'entry' || cur === 'none' || !SCR[cur]) { ci = Math.max(0, CHARS.findIndex(c => c.id === lo.char)); go('char'); } else go('wait'); },
     onRoomUpdate(info) { room = info; updTag(); if (cur === 'wait' || cur === 'start') SCR[cur].draw(); },
     onError(m) { msg = m; room = null; mode = 'online'; go('entry'); },
+    scoreboard(rows, done) { scoreRows = rows; scoreDone = done; racingHidden = true; go('score'); },
+    onUi(m) {
+      if (!online_()) return;
+      if (m.k === 'phase' && !room.host) { votes = {}; mc = 0; go('map'); }
+      else if (m.k === 'vote') { votes[m.id] = m.t; if (cur === 'map') SCR.map.draw(); }
+      else if (m.k === 'result' && !room.host) { S.track = m.t; go('start'); }
+    },
     hideTag() { racingHidden = true; updTag(); },
     afterRace() { if (mode === 'online' && room) go('wait'); else go('map'); },
     leave() { room = null; mode = 'single'; racingHidden = false; updTag(); },
