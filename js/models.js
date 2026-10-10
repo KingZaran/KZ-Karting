@@ -84,6 +84,7 @@ export async function preloadModels(THREE) {
   // steering wheel centre in the driver's frame (kart y=0 at the seat top); hands sit on either side of it
   const HAND = { x: .3, y: .62, z: 1.1 };
   // Find arms (long sideways chains) and legs (long downward chains) purely from the skeleton's geometry.
+  const rollK = {};
   function poseDriver(holder) {
     const J = jointsOf(holder); if (J.length < 6) return { arms: 0, legs: 0, why: 'no skeleton' };
     upd(holder);
@@ -112,7 +113,9 @@ export async function preloadModels(THREE) {
       detail.push(`${s > 0 ? '+x' : '-x'} arm: ${arm ? arm.map(b => b.name).join('>') : 'none'}`);
       if (arm && arm.length >= 3) {
         let u = 0; while (u < arm.length - 3 && (P.get(arm[u + 1]).distanceTo(P.get(arm[u])) < .075 * H || Math.abs(P.get(arm[u]).x - cx) < .05 * H)) u++; // skip spine/clavicle stubs: the upper arm is the first long bone
-        if (arm[u + 2]) ik2(arm[u], arm[u + 1], arm[u + 2], V3(s * HAND.x, HAND.y, HAND.z), s);
+        if (arm[u + 2]) { ik2(arm[u], arm[u + 1], arm[u + 2], V3(s * HAND.x, HAND.y, HAND.z), s);
+          const hb = arm[u + 2], pq = hb.parent ? wq(hb.parent) : new THREE.Quaternion(), roll = new THREE.Quaternion().setFromAxisAngle(V3(0, 0, 1), -s * Math.PI / 2 * (rollK[hb.name] ?? 1));
+          hb.quaternion.copy(pq.invert().multiply(roll).multiply(wq(hb))); hb.updateWorldMatrix(true, true); }
         else aim(arm[u], arm[u + 1], V3(s * .22, -.62, .6));
         arms++;
       }
@@ -160,6 +163,7 @@ export async function preloadModels(THREE) {
     const R = {}; for (const s of [-1, 1]) {
       // shoulder in the seat frame, hand target on the wheel -> elbow by the law of cosines (elbows drop down/outward)
       const sh = V3(s * Sx, shY - hipY + SEAT.y, SEAT.z), T = V3(s * HAND.x, HAND.y, HAND.z), a = elbX - Sx, b = Math.max(.01, A - elbX);
+      { const need = .72 * (a + b), dxy = Math.hypot(T.x - sh.x, T.y - sh.y), dz = Math.sqrt(Math.max(0, need * need - dxy * dxy)); if (T.clone().sub(sh).length() < need) T.z = Math.min(1.9, sh.z + dz); }
       let d = T.clone().sub(sh).length(); const dir = T.clone().sub(sh).normalize(); d = Math.min(Math.max(d, Math.abs(a - b) + 1e-3), a + b - 1e-3);
       const along = (a * a - b * b + d * d) / (2 * d), hh = Math.sqrt(Math.max(0, a * a - along * along)), pole = V3(s * .45, -1, -.1); pole.addScaledVector(dir, -pole.dot(dir)).normalize();
       const El = sh.clone().addScaledVector(dir, along).addScaledVector(pole, hh);
@@ -169,7 +173,7 @@ export async function preloadModels(THREE) {
     function D(px, py, pz, o) {                       // deform one point (given in world space)
       let x = px - cx, y = py, z = pz - zc; const s = x < 0 ? -1 : 1, ax = Math.abs(x), r = R[s];
       // arm
-      const wArm = sm(.8 * Sx, 1.2 * Sx, ax) * (1 - sm(.09 * H, .15 * H, Math.abs(y - shY)));
+      const wArm = sm(.8 * Sx, 1.2 * Sx, ax) * sm(.28 * H, .4 * H, y - y0) * (1 - sm(.3 * H, .45 * H, y - shY));
       if (wArm > 0) {
         const ps = V3(s * Sx, shY, 0); tmp.set(x, y, z).sub(ps); out.copy(tmp).applyQuaternion(r.R1); tmp.lerp(out, wArm); let px1 = ps.x + tmp.x, py1 = ps.y + tmp.y, pz1 = ps.z + tmp.z;
         const we = wArm * sm(.92 * elbX, 1.08 * elbX, ax);
@@ -245,9 +249,11 @@ export async function preloadModels(THREE) {
     upd(holder); box = new THREE.Box3().setFromObject(holder);
     const posed = info.arms + info.legs > 0;
     if (posed) {   // keep him inside the kart: shrink about the seat if he is wider than the tub
-      const w = box.max.x - box.min.x, cap = o.maxWidth === undefined ? 3.2 : o.maxWidth;
+      const w = box.max.x - box.min.x, cap = o.maxWidth === undefined ? 2.6 : o.maxWidth;
       if (cap > 0 && w > cap) { const f = cap / w; placed.scale.multiplyScalar(f); placed.position.set(SEAT.x + f * (placed.position.x - SEAT.x), SEAT.y + f * (placed.position.y - SEAT.y), SEAT.z + f * (placed.position.z - SEAT.z)); upd(holder); box = new THREE.Box3().setFromObject(holder); }
     }
+    const FIT = { bowser: .72, roy: .7, 'bowser-jr': .88, ludwig: .88, morton: .88 }, fit = o.fit ?? FIT[o.id];
+    if (posed && fit && fit !== 1) { placed.scale.multiplyScalar(fit); placed.position.set(SEAT.x + fit * (placed.position.x - SEAT.x), SEAT.y + fit * (placed.position.y - SEAT.y), SEAT.z + fit * (placed.position.z - SEAT.z)); upd(holder); box = new THREE.Box3().setFromObject(holder); }
     if (posed) {   // short characters (e.g. Lemmy) would sink into the tub with only their hair showing: raise them so the head clears the cowl
       const want = o.headHeight === undefined ? 2.0 : o.headHeight, top = box.max.y; if (want > 0 && top < want) { const lift = Math.min(.9, want - top); placed.position.y += lift; upd(holder); box = new THREE.Box3().setFromObject(holder); }
     }
