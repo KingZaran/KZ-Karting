@@ -49,6 +49,7 @@ export function initMenus({ $, show, audio, startFlow, garageUI, onOnline, onSin
   $('leftPanel').addEventListener('mousedown', () => { if (panel !== 'left') { panel = 'left'; refocus(); } });
   const back = () => { audio.sfx('back'); if (onl) { onLeave(); setOnline(false); } go('main'); };
   $('backBtn').onclick = back;
+  $('title').addEventListener('pointerdown', () => { if (screen === 'title') { audio.init(); audio.sfx('ok'); go('main'); } });
   // ---- keyboard
   addEventListener('keydown', e => {
     const c = e.code;

@@ -10,11 +10,24 @@ export function createControls() {
   const down = {};   // physical keys currently held
   addEventListener('keydown', e => { down[e.code] = true; }, true); addEventListener('keyup', e => { down[e.code] = false; }, true);
   addEventListener('blur', () => { for (const k in down) down[k] = false; });
-  const held = a => map[a].some(c => c && down[c]), is = (a, code) => map[a].includes(code);
+  // ---- touch: on-screen steer pad / drift / brake while racing; tap the item circle to use it (swipe down to drop behind)
+  const tv = { left: 0, right: 0, down: 0, drift: 0 }; let touchMode = false;
+  const racing = () => { const h = document.getElementById('hud'); return !!h && h.style.display === 'block'; };
+  const held = a => map[a].some(c => c && down[c]) || !!tv[a] || (a === 'up' && touchMode && racing() && !tv.down), is = (a, code) => map[a].includes(code);
 
   // ---- UI ----
   const css = document.createElement('style');
-  css.textContent = `#ctlBtn{display:none !important;position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:60;background:#3a4a7a;color:#fff;font-size:13px;padding:7px 12px;border-radius:10px;opacity:.85}
+  css.textContent = `#tctl{position:fixed;inset:0;z-index:55;display:none;pointer-events:none;touch-action:none;user-select:none;-webkit-user-select:none}
+  #tctl.on{display:block}#tctl *{touch-action:none}
+  #tpad{position:absolute;left:0;bottom:0;width:46%;height:62%;pointer-events:auto}
+  #tring{position:absolute;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;border:4px solid #fff9;background:#ffffff18;display:none}
+  #tknob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:#fffc}
+  .tbtn{position:absolute;pointer-events:auto;border-radius:50%;border:4px solid #fff;background:#0007;color:#fff;font-weight:800;font-style:italic;font-size:17px;display:flex;align-items:center;justify-content:center;opacity:.8}
+  .tbtn.on{background:#ffd400;color:#000;opacity:1}
+  #tDrift{right:30px;bottom:150px;width:104px;height:104px}#tBrake{right:150px;bottom:160px;width:80px;height:80px;font-size:14px}
+  body.touch #it1{pointer-events:auto}
+  
+  #ctlBtn{display:none !important;position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:60;background:#3a4a7a;color:#fff;font-size:13px;padding:7px 12px;border-radius:10px;opacity:.85}
   #ctlBtn:hover{opacity:1}
   #ctlOv{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;background:rgba(5,8,20,.82)}
   #ctlOv.on{display:flex}
@@ -33,6 +46,24 @@ export function createControls() {
   #ctlBox .pad{display:grid;grid-template-columns:1fr auto;gap:6px 14px;font-size:14px}#ctlBox .pad b{color:#ffd34a;text-align:right}
   #ctlBox .f{display:flex;gap:10px;justify-content:space-between;margin-top:16px}`;
   document.head.appendChild(css);
+  const tc = document.createElement('div'); tc.id = 'tctl';
+  tc.innerHTML = '<div id="tpad"><div id="tring"><div id="tknob"></div></div></div><div class="tbtn" id="tDrift">DRIFT</div><div class="tbtn" id="tBrake">BRAKE</div>';
+  document.body.appendChild(tc);
+  const setTouch = () => { if (touchMode) return; touchMode = true; document.body.classList.add('touch'); };
+  if (matchMedia('(pointer: coarse)').matches) setTouch();
+  addEventListener('pointerdown', e => { if (e.pointerType === 'touch') setTouch(); }, true);
+  setInterval(() => tc.classList.toggle('on', touchMode && racing()), 250);
+  addEventListener('contextmenu', e => { if (touchMode) e.preventDefault(); });
+  const pad = tc.querySelector('#tpad'), ring = tc.querySelector('#tring'), knob = tc.querySelector('#tknob'); let padId = null, px = 0;
+  const steerTo = x => { const dx = x - px; tv.left = dx < -16 ? 1 : 0; tv.right = dx > 16 ? 1 : 0; knob.style.transform = `translateX(${Math.max(-45, Math.min(45, dx))}px)`; };
+  pad.onpointerdown = e => { padId = e.pointerId; pad.setPointerCapture(padId); px = e.clientX; const r = pad.getBoundingClientRect(); ring.style.display = 'block'; ring.style.left = e.clientX - r.left + 'px'; ring.style.top = e.clientY - r.top + 'px'; steerTo(px); };
+  pad.onpointermove = e => { if (e.pointerId === padId) steerTo(e.clientX); };
+  const padEnd = e => { if (e.pointerId !== padId) return; padId = null; tv.left = tv.right = 0; ring.style.display = 'none'; knob.style.transform = ''; };
+  pad.onpointerup = pad.onpointercancel = padEnd;
+  for (const [id, a] of [['tDrift', 'drift'], ['tBrake', 'down']]) { const b = tc.querySelector('#' + id); b.onpointerdown = e => { b.setPointerCapture(e.pointerId); tv[a] = 1; b.classList.add('on'); }; b.onpointerup = b.onpointercancel = () => { tv[a] = 0; b.classList.remove('on'); }; }
+  let itY = 0, itCode = '';
+  addEventListener('pointerdown', e => { if (e.pointerType !== 'touch' || !racing()) return; const t = e.target.closest && e.target.closest('#it1'); if (!t) return; itY = e.clientY; itCode = map.item[0] || map.item[1]; if (itCode) dispatchEvent(new KeyboardEvent('keydown', { code: itCode })); }, true);
+  addEventListener('pointerup', e => { if (!itCode) return; if (e.clientY - itY > 35) tv.down = 1; dispatchEvent(new KeyboardEvent('keyup', { code: itCode })); tv.down = 0; itCode = ''; }, true);
   const btn = document.createElement('button'); btn.id = 'ctlBtn'; btn.className = 'sec'; btn.textContent = '⌨ Controls';
   const ov = document.createElement('div'); ov.id = 'ctlOv'; ov.innerHTML = '<div id="ctlBox"></div>';
   document.body.append(btn, ov); const box = ov.firstChild;
@@ -42,7 +73,7 @@ export function createControls() {
     const kb = '<div class="sub">Click a key box, then press the key you want. Esc cancels · Backspace clears a slot.</div>' +
       ACTIONS.map(([a, l]) => `<div class="r"><span>${l}</span>${[0, 1].map(i => `<button class="k${waiting && waiting[0] === a && waiting[1] === i ? ' wait' : ''}" data-a="${a}" data-i="${i}">${waiting && waiting[0] === a && waiting[1] === i ? 'Press a key…' : nice(map[a][i])}</button>`).join('')}</div>`).join('');
     const pad = '<div class="soon">Controller support is coming in a later update. Planned layout:</div><div class="pad"><span>Steer</span><b>Left stick / D-pad</b><span>Accelerate</span><b>A / RT</b><span>Brake / Reverse</span><b>B / LT</b><span>Drift / Hop</span><b>RB / LB</b><span>Use item</span><b>X / Y</b><span>Look back</span><b>R-stick down</b><span>Menu</span><b>Start</b></div>';
-    const touch = '<div class="soon">Touch support is coming in a later update. Planned layout:</div><div class="pad"><span>Steer</span><b>Left thumb: slide</b><span>Accelerate</span><b>Automatic</b><span>Brake / Reverse</span><b>Hold brake button</b><span>Drift / Hop</span><b>Right thumb: drift button</b><span>Use item</span><b>Tap the item circle</b><span>Drop item behind</span><b>Swipe down on item</b></div>';
+    const touch = '<div class="soon">Touch controls appear on screen during a race on touch devices:</div><div class="pad"><span>Steer</span><b>Slide left thumb left / right</b><span>Accelerate</span><b>Automatic</b><span>Brake / Reverse</span><b>BRAKE button</b><span>Drift / Hop</span><b>DRIFT button (hold while steering)</b><span>Use item</span><b>Tap the item circle</b><span>Hold / throw</span><b>Hold the circle, release to throw</b><span>Drop item behind</span><b>Swipe down on the circle</b></div>';
     box.innerHTML = '<h2>CONTROLS</h2>' + tabs + (tab === 'keyboard' ? kb : tab === 'controller' ? pad : touch) +
       `<div class="f">${tab === 'keyboard' ? '<button class="sec" id="ctlReset">Reset to default</button>' : '<span></span>'}<button class="go" id="ctlDone">Done</button></div>`;
     box.querySelectorAll('.tab').forEach(b => b.onclick = () => { tab = b.dataset.t; waiting = null; render(); });
