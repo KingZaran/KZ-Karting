@@ -255,8 +255,8 @@ function makeKart(color, lo) { const g = buildKart(THREE, lo || randomLoadout(),
 
 const keys = {};
 addEventListener('keydown', e => { keys[e.code] = true; if (ctl.is('mute', e.code)) zoneBanner(audio.toggle() ? '🔇 Sound off' : '🔊 Sound on'); if (ctl.is('restart', e.code) && state !== 'idle' && !online.racing) startRace(lastOpts);
-  if (!e.repeat && ctl.is('item', e.code) && state === 'racing' && player && !player.finished && player.spin <= 0) useItem(player, ctl.held('down')); });
-addEventListener('keyup', e => keys[e.code] = false);
+  if (!e.repeat && ctl.is('item', e.code) && state === 'racing' && player && !player.finished && player.spin <= 0 && player.item && T >= (player.item.ready || 0)) { if (TRAIL.includes(BASE[player.item.id])) player.holding = true; else useItem(player, ctl.held('down')); } });
+addEventListener('keyup', e => { keys[e.code] = false; if (ctl.is('item', e.code) && player && player.holding) { player.holding = false; if (state === 'racing' && player.item && !player.finished) { const b = BASE[player.item.id]; useItem(player, b === 'banana' ? !ctl.held('down') : ctl.held('down')); } } });
 
 let lastCd = -1, race = { laps: 3 }, karts = [], player, state = 'idle', countdown = 0, lastOpts = null, clock = new THREE.Clock();
 
@@ -342,7 +342,7 @@ const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const fwd = k => V(Math.sin(k.heading), 0, Math.cos(k.heading));
 const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 function mk(geo, color, glow = .3) { const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: glow })); m.castShadow = true; scene.add(m); return m; }
-function clearWorld() { [...projs, ...hazards, ...boxes, ...fxs].forEach(o => scene.remove(o.mesh)); projs = []; hazards = []; boxes = []; fxs = []; }
+function clearWorld() { karts.forEach(k => { (k._cm || []).forEach(m => scene.remove(m)); k._cm = []; k._ck = ''; k.holding = false; }); [...projs, ...hazards, ...boxes, ...fxs].forEach(o => scene.remove(o.mesh)); projs = []; hazards = []; boxes = []; fxs = []; }
 function spawnBoxes() {
   if (!race.items.length) return;
   for (const frac of [.06, .2, .34, .5, .64, .8, .93]) {
@@ -356,11 +356,20 @@ function spawnBoxes() {
 }
 const rankOf = k => ranked.indexOf(k) + 1;
 function rollItem(k) {
-  const n = karts.length, r = rankOf(k), cls = r <= Math.ceil(n / 3) ? 0 : r > Math.ceil(2 * n / 3) ? 2 : 1;
-  const pool = race.items; let x = Math.random() * pool.reduce((s, id) => s + WGT[id][cls] + .05, 0), pick = pool[0];
-  for (const id of pool) { x -= WGT[id][cls] + .05; if (x <= 0) { pick = id; break; } }
+  const n = karts.length, f = n > 1 ? (rankOf(k) - 1) / (n - 1) : 0, a = Math.min(1, f * 2), bi = f < .5 ? 0 : 1;   // item odds slide smoothly from the front of the pack to the back
+  const wt = id => { const w = WGT[id]; return w[bi] + (w[bi + 1] - w[bi]) * a + .05; };
+  const pool = race.items; let x = Math.random() * pool.reduce((s, id) => s + wt(id), 0), pick = pool[0];
+  for (const id of pool) { x -= wt(id); if (x <= 0) { pick = id; break; } }
   const uses = { 'triple-bananas': 3, 'triple-green-shells': 3, 'triple-red-shells': 3, 'triple-mushrooms': 3, 'boomerang-flower': 3, 'fire-flower': 8, 'crazy-8': 8 }[pick] || 1;
-  const nit = { id: pick, uses }; if (!k.item) { k.item = nit; k.useAt = T + 1 + Math.random() * 2; } else k.item2 = nit; k.gotAt = T; if (k === player) audio.sfx('pickup');
+  const nit = { id: pick, uses, ready: T + 2.2 };   // roulette spins for ~2s before it can be used
+   if (!k.item) { k.item = nit; k.useAt = T + 1 + Math.random() * 2; } else k.item2 = nit; k.gotAt = T; if (k === player) audio.sfx('pickup');
+}
+const TRAIL = ['banana', 'gshell', 'rshell', 'bomb'];
+// carried banana / shells / bomb (orbiting triples, or one you're holding back) soak up a hit
+function guard(k) {
+  const it = k.item; if (!it || !TRAIL.includes(BASE[it.id]) || !(it.uses > 1 || k.holding) || k.starT > 0 || k.rocketT > 0) return false;
+  burst(k.pos, 0xffffff, 12, 10); audio.sfx('use', k === player ? .6 : .2);
+  if (--it.uses <= 0) { k.item = k.item2 || null; k.item2 = null; k.holding = false; } return true;
 }
 function hit(k, power) {
   if (k.remote) return false;   // damage to other players is applied on their own screen
@@ -407,9 +416,9 @@ function useItem(k, back) {
     case 'coin': k.coins = Math.min(10, k.coins + 3); break;
     case 'ink': ranked.slice(0, rankOf(k) - 1).forEach(o => { if (!o.starT && !o.rocketT) o.ink = 5; }); break;
     case 'bolt': karts.forEach(o => { if (o !== k && hit(o, .9)) o.shrink = 6; }); { const f = $('flash'); f.style.transition = 'none'; f.style.opacity = .9; setTimeout(() => { f.style.transition = 'opacity 1s'; f.style.opacity = 0; }, 40); } break;
-    case 'horn': projs.forEach(p => { if (dist2(p.pos, k.pos) < 40) p.life = 0; }); fx(k.pos, 0xffffff, 40); break;
+    case 'horn': projs.forEach(p => { if (dist2(p.pos, k.pos) < 40) p.life = 0; }); karts.forEach(o => { if (o !== k && dist2(o.pos, k.pos) < 14) hit(o, .7); }); fx(k.pos, 0xffffff, 40); break;
   }
-  if (--it.uses <= 0) { k.item = k.item2 || null; k.item2 = null; k.useAt = T + 1 + Math.random() * 2; }
+  if (--it.uses <= 0) { k.item = k.item2 || null; k.item2 = null; k.holding = false; k.useAt = T + 1 + Math.random() * 2; }
   if (k._steal) { if (!k.item) k.item = k._steal; else if (!k.item2) k.item2 = k._steal; k._steal = null; k.gotAt = T; }
 }
 function updateWorld(dt) {
@@ -443,6 +452,7 @@ function updateWorld(dt) {
       else for (const k of karts) {
         if (k === p.owner && p.t < .5) continue;
         if (dist2(k.pos, p.pos) < (p.type === 'bshell' ? 3.5 : 2.4)) {
+          if ((p.type === 'gshell' || p.type === 'rshell') && !k.remote && guard(k)) { dead = true; break; }
           if (p.type === 'bshell') explode(p.pos, 11, 1.8, 0x1e88e5); else hit(k, p.type === 'fire' ? .7 : 1.1);
           dead = true; break;
         }
@@ -459,7 +469,7 @@ function updateWorld(dt) {
       if (k.hopT > 0) continue;   // feather hop clears hazards
       if (k.starT > 0 || k.rocketT > 0) gone = true;
       else if (k.immune > 0) continue;
-      else if (h.type === 'banana') { hit(k, 1); gone = true; } else boom = true;
+      else if (h.type === 'banana') { if (!k.remote && guard(k)) { gone = true; continue; } hit(k, 1); gone = true; } else boom = true;
     }
     if (boom) { explode(h.pos, 10, 1.6, 0xff7a00); gone = true; }
     if (gone) { scene.remove(h.mesh); hazards.splice(i, 1); }
@@ -475,8 +485,21 @@ function updateWorld(dt) {
     if (f.life <= 0) { scene.remove(f.mesh); fxs.splice(i, 1); }
   }
 }
+const CARRY = { banana: [0xffe135, .55], gshell: [0x2ecc40, .75], rshell: [0xe53935, .75], bomb: [0x222222, .8], mush: [0xff8a65, .7] };
+function syncCarry(k, dt) {
+  const it = k.item, base = it && BASE[it.id], on = it && CARRY[base] && (it.uses > 1 || (k.holding && TRAIL.includes(base))) && !k.finished;
+  const key = on ? it.id + it.uses : '';
+  if (k._ck !== key) { (k._cm || []).forEach(m => scene.remove(m)); k._cm = []; k._ck = key; if (on) for (let i = 0; i < it.uses; i++) { const c = CARRY[base], m = base === 'banana' ? mk(new THREE.CylinderGeometry(.35, .35, 1.5, 8), c[0]) : mk(new THREE.SphereGeometry(c[1], 12, 9), c[0]); k._cm.push(m); } }
+  if (!k._cm || !k._cm.length) return;
+  const n = k._cm.length, f = fwd(k), l = V(f.z, 0, -f.x), trail = base === 'banana' || k.holding;
+  k._cm.forEach((m, i) => {
+    if (trail) { m.position.copy(k.pos).addScaledVector(f, -(3.2 + i * 1.5)); m.position.y = k.pos.y + .9; if (base === 'banana') m.rotation.z = Math.PI / 2; }
+    else { const a = T * 5 + i * 6.283 / n; m.position.copy(k.pos).addScaledVector(f, Math.sin(a) * 2.8).addScaledVector(l, Math.cos(a) * 2.8); m.position.y = k.pos.y + 1.2; }
+    m.visible = k.mesh.visible;
+  });
+}
 function botItems(k) {
-  if (!k.item || T < k.useAt || k.finished) return;
+  if (!k.item || T < k.useAt || T < (k.item.ready || 0) || k.finished) return;
   const base = BASE[k.item.id], f = fwd(k); let ahead = false, behind = false;
   for (const o of karts) if (o !== k) {
     const d = V(o.pos.x - k.pos.x, 0, o.pos.z - k.pos.z), L = d.length();
@@ -624,7 +647,7 @@ function loop() {
     karts.forEach(k => {
       trackLap(k); const sp01 = Math.min(1, Math.abs(k.speed) / MAX); k.slide = (k.slide || 0) + ((k.drifting ? (k.steer || 0) * .5 : 0) - (k.slide || 0)) * Math.min(1, 10 * dt);
       k.mesh.rotation.order = 'YXZ'; k.mesh.position.set(k.pos.x, k.pos.y + (k.off && sp01 > .2 ? Math.abs(Math.sin(T * 45 + k.heading)) * .12 : 0) + (k.hopT > 0 ? Math.sin((1 - k.hopT) * Math.PI) * 2.6 : 0), k.pos.z); updateCloud(k);
-      k.mesh.rotation.set(0, k.heading + k.spin * 12 + k.slide + (k.leafT > 0 ? (1 - k.leafT / .6) * 12.57 : 0), (k.steer || 0) * (.14 + (k.drifting ? .1 : 0)) * sp01); emitKartFx(k, dt);
+      k.mesh.rotation.set(0, k.heading + k.spin * 12 + k.slide + (k.leafT > 0 ? (1 - k.leafT / .6) * 12.57 : 0), (k.steer || 0) * (.14 + (k.drifting ? .1 : 0)) * sp01); emitKartFx(k, dt); syncCarry(k, dt);
       { const ws = k.mesh.userData.wheels; if (ws) for (const w of ws) { w.spin.rotation.x += k.speed * dt / w.r; if (w.front) w.steer.rotation.y = (k.steer || 0) * .4; } }
       const sc = (k.shrink > 0 ? .5 : 1) * k.size; k.mesh.scale.setScalar(k.mesh.scale.x + (sc - k.mesh.scale.x) * Math.min(1, 8*dt));
       { const bm = k.mesh.userData.body && k.mesh.userData.body.material; if (bm && bm.emissive) bm.emissive.setHSL(k.starT > 0 ? (T * 2) % 1 : 0, 1, k.starT > 0 ? .5 : 0); }
@@ -637,8 +660,8 @@ function loop() {
     { const lap = Math.min(Math.max(player.lap + 1, 1), race.laps), spd = Math.round(Math.abs(player.speed) * 3), col = ['#ffd400', '#d8dde6', '#cd7f32'][place - 1] || '#ffffff';
       $('posVal').textContent = `${place}/${karts.length}`; $('posVal').style.color = col; $('lapBox').textContent = `LAP ${lap}/${race.laps}`; $('spVal').textContent = spd;
       $('spArc').setAttribute('stroke-dasharray', `${Math.min(100, spd / (MAX * 3 * 1.5) * 100).toFixed(1)} 100`); $('spArc').setAttribute('stroke', player.boost > 0 ? '#ff7a1a' : '#ffd400');
-      const sig = [player.item && player.item.id + player.item.uses, player.item2 && player.item2.id].join('|');
-      if (sig !== hudSig) { hudSig = sig; const f = (el, itm) => { el.style.display = itm ? 'flex' : 'none'; el.innerHTML = itm ? `<img data-item="${itm.id}" alt="">${itm.uses > 1 ? `<span class="cnt">×${itm.uses}</span>` : ''}` : ''; fixItemImgs(el); }; f($('it1'), player.item); f($('it2'), player.item2); } }
+      const rolling = player.item && T < (player.item.ready || 0), sig = [player.item && player.item.id + player.item.uses, player.item2 && player.item2.id, rolling ? 'r' + Math.floor(T * 10) : ''].join('|');
+      if (sig !== hudSig) { hudSig = sig; const f = (el, itm) => { el.style.display = itm ? 'flex' : 'none'; const sid = itm && itm === player.item && rolling ? ITEMS[Math.floor(Math.random() * ITEMS.length)][0] : itm && itm.id; el.innerHTML = itm ? `<img data-item="${sid}" alt="">${itm.uses > 1 && sid === itm.id ? `<span class="cnt">×${itm.uses}</span>` : ''}` : ''; fixItemImgs(el); }; f($('it1'), player.item); f($('it2'), player.item2); } }
     $('ink').style.opacity = Math.min(1, player.ink);
     if (player.finished) $('big').textContent = `Finished ${place}${['st','nd','rd'][place-1]||'th'}! (R = restart)`;
     { const th = themeAt(player.idx); applyEnv(th, 1 - Math.exp(-2.5 * dt)); if (th !== lastTheme) { lastTheme = th; zoneBanner(th.name); audio.music(Object.keys(THEMES).find(k => THEMES[k] === th)); } }
