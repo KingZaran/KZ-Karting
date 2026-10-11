@@ -4,7 +4,7 @@ Drop `.wav` (or `.mp3`) files in this folder. Any file that exists replaces the 
 
 **Sound effects** (played once): `tick` (menu move), `ok`, `back`, `beep` (countdown), `go`, `pickup` (item box), `use` (item used), `boost`, `hit`, `boom` (explosion), `lap`, `fall` (falling off the map)
 
-**Item sounds:** `use-<item>.wav` plays when that item is used and falls back to `use` (or `boost`) if missing: banana, gshell, rshell, bshell, bomb, mush, gmush, star, ink, bolt, rocket, fire, boom, plant, horn, coin (triple items use the same file as the single one).
+**Item sounds:** `use-<item>.wav` plays when that item is used and falls back to `use` (or `boost`) if missing: banana, blooper, bob-omb, boo, boomerang-flower, bullet-bill, coin, crazy-8, feather, fire-flower, golden-mushroom, green-shell, lightning, mushroom, piranha-plant, red-shell, spiny-shell, super-horn, super-leaf, starman, triple-bananas, triple-green-shells, triple-mushrooms, triple-red-shells (a triple item uses its single item's file if it has none of its own).
 
 Sounds layer on top of each other, and the music dips briefly under loud ones. A music file keeps playing across zones unless you supply a `music-<zone>` file.
 
