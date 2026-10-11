@@ -328,10 +328,15 @@ $('start').onclick = () => { audio.init(); if (menus.online) { online.hostStart(
 let MAX = 48; const ACC = 30;
 // ---------- items ----------
 const NAMES = Object.fromEntries(ITEMS);
-const ICON = { banana:'🍌', banana3:'🍌', gshell:'🟢', gshell3:'🟢', rshell:'🔴', rshell3:'🔴', bomb:'💣', mush:'🍄', mush3:'🍄', gmush:'🌟', star:'⭐', ink:'🦑', bolt:'⚡', rocket:'🚀', bshell:'🔵', fire:'🔥', boom:'↩️', plant:'🌱', horn:'📯', eight:'8️⃣', coin:'🪙' };
+// item id -> the internal behaviour it uses (the code below still switches on these short names)
+const BASE = { banana: 'banana', 'triple-bananas': 'banana', blooper: 'ink', 'bob-omb': 'bomb', boo: 'boo', 'boomerang-flower': 'boom', 'bullet-bill': 'rocket', coin: 'coin', 'crazy-8': 'eight', feather: 'feather',
+  'fire-flower': 'fire', 'golden-mushroom': 'gmush', 'green-shell': 'gshell', 'triple-green-shells': 'gshell', lightning: 'bolt', mushroom: 'mush', 'triple-mushrooms': 'mush', 'piranha-plant': 'plant',
+  'red-shell': 'rshell', 'triple-red-shells': 'rshell', 'spiny-shell': 'bshell', 'super-horn': 'horn', 'super-leaf': 'leaf', starman: 'star' };
+const SINGLE = { 'triple-bananas': 'banana', 'triple-green-shells': 'green-shell', 'triple-red-shells': 'red-shell', 'triple-mushrooms': 'mushroom' };   // custom-sound fallback for triples
 // weights for [front, middle, back] of the pack
-const WGT = { banana:[6,3,1], banana3:[4,2,1], gshell:[5,4,2], gshell3:[3,3,2], rshell:[2,5,4], rshell3:[1,4,5], bomb:[4,3,2], mush:[4,5,4], mush3:[2,4,5], gmush:[0,1,4],
-  star:[0,1,5], ink:[1,3,3], bolt:[0,0,2], rocket:[0,1,5], bshell:[0,0,3], fire:[3,3,2], boom:[3,3,2], plant:[3,3,2], horn:[1,2,3], eight:[0,1,2], coin:[4,2,0] };
+const WGT = { banana: [6, 3, 1], 'triple-bananas': [4, 2, 1], 'green-shell': [5, 4, 2], 'triple-green-shells': [3, 3, 2], 'red-shell': [2, 5, 4], 'triple-red-shells': [1, 4, 5], 'bob-omb': [4, 3, 2], mushroom: [4, 5, 4], 'triple-mushrooms': [2, 4, 5], 'golden-mushroom': [0, 1, 4],
+  starman: [0, 1, 5], blooper: [1, 3, 3], lightning: [0, 0, 2], 'bullet-bill': [0, 1, 5], 'spiny-shell': [0, 0, 3], 'fire-flower': [3, 3, 2], 'boomerang-flower': [3, 3, 2], 'piranha-plant': [3, 3, 2], 'super-horn': [1, 2, 3], 'crazy-8': [0, 1, 2], coin: [4, 2, 0],
+  boo: [1, 3, 3], feather: [3, 3, 1], 'super-leaf': [2, 3, 2] };
 let hudSig = '', projs = [], hazards = [], boxes = [], fxs = [], ranked = [], T = 0;
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const fwd = k => V(Math.sin(k.heading), 0, Math.cos(k.heading));
@@ -354,7 +359,7 @@ function rollItem(k) {
   const n = karts.length, r = rankOf(k), cls = r <= Math.ceil(n / 3) ? 0 : r > Math.ceil(2 * n / 3) ? 2 : 1;
   const pool = race.items; let x = Math.random() * pool.reduce((s, id) => s + WGT[id][cls] + .05, 0), pick = pool[0];
   for (const id of pool) { x -= WGT[id][cls] + .05; if (x <= 0) { pick = id; break; } }
-  const uses = { banana3: 3, gshell3: 3, rshell3: 3, mush3: 3, boom: 3, fire: 8, eight: 8 }[pick] || 1;
+  const uses = { 'triple-bananas': 3, 'triple-green-shells': 3, 'triple-red-shells': 3, 'triple-mushrooms': 3, 'boomerang-flower': 3, 'fire-flower': 8, 'crazy-8': 8 }[pick] || 1;
   const nit = { id: pick, uses }; if (!k.item) { k.item = nit; k.useAt = T + 1 + Math.random() * 2; } else k.item2 = nit; k.gotAt = T; if (k === player) audio.sfx('pickup');
 }
 function hit(k, power) {
@@ -383,10 +388,10 @@ function drop(k, type, back) {
 }
 function useItem(k, back) {
   const it = k.item; if (!it) return;
-  let id = it.id; if (id === 'eight') id = ['banana', 'gshell', 'rshell', 'bomb', 'mush', 'fire', 'boom', 'coin'][Math.floor(Math.random() * 8)];
+  let id = it.id; if (id === 'crazy-8') id = ['banana', 'green-shell', 'red-shell', 'bob-omb', 'mushroom', 'fire-flower', 'boomerang-flower', 'coin'][Math.floor(Math.random() * 8)];
   if (online.racing && (k === player || (k.isBot && online.isHost))) online.sendItem(id, back, k.pid);
-  const base = id.replace('3', '');
-  { const fb = ['mush', 'gmush', 'star', 'rocket'].includes(base) ? 'boost' : 'use'; if (k === player) audio.sfx('use-' + base, 1, fb); else if (dist2(k.pos, player.pos) < 60) audio.sfx('use-' + base, .35, fb); }
+  const base = BASE[id];
+  { const fb = ['use-' + (SINGLE[id] || id), ['mush', 'gmush', 'star', 'rocket'].includes(base) ? 'boost' : 'use'].filter((x, i, a) => i || x !== a[0]); if (k === player) audio.sfx('use-' + id, 1, fb); else if (dist2(k.pos, player.pos) < 60) audio.sfx('use-' + id, .35, fb); }
   switch (base) {
     case 'banana': drop(k, 'banana', back); break;
     case 'gshell': case 'rshell': case 'bshell': case 'fire': case 'boom': shoot(k, base, back); break;
@@ -396,12 +401,16 @@ function useItem(k, back) {
     case 'star': k.starT = 8; k.boost = Math.max(k.boost, 1.2); break;
     case 'rocket': k.rocketT = 6; break;
     case 'plant': k.plantT = 10; break;
+    case 'boo': k.immune = Math.max(k.immune, 5); { const v = ranked[rankOf(k) - 2] || ranked.find(o => o !== k && o.item); if (v && v.item) { k._steal = v.item; v.item = v.item2 || null; v.item2 = null; } } fx(k.pos, 0xcfd8ff, 6); break;
+    case 'feather': k.hopT = 1; k.boost = Math.max(k.boost, .5); break;
+    case 'leaf': k.leafT = .6; fx(k.pos, 0x7ddf4a, 7); projs.forEach(p => { if (p.owner !== k && dist2(p.pos, k.pos) < 8) p.life = 0; }); karts.forEach(o => { if (o !== k && dist2(o.pos, k.pos) < 7) hit(o, .8); }); break;
     case 'coin': k.coins = Math.min(10, k.coins + 3); break;
     case 'ink': ranked.slice(0, rankOf(k) - 1).forEach(o => { if (!o.starT && !o.rocketT) o.ink = 5; }); break;
     case 'bolt': karts.forEach(o => { if (o !== k && hit(o, .9)) o.shrink = 6; }); { const f = $('flash'); f.style.transition = 'none'; f.style.opacity = .9; setTimeout(() => { f.style.transition = 'opacity 1s'; f.style.opacity = 0; }, 40); } break;
     case 'horn': projs.forEach(p => { if (dist2(p.pos, k.pos) < 40) p.life = 0; }); fx(k.pos, 0xffffff, 40); break;
   }
   if (--it.uses <= 0) { k.item = k.item2 || null; k.item2 = null; k.useAt = T + 1 + Math.random() * 2; }
+  if (k._steal) { if (!k.item) k.item = k._steal; else if (!k.item2) k.item2 = k._steal; k._steal = null; k.gotAt = T; }
 }
 function updateWorld(dt) {
   for (const p of pads) for (const k of karts) if (dist2(k.pos, p.pos) < 4.2 && Math.abs(k.pos.y - p.pos.y) < 4 && k.boost < .6) { k.boost = 1; k.speed += 6; burst(k.pos, 0xffb040, 16, 10); if (k === player) audio.sfx('boost'); }
@@ -447,6 +456,7 @@ function updateWorld(dt) {
     const h = hazards[i]; h.life -= dt; let gone = h.life <= 0, boom = false;
     if (h.type === 'bomb') { h.fuse -= dt; h.mesh.scale.setScalar(1 + .15 * Math.sin(T * 20)); if (h.fuse <= 0) boom = true; }
     for (const k of karts) if (dist2(k.pos, h.pos) < 2.4) {
+      if (k.hopT > 0) continue;   // feather hop clears hazards
       if (k.starT > 0 || k.rocketT > 0) gone = true;
       else if (k.immune > 0) continue;
       else if (h.type === 'banana') { hit(k, 1); gone = true; } else boom = true;
@@ -467,7 +477,7 @@ function updateWorld(dt) {
 }
 function botItems(k) {
   if (!k.item || T < k.useAt || k.finished) return;
-  const base = k.item.id.replace('3', ''), f = fwd(k); let ahead = false, behind = false;
+  const base = BASE[k.item.id], f = fwd(k); let ahead = false, behind = false;
   for (const o of karts) if (o !== k) {
     const d = V(o.pos.x - k.pos.x, 0, o.pos.z - k.pos.z), L = d.length();
     if (L < 90) { const dot = d.normalize().dot(f); if (dot > .85) ahead = true; if (dot < -.7 && L < 35) behind = true; }
@@ -475,6 +485,7 @@ function botItems(k) {
   const waited = T - k.gotAt; let use = false, back = false;
   if (['gshell', 'rshell', 'bshell', 'fire', 'boom', 'bomb'].includes(base)) use = ahead || waited > 8;
   else if (base === 'banana') { use = behind || waited > 8; back = true; }
+  else if (base === 'leaf') use = karts.some(o => o !== k && dist2(o.pos, k.pos) < 8) || waited > 12;
   else if (base === 'horn') use = projs.some(p => p.owner !== k && dist2(p.pos, k.pos) < 35) || waited > 20;
   else use = waited > .8;
   if (use) { useItem(k, back); k.useAt = T + .5 + Math.random() * 1.2; }
@@ -532,7 +543,7 @@ function updateCloud(k) {
 // ---------- driving ----------
 const move = (k, dt) => { k.pos.x += Math.sin(k.heading) * k.speed * dt; k.pos.z += Math.cos(k.heading) * k.speed * dt; };
 const capOf = (k, off) => (off ? k.top * k.offMul : k.top) * (k.shrink > 0 ? .7 : 1) * (1 + k.coins * .012) + (k.boost > 0 ? 22 : 0) + (k.starT > 0 ? 6 : 0);
-function tick(k, dt) { for (const s of ['spin', 'immune', 'starT', 'rocketT', 'plantT', 'shrink', 'ink']) if (k[s] > 0) k[s] = Math.max(0, k[s] - dt); }
+function tick(k, dt) { for (const s of ['spin', 'immune', 'starT', 'rocketT', 'plantT', 'shrink', 'ink', 'hopT', 'leafT']) if (k[s] > 0) k[s] = Math.max(0, k[s] - dt); }
 function updatePlayer(k, dt) {
   const near = nearest(k.pos.x, k.pos.z, k.idx); k.idx = near.i; if (grounding(k, near, dt)) return;
   if (k.spin > 0) { k.drifting = false; k.speed *= Math.pow(.2, dt); move(k, dt); return; }
@@ -612,8 +623,8 @@ function loop() {
     collide(); karts.forEach(confine);
     karts.forEach(k => {
       trackLap(k); const sp01 = Math.min(1, Math.abs(k.speed) / MAX); k.slide = (k.slide || 0) + ((k.drifting ? (k.steer || 0) * .5 : 0) - (k.slide || 0)) * Math.min(1, 10 * dt);
-      k.mesh.rotation.order = 'YXZ'; k.mesh.position.set(k.pos.x, k.pos.y + (k.off && sp01 > .2 ? Math.abs(Math.sin(T * 45 + k.heading)) * .12 : 0), k.pos.z); updateCloud(k);
-      k.mesh.rotation.set(0, k.heading + k.spin * 12 + k.slide, (k.steer || 0) * (.14 + (k.drifting ? .1 : 0)) * sp01); emitKartFx(k, dt);
+      k.mesh.rotation.order = 'YXZ'; k.mesh.position.set(k.pos.x, k.pos.y + (k.off && sp01 > .2 ? Math.abs(Math.sin(T * 45 + k.heading)) * .12 : 0) + (k.hopT > 0 ? Math.sin((1 - k.hopT) * Math.PI) * 2.6 : 0), k.pos.z); updateCloud(k);
+      k.mesh.rotation.set(0, k.heading + k.spin * 12 + k.slide + (k.leafT > 0 ? (1 - k.leafT / .6) * 12.57 : 0), (k.steer || 0) * (.14 + (k.drifting ? .1 : 0)) * sp01); emitKartFx(k, dt);
       { const ws = k.mesh.userData.wheels; if (ws) for (const w of ws) { w.spin.rotation.x += k.speed * dt / w.r; if (w.front) w.steer.rotation.y = (k.steer || 0) * .4; } }
       const sc = (k.shrink > 0 ? .5 : 1) * k.size; k.mesh.scale.setScalar(k.mesh.scale.x + (sc - k.mesh.scale.x) * Math.min(1, 8*dt));
       { const bm = k.mesh.userData.body && k.mesh.userData.body.material; if (bm && bm.emissive) bm.emissive.setHSL(k.starT > 0 ? (T * 2) % 1 : 0, 1, k.starT > 0 ? .5 : 0); }
