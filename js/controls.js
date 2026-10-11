@@ -11,9 +11,9 @@ export function createControls() {
   addEventListener('keydown', e => { down[e.code] = true; }, true); addEventListener('keyup', e => { down[e.code] = false; }, true);
   addEventListener('blur', () => { for (const k in down) down[k] = false; });
   // ---- touch: on-screen steer pad / drift / brake while racing; tap the item circle to use it (swipe down to drop behind)
-  const tv = { left: 0, right: 0, down: 0, drift: 0 }; let touchMode = false;
+  const tv = { left: 0, right: 0, down: 0, drift: 0 }, gv = { up: 0, left: 0, right: 0, down: 0, drift: 0 }; let touchMode = false;
   const racing = () => { const h = document.getElementById('hud'); return !!h && h.style.display === 'block'; };
-  const held = a => map[a].some(c => c && down[c]) || !!tv[a] || (a === 'up' && touchMode && racing() && !tv.down), is = (a, code) => map[a].includes(code);
+  const held = a => map[a].some(c => c && down[c]) || !!tv[a] || !!gv[a] || (a === 'up' && touchMode && racing() && !tv.down), is = (a, code) => map[a].includes(code);
 
   // ---- UI ----
   const css = document.createElement('style');
@@ -64,6 +64,35 @@ export function createControls() {
   let itY = 0, itCode = '';
   addEventListener('pointerdown', e => { if (e.pointerType !== 'touch' || !racing()) return; const t = e.target.closest && e.target.closest('#it1'); if (!t) return; itY = e.clientY; itCode = map.item[0] || map.item[1]; if (itCode) dispatchEvent(new KeyboardEvent('keydown', { code: itCode })); }, true);
   addEventListener('pointerup', e => { if (!itCode) return; if (e.clientY - itY > 35) tv.down = 1; dispatchEvent(new KeyboardEvent('keyup', { code: itCode })); tv.down = 0; itCode = ''; }, true);
+  // ---- controller (standard layout): racing uses the held flags; menus get synthetic key presses so every screen works unchanged
+  const fire = (type, code) => dispatchEvent(new KeyboardEvent(type, { code, key: code, bubbles: true }));
+  const prev = {}, rep = {}; let padOn = false;
+  addEventListener('gamepadconnected', () => { padOn = true; });
+  const pulse = (id, on, code, now) => {   // menu key with auto-repeat while held
+    if (!on) { prev[id] = 0; return; }
+    if (!prev[id]) { prev[id] = 1; rep[id] = now + 420; fire('keydown', code); fire('keyup', code); }
+    else if (now > rep[id]) { rep[id] = now + 130; fire('keydown', code); fire('keyup', code); }
+  };
+  const poll = now => {
+    requestAnimationFrame(poll);
+    const gp = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(g => g && g.connected); if (!gp) { for (const k in gv) gv[k] = 0; return; }
+    padOn = true; const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed), ax = (gp.axes[0] || 0), ay = (gp.axes[1] || 0);
+    const L = b(14) || ax < -.3, R = b(15) || ax > .3, U = b(12) || ay < -.5, D = b(13) || ay > .5, anyBtn = gp.buttons.some(x => x.pressed);
+    if (ov.classList.contains('on')) return;
+    if (racing()) {
+      gv.left = +L; gv.right = +R; gv.up = +(b(0) || b(7)); gv.down = +(b(1) || b(6)); gv.drift = +(b(4) || b(5));
+      const it = b(2) || b(3), code = map.item[0] || map.item[1];
+      if (it && !prev.item) { prev.item = 1; if (code) fire('keydown', code); } else if (!it && prev.item) { prev.item = 0; gv.down = +D; if (code) fire('keyup', code); gv.down = 0; }
+      if (b(9) && !prev.menu) { prev.menu = 1; const m = document.getElementById('menuBtn'); m && m.click(); } else if (!b(9)) prev.menu = 0;
+      return;
+    }
+    for (const k in gv) gv[k] = 0;
+    const title = document.getElementById('title');
+    if (title && title.classList.contains('on')) { pulse('any', anyBtn, 'Enter', now); return; }
+    pulse('l', L, 'ArrowLeft', now); pulse('r', R, 'ArrowRight', now); pulse('u', U, 'ArrowUp', now); pulse('d', D, 'ArrowDown', now);
+    pulse('a', b(0) || b(9), 'Enter', now); pulse('b', b(1), 'Escape', now);
+  };
+  requestAnimationFrame(poll);
   const btn = document.createElement('button'); btn.id = 'ctlBtn'; btn.className = 'sec'; btn.textContent = '⌨ Controls';
   const ov = document.createElement('div'); ov.id = 'ctlOv'; ov.innerHTML = '<div id="ctlBox"></div>';
   document.body.append(btn, ov); const box = ov.firstChild;
@@ -72,7 +101,7 @@ export function createControls() {
     const tabs = `<div class="tabs">${[['keyboard', '⌨ Keyboard'], ['controller', '🎮 Controller'], ['touch', '👆 Touch']].map(([t, l]) => `<button class="tab${tab === t ? ' on' : ''}" data-t="${t}">${l}</button>`).join('')}</div>`;
     const kb = '<div class="sub">Click a key box, then press the key you want. Esc cancels · Backspace clears a slot.</div>' +
       ACTIONS.map(([a, l]) => `<div class="r"><span>${l}</span>${[0, 1].map(i => `<button class="k${waiting && waiting[0] === a && waiting[1] === i ? ' wait' : ''}" data-a="${a}" data-i="${i}">${waiting && waiting[0] === a && waiting[1] === i ? 'Press a key…' : nice(map[a][i])}</button>`).join('')}</div>`).join('');
-    const pad = '<div class="soon">Controller support is coming in a later update. Planned layout:</div><div class="pad"><span>Steer</span><b>Left stick / D-pad</b><span>Accelerate</span><b>A / RT</b><span>Brake / Reverse</span><b>B / LT</b><span>Drift / Hop</span><b>RB / LB</b><span>Use item</span><b>X / Y</b><span>Look back</span><b>R-stick down</b><span>Menu</span><b>Start</b></div>';
+    const pad = '<div class="soon">Plug in or pair a controller and press a button (standard layout: Xbox / PlayStation / Switch Pro).</div><div class="pad"><span>Steer / menus</span><b>Left stick / D-pad</b><span>Accelerate</span><b>A / RT</b><span>Brake / Reverse</span><b>B / LT</b><span>Drift / Hop</span><b>LB / RB</b><span>Use item</span><b>X / Y</b><span>Drop item behind</span><b>D-pad / stick down + release item</b><span>Menu (in race)</span><b>Start</b><span>Confirm / Back (menus)</span><b>A or Start / B</b></div>';
     const touch = '<div class="soon">Touch controls appear on screen during a race on touch devices:</div><div class="pad"><span>Steer</span><b>Slide left thumb left / right</b><span>Accelerate</span><b>Automatic</b><span>Brake / Reverse</span><b>BRAKE button</b><span>Drift / Hop</span><b>DRIFT button (hold while steering)</b><span>Use item</span><b>Tap the item circle</b><span>Hold / throw</span><b>Hold the circle, release to throw</b><span>Drop item behind</span><b>Swipe down on the circle</b></div>';
     box.innerHTML = '<h2>CONTROLS</h2>' + tabs + (tab === 'keyboard' ? kb : tab === 'controller' ? pad : touch) +
       `<div class="f">${tab === 'keyboard' ? '<button class="sec" id="ctlReset">Reset to default</button>' : '<span></span>'}<button class="go" id="ctlDone">Done</button></div>`;
