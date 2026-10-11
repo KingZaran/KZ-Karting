@@ -102,6 +102,7 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
   const preview = () => { const C = getChar(lo.char); return `<div class="pv" id="pv"><div class="pvn">${esc(C.name)}<small>${C.cls.toUpperCase()}</small></div></div>`; };
   const attachPv = () => { const pv = $('pv'); if (pv) pv.appendChild(canvas); };
   const frame = (title, left, right, { back = true, ok = 'OK', okDisabled = false, sub = '', one = false } = {}) => {
+    audio.music(mode === 'online' ? 'online' : 'single');
     const prevFl = $('fl'), sc0 = prevFl && lastDrawn === cur ? prevFl.scrollTop : 0; lastDrawn = cur;
     root.innerHTML = `<div class="fhead"><div class="ftitle">${title}</div><div class="fsub">${sub}</div></div>
       <div class="fbody${one ? ' one' : ''}"><div class="fl" id="fl">${left}</div>${one ? '' : `<div class="fr">${right}</div>`}</div>

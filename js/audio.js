@@ -1,13 +1,14 @@
 // Sound: engine, skid, effects and a per-zone music loop. All of it is synthesised by default, but any of it can be replaced
 // by dropping .wav (or .mp3) files into the  audio/  folder - see audio/README.md for the file names.
+import { TRACKS } from './tracks.js';
 export function createAudio() {
   let ctx, master, o1, o2, filt, engG, nFilt, nG, muted = false, timer = null, step = 0, gv = 1;
   const MUS = { meadow: [120, 'square'], dunes: [110, 'triangle'], frost: [100, 'sine'], neon: [130, 'square'], hollow: [80, 'sine'], silk: [96, 'triangle'], ink: [150, 'square'], backrooms: [55, 'sawtooth'], brawl: [140, 'sawtooth'], lava: [118, 'sawtooth'], candy: [135, 'triangle'] };
   const ok = () => ctx && ctx.state !== 'closed';
-  const FILES = ['tick', 'ok', 'back', 'fall', 'beep', 'go', 'pickup', 'use', 'boost', 'hit', 'boom', 'lap', 'engine', 'drift', 'music', ...Object.keys(MUS).map(k => 'music-' + k), ...['banana', 'blooper', 'bob-omb', 'boo', 'boomerang-flower', 'bullet-bill', 'coin', 'crazy-8', 'feather', 'fire-flower', 'golden-mushroom', 'green-shell', 'lightning', 'mushroom', 'piranha-plant', 'red-shell', 'spiny-shell', 'super-horn', 'super-leaf', 'starman', 'triple-bananas', 'triple-green-shells', 'triple-mushrooms', 'triple-red-shells'].map(k => 'use-' + k)];
+  const FILES = ['tick', 'ok', 'back', 'fall', 'beep', 'go', 'pickup', 'use', 'boost', 'hit', 'boom', 'lap', 'engine', 'drift', 'music', 'music-title', 'music-menu', 'music-single', 'music-online', ...TRACKS.map(t => 'music-' + t.id), ...Object.keys(MUS).map(k => 'music-' + k), ...['banana', 'blooper', 'bob-omb', 'boo', 'boomerang-flower', 'bullet-bill', 'coin', 'crazy-8', 'feather', 'fire-flower', 'golden-mushroom', 'green-shell', 'lightning', 'mushroom', 'piranha-plant', 'red-shell', 'spiny-shell', 'super-horn', 'super-leaf', 'starman', 'triple-bananas', 'triple-green-shells', 'triple-mushrooms', 'triple-red-shells'].map(k => 'use-' + k)];
   const bufs = {}; let curMus = null, engSrc = null, engCG = null, skSrc = null, skCG = null, musSrc = null, musG = null;
   function loadFiles() {
-    for (const n of FILES) (async () => { for (const ext of ['wav', 'mp3']) { try { const r = await fetch(`audio/${n}.${ext}`); if (!r.ok) continue; bufs[n] = await ctx.decodeAudioData(await r.arrayBuffer()); return; } catch (e) {} } })();
+    for (const n of FILES) (async () => { for (const ext of ['wav', 'mp3']) { try { const r = await fetch(`audio/${n}.${ext}`); if (!r.ok) continue; bufs[n] = await ctx.decodeAudioData(await r.arrayBuffer()); if (n.startsWith('music')) startWant(); return; } catch (e) {} } })();
   }
   const loop = (buf, vol) => { const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = buf; src.loop = true; g.gain.value = vol; src.connect(g); g.connect(master); src.start(); return [src, g]; };
   function play(buf, vol) { const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = buf; g.gain.value = vol; src.connect(g); g.connect(master); src.start(); }
@@ -56,18 +57,28 @@ export function createAudio() {
   const DUCK = /^(use|boost|hit|boom|pickup|fall|lap)/;
   function duck() { if (!musG || !ok()) return; const t = ctx.currentTime; musG.gain.cancelScheduledValues(t); musG.gain.setTargetAtTime(.3, t, .03); musG.gain.setTargetAtTime(muted ? 0 : .5, t + .6, .25); }
   function sfx(name, v = 1, fb) { if (!ok() || muted) return; if (DUCK.test(name) && v >= .5) duck(); const c = [name, ...[].concat(fb || [])], key = c.find(n => bufs[n]); if (key) { play(bufs[key], v); return; } const syn = c[c.length - 1]; gv = v; S[syn] && S[syn](); gv = 1; }
-  function music(id) {
-    const mb = id && ok() ? (bufs['music-' + id] || bufs.music) : null;
+  // music(name, zone): name is 'title' | 'menu' | 'single' | 'online' | a track id.  Looks for music-<name>.wav/mp3, then (races only)
+  // music-<zone> and music.wav, then falls back to the synth loop for the zone. Menus without a file stay silent (online falls back to menu, menu to title).
+  let want = null;
+  const MENU_FB = { online: ['menu', 'title'], single: ['menu', 'title'], menu: ['title'], title: [] };
+  function music(name, zone) { want = name ? [name, zone] : null; startWant(); }
+  function startWant() {
+    if (!want || !ok()) { if (!want) stopMus(); return; }
+    const [name, zone] = want, keys = [name, ...(MENU_FB[name] || [])].map(k => 'music-' + k); if (zone) keys.push('music-' + zone, 'music');
+    const mb = keys.map(k => bufs[k]).find(Boolean);
     if (mb && mb === curMus && musSrc) return;   // same track already playing: never restart it
-    clearInterval(timer); timer = null; if (musSrc) { try { musSrc.stop(); } catch (e) {} musSrc = null; } curMus = null; if (!id || !ok()) return;
-    if (mb) { [musSrc, musG] = loop(mb, muted ? 0 : .5); curMus = mb; return; }
-    const [bpm, type] = MUS[id] || [120, 'square'], ms = 60000 / bpm / 2; step = 0;
+    if (!mb && timer && curSyn === zone) return;
+    stopMus(); if (mb) { [musSrc, musG] = loop(mb, muted ? 0 : .5); curMus = mb; return; }
+    if (!zone) return; curSyn = zone;
+    const [bpm, type] = MUS[zone] || [120, 'square'], ms = 60000 / bpm / 2; step = 0;
     timer = setInterval(() => {
       if (muted || !ok()) return; const chord = [0, 8, 3, 10][(step >> 4) & 3], pat = [0, 12, 7, 12, 15, 12, 7, 12][step & 7];
       const f = 220 * 2 ** ((chord + pat) / 12); tone(f, f, ms / 1000 * .9, type, .05);
       if (step % 8 === 0) { const b = 55 * 2 ** (chord / 12); tone(b, b, ms / 1000 * 3, 'triangle', .12); } step++;
     }, ms);
   }
+  let curSyn = null;
+  function stopMus() { clearInterval(timer); timer = null; curSyn = null; if (musSrc) { try { musSrc.stop(); } catch (e) {} musSrc = null; } curMus = null; }
   function toggle() { muted = !muted; if (master) master.gain.value = muted ? 0 : .6; if (musG) musG.gain.value = muted ? 0 : .5; return muted; }
   return { init, engine, silence, sfx, music, toggle };
 }

@@ -36,7 +36,8 @@ $('iAll').onclick = () => setItems(() => true); $('iNone').onclick = () => setIt
 function readSettings() {
   settings = { bots: +$('bots').value, diff: $('diff').value, laps: $('laps').value, cls: $('cls').value, items: readItems(), gfx: $('gfx').value, lo: garageUI.get() }; save(); return settings;
 }
-function show(id) { for (const s of ['title', 'main', 'menu', 'vote', 'flow']) { const e = $(s); if (e) e.classList.toggle('on', s === id); } }
+['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => audio.init(), { once: true }));   // lets the title music start on the first touch/key
+function show(id) { if (id === 'title') audio.music('title'); for (const s of ['title', 'main', 'menu', 'vote', 'flow']) { const e = $(s); if (e) e.classList.toggle('on', s === id); } }
 
 // ---------- scene ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -255,7 +256,7 @@ function makeKart(color, lo) { const g = buildKart(THREE, lo || randomLoadout(),
 
 const keys = {};
 addEventListener('keydown', e => { keys[e.code] = true; if (ctl.is('mute', e.code)) zoneBanner(audio.toggle() ? '🔇 Sound off' : '🔊 Sound on'); if (ctl.is('restart', e.code) && state !== 'idle' && !online.racing) startRace(lastOpts);
-  if (!e.repeat && ctl.is('item', e.code) && state === 'racing' && player && !player.finished && player.spin <= 0 && player.item && T >= (player.item.ready || 0)) { if (TRAIL.includes(BASE[player.item.id])) player.holding = true; else useItem(player, ctl.held('down')); } });
+  if (!e.repeat && ctl.is('item', e.code) && state === 'racing' && player && !player.finished && player.spin <= 0 && !player.lift && player.item && T >= (player.item.ready || 0)) { if (TRAIL.includes(BASE[player.item.id])) player.holding = true; else useItem(player, ctl.held('down')); } });
 addEventListener('keyup', e => { keys[e.code] = false; if (ctl.is('item', e.code) && player && player.holding) { player.holding = false; if (state === 'racing' && player.item && !player.finished) { const b = BASE[player.item.id]; useItem(player, b === 'banana' ? !ctl.held('down') : ctl.held('down')); } } });
 
 let lastCd = -1, race = { laps: 3 }, karts = [], player, state = 'idle', countdown = 0, lastOpts = null, clock = new THREE.Clock();
@@ -408,7 +409,7 @@ function drop(k, type, back) {
   hazards.push({ type, mesh: m, pos, life: 60, fuse: 3 });
 }
 function useItem(k, back) {
-  const it = k.item; if (!it) return;
+  const it = k.item; if (!it || k.lift) return;   // no items while being lifted back onto the track
   let id = it.id; if (id === 'crazy-8') id = ['banana', 'green-shell', 'red-shell', 'bob-omb', 'mushroom', 'fire-flower', 'boomerang-flower', 'coin'][Math.floor(Math.random() * 8)];
   if (online.racing && (k === player || (k.isBot && online.isHost))) online.sendItem(id, back, k.pid);
   const base = BASE[id];
@@ -517,7 +518,7 @@ function syncCarry(k, dt) {
   });
 }
 function botItems(k) {
-  if (!k.item || T < k.useAt || T < (k.item.ready || 0) || k.finished) return;
+  if (!k.item || k.lift || T < k.useAt || T < (k.item.ready || 0) || k.finished) return;
   const base = BASE[k.item.id], f = fwd(k); let ahead = false, behind = false;
   for (const o of karts) if (o !== k) {
     const d = V(o.pos.x - k.pos.x, 0, o.pos.z - k.pos.z), L = d.length();
@@ -682,7 +683,7 @@ function loop() {
       if (sig !== hudSig) { hudSig = sig; const f = (el, itm) => { el.style.display = itm ? 'flex' : 'none'; const sid = itm && itm === player.item && rolling ? ITEMS[Math.floor(Math.random() * ITEMS.length)][0] : itm && itm.id; el.innerHTML = itm ? `<img data-item="${sid}" alt="">${itm.uses > 1 && sid === itm.id ? `<span class="cnt">×${itm.uses}</span>` : ''}` : ''; fixItemImgs(el); }; f($('it1'), player.item); f($('it2'), player.item2); } }
     $('ink').style.opacity = Math.min(1, player.ink);
     if (player.finished) $('big').textContent = `Finished ${place}${['st','nd','rd'][place-1]||'th'}! (R = restart)`;
-    { const th = themeAt(player.idx); applyEnv(th, 1 - Math.exp(-2.5 * dt)); if (th !== lastTheme) { lastTheme = th; zoneBanner(th.name); audio.music(Object.keys(THEMES).find(k => THEMES[k] === th)); } }
+    { const th = themeAt(player.idx); applyEnv(th, 1 - Math.exp(-2.5 * dt)); if (th !== lastTheme) { lastTheme = th; zoneBanner(th.name); audio.music(race.track.id, Object.keys(THEMES).find(k => THEMES[k] === th)); } }
     const back = V(-Math.sin(player.heading), 0, -Math.cos(player.heading)), s01 = Math.min(1, Math.abs(player.speed) / MAX);
     const cy = (player.air || player.lift) ? player.ty : player.pos.y;
     camera.position.lerp(player.pos.clone().addScaledVector(back, 10 + 3 * s01 - (player.boost > 0 ? 1.5 : 0)).setY(cy + 5.2 + s01), 1 - Math.pow(.001, dt));

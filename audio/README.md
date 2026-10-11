@@ -11,6 +11,9 @@ Sounds layer on top of each other, and the music dips briefly under loud ones. A
 **Loops**
 - `engine.wav` - engine loop (pitch rises with speed)
 - `drift.wav` - tyre skid loop (louder while drifting / off-road)
+- `music-title.wav` - the "press Enter to play" intro screen
+- `music-menu.wav` - menus (single player menus use `music-single.wav` if it exists; online menus/lobby use `music-online.wav`; each falls back to menu, then title)
+- `music-<track id>.wav` - music for one specific track (checked first in a race; ids are in `js/tracks.js`)
 - `music.wav` - race music for every zone
 - `music-<zone>.wav` - music for one zone only, e.g. `music-meadow.wav`. Zones: meadow, dunes, frost, neon, hollow, silk, ink, backrooms, brawl (plus any others defined in `js/themes.js`)
 
