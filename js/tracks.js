@@ -17,9 +17,9 @@ export const TRACKS = [
   { id: 'frostfire', name: 'Frost & Fire', width: 24, elev: [16, 4, 3, 1, 2, 6, 0], pts: SHAPE.frost, zones: [['frost', .34], ['lava', .67], ['candy', 1]] },
 ];
 export const ITEMS = [
-  ['banana','Peel'],['banana3','Triple Peel'],['gshell','Bounce Shell'],['gshell3','Triple Bounce Shell'],
-  ['rshell','Seeker Shell'],['rshell3','Triple Seeker Shell'],['bomb','Blast Orb'],['mush','Speed Fungus'],
-  ['mush3','Triple Fungus'],['gmush','Gold Fungus'],['star','Invincibility Star'],['ink','Ink Cloud'],
-  ['bolt','Storm Bolt'],['rocket','Rocket Rider'],['bshell','Spiny Seeker'],['fire','Fire Bloom'],
-  ['boom','Boomerang Bloom'],['plant','Chomper Plant'],['horn','Air Horn'],['eight','Lucky Eight'],['coin','Coin'],
+  ['banana','Banana'],['blooper','Blooper'],['bob-omb','Bob-omb'],['boo','Boo'],['boomerang-flower','Boomerang Flower'],['bullet-bill','Bullet Bill'],
+  ['coin','Coin'],['crazy-8','Crazy 8'],['feather','Feather'],['fire-flower','Fire Flower'],['golden-mushroom','Golden Mushroom'],['green-shell','Green Shell'],
+  ['lightning','Lightning'],['mushroom','Mushroom'],['piranha-plant','Piranha Plant'],['red-shell','Red Shell'],['spiny-shell','Spiny Shell'],
+  ['super-horn','Super Horn'],['super-leaf','Super Leaf'],['starman','Starman'],['triple-bananas','Triple Bananas'],['triple-green-shells','Triple Green Shells'],
+  ['triple-mushrooms','Triple Mushrooms'],['triple-red-shells','Triple Red Shells'],
 ];
