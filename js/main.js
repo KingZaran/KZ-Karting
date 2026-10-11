@@ -10,6 +10,7 @@ import { initGarageUI } from './garageui.js';
 import { MODELS, preloadModels, cloneModel } from './models.js';
 import { createScenery, makeEnv } from './scenery.js';
 import { TRACKS, ITEMS } from './tracks.js';
+import { createItemModels } from './itemmodels.js';
 import { buildThemes } from './themes.js';
 import { createOnline } from './online.js';
 import { initFlow } from './flow.js';
@@ -288,7 +289,7 @@ function endIntro() {
 }
 function gridPhase() { audio.jingle('starting-grid', { onend: beginCountdown, fb: 1.2 }); }
 function beginCountdown() { if (state !== 'grid') return; state = 'countdown'; countdown = 3.99; lastCd = -1; cdFile = audio.dur('countdown') > 0; audio.jingle('countdown'); }
-function skipIntro(e) { if (state === 'intro' && performance.now() - introAt > 600 && !(e && e.repeat)) endIntro(); }
+function skipIntro(e) { if (state === 'intro' && performance.now() - introAt > 600 && !(e && e.repeat)) { if (online.racing) online.ui({ k: 'skipintro' }); endIntro(); } }
 addEventListener('keydown', e => { if (e.code === 'Enter' || e.code === 'Space') skipIntro(e); });
 addEventListener('pointerdown', () => skipIntro());
 function introCam() {
@@ -360,6 +361,8 @@ let hudSig = '', projs = [], hazards = [], boxes = [], fxs = [], ranked = [], T 
 const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const fwd = k => V(Math.sin(k.heading), 0, Math.cos(k.heading));
 const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+const itemMesh = createItemModels(THREE);
+function placed(type, scale) { const m = itemMesh(type, scale); scene.add(m); return m; }
 function mk(geo, color, glow = .3) { const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: glow })); m.castShadow = true; scene.add(m); return m; }
 function clearWorld() { karts.forEach(k => k.pend = []); coinObjs.forEach(c => scene.remove(c.mesh)); coinObjs = []; karts.forEach(k => { (k._cm || []).forEach(m => scene.remove(m)); k._cm = []; k._ck = ''; k.holding = false; }); [...projs, ...hazards, ...boxes, ...fxs].forEach(o => scene.remove(o.mesh)); projs = []; hazards = []; boxes = []; fxs = []; }
 let coinObjs = [];
@@ -393,7 +396,7 @@ function rollItem(k) {
   for (const id of pool) { x -= wt(id); if (x <= 0) { pick = id; break; } }
   const uses = { 'triple-bananas': 3, 'triple-green-shells': 3, 'triple-red-shells': 3, 'triple-mushrooms': 3, 'boomerang-flower': 3, 'fire-flower': 8, 'crazy-8': 8 }[pick] || 1;
   const nit = { id: pick, uses };   // the roulette spins ~2s and only then hands over the item; a 2nd box grabbed meanwhile spins alongside
-  k.pend = k.pend || []; const last = k.pend[k.pend.length - 1]; nit.end = last ? last.end + .6 : T + (audio.dur('item-box') || 8); k.pend.push(nit); if (k === player && !last) audio.sfx('item-box', 1, 'pickup');   // roulette lasts as long as item-box.mp3 (8s)
+  k.pend = k.pend || []; const last = k.pend[k.pend.length - 1]; nit.end = last ? last.end + .6 : T + (audio.dur('item-box') || 8); k.pend.push(nit); if (k === player) audio.sfx('item-box', 1, 'pickup');   // roulette lasts as long as item-box.mp3 (8s)
 }
 const TRAIL = ['banana', 'gshell', 'rshell', 'bomb'];
 // carried banana / shells / bomb (orbiting triples, or one you're holding back) soak up a hit
@@ -412,7 +415,7 @@ function explode(pos, r, power, color) { burst(pos, color, 60, 28); audio.sfx('b
 const CFG = { gshell: [0x2ecc40, .9, 85, 9], rshell: [0xe53935, .9, 80, 10], bshell: [0x1e88e5, 1.3, 110, 15], fire: [0xff7a00, .5, 75, 2.5], boom: [0xffc107, .7, 70, 1.7], bomb: [0x222222, 1, 30, .8] };
 function shoot(k, type, back) {
   const dir = fwd(k); if (back) dir.negate();
-  const c = CFG[type], m = mk(type === 'boom' ? new THREE.BoxGeometry(1.8, .2, .7) : new THREE.SphereGeometry(c[1], 14, 10), c[0]);
+  const c = CFG[type], m = placed(type === 'bomb' ? 'bomb' : type, type === 'bshell' ? 1.3 : 1);
   const pos = k.pos.clone().addScaledVector(dir, 3.4); pos.y = k.pos.y + (type === 'bshell' ? 6 : 1.1); m.position.copy(pos);
   let target = null;
   if (type === 'rshell') target = ranked[rankOf(k) - 2] || null;
@@ -422,8 +425,8 @@ function shoot(k, type, back) {
 function drop(k, type, back) {
   const dir = fwd(k); if (!back) dir.negate().negate();
   const pos = k.pos.clone().addScaledVector(dir, back ? -3.6 : 9);
-  const m = type === 'banana' ? mk(new THREE.CylinderGeometry(.5, .5, 2.2, 10), 0xffe135) : mk(new THREE.SphereGeometry(1.1, 14, 10), 0x222222, .15);
-  m.position.set(pos.x, pos.y + 1, pos.z); if (type === 'banana') m.rotation.z = Math.PI / 2;
+  const m = placed(type === 'banana' ? 'banana' : 'bomb', 1);
+  m.position.set(pos.x, pos.y + (type === 'banana' ? .5 : .1), pos.z); m.rotation.y = Math.random() * 6.28;
   hazards.push({ type, mesh: m, pos, life: 60, fuse: 3 });
 }
 function useItem(k, back) {
@@ -497,7 +500,7 @@ function updateWorld(dt) {
       }
     }
     if (dead) { scene.remove(p.mesh); projs.splice(i, 1); continue; }
-    p.mesh.position.copy(p.pos); if (p.type === 'boom') p.mesh.rotation.y += 20 * dt;
+    p.mesh.position.copy(p.pos); if (['gshell', 'rshell', 'bomb'].includes(p.type)) p.mesh.position.y -= .9; if (p.type === 'boom') p.mesh.rotation.y += 20 * dt; else if (p.type !== 'fire') p.mesh.rotation.y += 9 * dt; else p.mesh.rotation.y = Math.atan2(p.dir.x, p.dir.z);
   }
   // shell alert: a red / blue shell homing on you -> beep + its icon at the bottom of the screen on the side it comes from
   { let hunt = null, hd = 1e9; if (player) for (const p of projs) if ((p.type === 'rshell' || p.type === 'bshell') && p.target === player) { const d = p.pos.distanceTo(player.pos); if (d < (p.type === 'bshell' ? 170 : 75) && d < hd) { hunt = p; hd = d; } }
@@ -533,15 +536,15 @@ function updateWorld(dt) {
     if (f.life <= 0) { scene.remove(f.mesh); fxs.splice(i, 1); }
   }
 }
-const CARRY = { banana: [0xffe135, .55], gshell: [0x2ecc40, .75], rshell: [0xe53935, .75], bomb: [0x222222, .8], mush: [0xff8a65, .7] };
+const CARRY = { banana: 'banana', gshell: 'gshell', rshell: 'rshell', bomb: 'bomb', mush: 'mush' };
 function syncCarry(k, dt) {
   const it = k.item, base = it && BASE[it.id], on = it && CARRY[base] && (it.uses > 1 || (k.holding && TRAIL.includes(base))) && !k.finished;
   const key = on ? it.id + it.uses : '';
-  if (k._ck !== key) { (k._cm || []).forEach(m => scene.remove(m)); k._cm = []; k._ck = key; if (on) for (let i = 0; i < it.uses; i++) { const c = CARRY[base], m = base === 'banana' ? mk(new THREE.CylinderGeometry(.35, .35, 1.5, 8), c[0]) : mk(new THREE.SphereGeometry(c[1], 12, 9), c[0]); k._cm.push(m); } }
+  if (k._ck !== key) { (k._cm || []).forEach(m => scene.remove(m)); k._cm = []; k._ck = key; if (on) for (let i = 0; i < it.uses; i++) { const m = placed(CARRY[base], .8); k._cm.push(m); } }
   if (!k._cm || !k._cm.length) return;
   const n = k._cm.length, f = fwd(k), l = V(f.z, 0, -f.x), trail = base === 'banana' || k.holding;
   k._cm.forEach((m, i) => {
-    if (trail) { m.position.copy(k.pos).addScaledVector(f, -(3.2 + i * 1.5)); m.position.y = k.pos.y + .9; if (base === 'banana') m.rotation.z = Math.PI / 2; }
+    if (trail) { m.position.copy(k.pos).addScaledVector(f, -(3.2 + i * 1.5)); m.position.y = k.pos.y + .9; m.rotation.y = k.heading; }
     else { const a = T * 5 + i * 6.283 / n; m.position.copy(k.pos).addScaledVector(f, Math.sin(a) * 2.8).addScaledVector(l, Math.cos(a) * 2.8); m.position.y = k.pos.y + 1.2; }
     m.visible = k.mesh.visible;
   });
@@ -655,7 +658,7 @@ const online = createOnline({ TRACKS, getLoadout: () => garageUI.get(), onStart:
   onRoom: info => flow.onRoom(info), onRoomUpdate: info => flow.onRoomUpdate(info), onError: m => flow.onError(m) });
 { const ot = $('otrack'); if (ot) ot.innerHTML = ''; }
 online.handlers = {
-  ui: m => flow.onUi(m),
+  ui: m => { if (m.k === 'skipintro') endIntro(); else flow.onUi(m); },
   state: a => { const k = karts.find(q => q.pid === a[0]); if (k) k.net = { at: performance.now(), x: a[1], y: a[2], z: a[3], h: a[4], sp: a[5], spin: a[6], star: a[7], shr: a[8], boost: a[9], dr: a[10], steer: a[11] }; },
   item: m => { const k = karts.find(q => q.pid === m.id); if (!k || state === 'idle') return; k.item = { id: m.type, uses: 1 }; useItem(k, !!m.back); },
 };

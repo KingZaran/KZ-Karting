@@ -157,11 +157,11 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
         frame('Waiting for Players', `<div class="center"><div class="msg">SHARE THIS ROOM CODE</div><div class="bigcode">${r.code}</div>
           ${r.players.map((p, i) => `<div class="pl"><span>${esc(p.name)}${p.me ? ' (you)' : ''}</span><b>${i === 0 ? 'HOST' : ''}</b></div>`).join('')}
           <div class="erow"><button class="fb" id="wCust" style="font-size:20px"><i>C</i>Customise character / kart</button><button class="fb" id="wSet" style="font-size:20px"><i>S</i>Settings</button></div>
-          <div class="msg">${r.host ? (r.count < 2 ? 'Waiting for at least 2 players…' : 'Press OK when everyone has joined') : 'Waiting for the host to start the race…'}</div></div>`, '', { one: true, ok: r.host ? 'OK' : '', back: true });
+          <div class="msg">${r.host ? (r.count < 2 ? 'Waiting for at least 2 players…' : 'Press OK when everyone has joined') : 'Waiting for the host to start the race…'}</div></div>`, '', { one: true, ok: r.host ? 'OK' : '', okDisabled: r.host && r.count < 2, back: true });
         $('wCust').onclick = () => { audio.sfx('small-decide'); wcFromWait = true; go('char'); }; $('wSet').onclick = () => { audio.sfx('small-decide'); settingsFrom = 'wait'; go('settings'); };
       },
       key(c) { if (c === 'KeyC') { wcFromWait = true; go('char'); return true; } if (c === 'KeyS') { settingsFrom = 'wait'; go('settings'); return true; } return false; },
-      back() { online.leave(); room = null; mode = 'single'; go('entry'); }, ok() { if (room && room.host) go('setup'); },
+      back() { online.leave(); room = null; mode = 'single'; go('entry'); }, ok() { if (room && room.host && room.count >= 2) go('setup'); },
     },
     setup: {
       draw() {
@@ -269,12 +269,15 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
     startSingle() { openedAt = performance.now(); mode = 'single'; room = null; ci = Math.max(0, CHARS.findIndex(c => c.id === lo.char)); go('char'); },
     startOnline() { openedAt = performance.now(); mode = 'online'; msg = ''; if (online.active && room) go('wait'); else go('entry'); },
     onRoom(info) { room = info; mode = 'online'; wcFromWait = false; if (cur === 'entry' || cur === 'none' || !SCR[cur]) { ci = Math.max(0, CHARS.findIndex(c => c.id === lo.char)); go('char'); } else go('wait'); },
-    onRoomUpdate(info) { room = info; updTag(); if (cur === 'wait' || cur === 'start') SCR[cur].draw(); },
+    onRoomUpdate(info) {
+      const joined = room && info.count > room.count; room = info; updTag(); if (cur === 'wait' || cur === 'start') SCR[cur].draw();
+      if (joined && info.host && cur === 'map') for (const d of [400, 1200, 2500]) setTimeout(() => { if (cur === 'map' && room && room.host) online.ui({ k: 'phase', s: 'map' }); }, d);   // pull new joiners onto the map screen
+    },
     onError(m) { msg = m; room = null; mode = 'online'; go('entry'); },
     scoreboard(rows, done) { scoreRows = rows; scoreDone = done; racingHidden = true; audio.music(null); audio.stopJingles(); const me = rows.find(r => r.me); audio.jingle(me && me.pos === 1 ? 'results-win' : 'results-loss'); go('score'); },
     onUi(m) {
       if (!online_()) return;
-      if (m.k === 'phase' && !room.host) { votes = {}; mc = 0; go('map'); }
+      if (m.k === 'phase' && !room.host) { if (cur !== 'map') { votes = {}; mc = 0; go('map'); } }
       else if (m.k === 'vote') { votes[m.id] = m.t; if (cur === 'map') SCR.map.draw(); }
       else if (m.k === 'result' && !room.host) { S.track = m.t; go('start'); }
     },
