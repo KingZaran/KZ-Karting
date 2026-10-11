@@ -256,7 +256,7 @@ function makeKart(color, lo) { const g = buildKart(THREE, lo || randomLoadout(),
 
 const keys = {};
 addEventListener('keydown', e => { keys[e.code] = true; if (ctl.is('mute', e.code)) zoneBanner(audio.toggle() ? '🔇 Sound off' : '🔊 Sound on'); if (ctl.is('restart', e.code) && state !== 'idle' && !online.racing) startRace(lastOpts);
-  if (!e.repeat && ctl.is('item', e.code) && state === 'racing' && player && !player.finished && player.spin <= 0 && !player.lift && player.item && T >= (player.item.ready || 0)) { if (TRAIL.includes(BASE[player.item.id])) player.holding = true; else useItem(player, ctl.held('down')); } });
+  if (!e.repeat && ctl.is('item', e.code) && state === 'racing' && player && !player.finished && player.spin <= 0 && !player.lift && player.item) { if (TRAIL.includes(BASE[player.item.id])) player.holding = true; else useItem(player, ctl.held('down')); } });
 addEventListener('keyup', e => { keys[e.code] = false; if (ctl.is('item', e.code) && player && player.holding) { player.holding = false; if (state === 'racing' && player.item && !player.finished) { const b = BASE[player.item.id]; useItem(player, b === 'banana' ? !ctl.held('down') : ctl.held('down')); } } });
 
 let lastCd = -1, race = { laps: 3 }, karts = [], player, state = 'idle', countdown = 0, lastOpts = null, clock = new THREE.Clock();
@@ -343,7 +343,7 @@ const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const fwd = k => V(Math.sin(k.heading), 0, Math.cos(k.heading));
 const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 function mk(geo, color, glow = .3) { const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: glow })); m.castShadow = true; scene.add(m); return m; }
-function clearWorld() { coinObjs.forEach(c => scene.remove(c.mesh)); coinObjs = []; karts.forEach(k => { (k._cm || []).forEach(m => scene.remove(m)); k._cm = []; k._ck = ''; k.holding = false; }); [...projs, ...hazards, ...boxes, ...fxs].forEach(o => scene.remove(o.mesh)); projs = []; hazards = []; boxes = []; fxs = []; }
+function clearWorld() { karts.forEach(k => k.pend = []); coinObjs.forEach(c => scene.remove(c.mesh)); coinObjs = []; karts.forEach(k => { (k._cm || []).forEach(m => scene.remove(m)); k._cm = []; k._ck = ''; k.holding = false; }); [...projs, ...hazards, ...boxes, ...fxs].forEach(o => scene.remove(o.mesh)); projs = []; hazards = []; boxes = []; fxs = []; }
 let coinObjs = [];
 function spawnCoins() {
   for (const frac of [.13, .27, .42, .57, .72, .87]) {
@@ -374,8 +374,8 @@ function rollItem(k) {
   const pool = race.items; let x = Math.random() * pool.reduce((s, id) => s + wt(id), 0), pick = pool[0];
   for (const id of pool) { x -= wt(id); if (x <= 0) { pick = id; break; } }
   const uses = { 'triple-bananas': 3, 'triple-green-shells': 3, 'triple-red-shells': 3, 'triple-mushrooms': 3, 'boomerang-flower': 3, 'fire-flower': 8, 'crazy-8': 8 }[pick] || 1;
-  const nit = { id: pick, uses, ready: T + 2.2 };   // roulette spins for ~2s before it can be used
-   if (!k.item) { k.item = nit; k.useAt = T + 1 + Math.random() * 2; } else k.item2 = nit; k.gotAt = T; if (k === player) audio.sfx('pickup');
+  const nit = { id: pick, uses };   // the roulette spins ~2s and only then hands over the item; a 2nd box grabbed meanwhile spins alongside
+  k.pend = k.pend || []; const last = k.pend[k.pend.length - 1]; nit.end = last ? last.end + .6 : T + 2.2; k.pend.push(nit); if (k === player) audio.sfx('pickup');
 }
 const TRAIL = ['banana', 'gshell', 'rshell', 'bomb'];
 // carried banana / shells / bomb (orbiting triples, or one you're holding back) soak up a hit
@@ -445,7 +445,7 @@ function updateWorld(dt) {
   for (const b of boxes) {
     if (b.respawn > 0) { b.respawn -= dt; b.mesh.visible = b.respawn <= 0; continue; }
     b.mesh.rotation.y += dt * 2; b.mesh.rotation.x += dt; b.mesh.position.y = b.pos.y + 2 + Math.sin(T * 3 + b.pos.x) * .3;
-    for (const k of karts) if (!k.item2 && k.rocketT <= 0 && !k.finished && dist2(k.pos, b.pos) < 3.2 && Math.abs(k.pos.y - b.pos.y) < 5) { rollItem(k); b.respawn = 4; b.mesh.visible = false; break; }
+    for (const k of karts) if (((k.item ? 1 : 0) + (k.item2 ? 1 : 0) + (k.pend ? k.pend.length : 0)) < 2 && k.rocketT <= 0 && !k.finished && dist2(k.pos, b.pos) < 3.2 && Math.abs(k.pos.y - b.pos.y) < 5) { rollItem(k); b.respawn = 4; b.mesh.visible = false; break; }
   }
   // projectiles
   for (let i = projs.length - 1; i >= 0; i--) {
@@ -518,7 +518,7 @@ function syncCarry(k, dt) {
   });
 }
 function botItems(k) {
-  if (!k.item || k.lift || T < k.useAt || T < (k.item.ready || 0) || k.finished) return;
+  if (!k.item || k.lift || T < k.useAt || k.finished) return;
   const base = BASE[k.item.id], f = fwd(k); let ahead = false, behind = false;
   for (const o of karts) if (o !== k) {
     const d = V(o.pos.x - k.pos.x, 0, o.pos.z - k.pos.z), L = d.length();
@@ -585,7 +585,14 @@ function updateCloud(k) {
 // ---------- driving ----------
 const move = (k, dt) => { k.pos.x += Math.sin(k.heading) * k.speed * dt; k.pos.z += Math.cos(k.heading) * k.speed * dt; };
 const capOf = (k, off) => (off ? k.top * k.offMul : k.top) * (k.shrink > 0 ? .7 : 1) * (1 + k.coins * .012) + (k.boost > 0 ? 22 : 0) + (k.starT > 0 ? 6 : 0);
-function tick(k, dt) { for (const s of ['spin', 'immune', 'starT', 'rocketT', 'plantT', 'shrink', 'ink', 'hopT', 'leafT']) if (k[s] > 0) k[s] = Math.max(0, k[s] - dt); }
+function resolvePend(k) {
+  while (k.pend && k.pend.length && T >= k.pend[0].end) {
+    const it = k.pend.shift(); delete it.end;
+    if (!k.item) { k.item = it; k.useAt = T + 1 + Math.random() * 2; } else if (!k.item2) k.item2 = it; else continue;
+    k.gotAt = T; if (k === player) audio.sfx('ok', .5);
+  }
+}
+function tick(k, dt) { resolvePend(k); for (const s of ['spin', 'immune', 'starT', 'rocketT', 'plantT', 'shrink', 'ink', 'hopT', 'leafT']) if (k[s] > 0) k[s] = Math.max(0, k[s] - dt); }
 function updatePlayer(k, dt) {
   const near = nearest(k.pos.x, k.pos.z, k.idx); k.idx = near.i; if (grounding(k, near, dt)) return;
   if (k.spin > 0) { k.drifting = false; k.speed *= Math.pow(.2, dt); move(k, dt); return; }
@@ -679,11 +686,13 @@ function loop() {
     { const lap = Math.min(Math.max(player.lap + 1, 1), race.laps), spd = Math.round(Math.abs(player.speed) * 3), col = ['#ffd400', '#d8dde6', '#cd7f32'][place - 1] || '#ffffff';
       $('posVal').textContent = `${place}/${karts.length}`; $('posVal').style.color = col; $('lapBox').textContent = `LAP ${lap}/${race.laps}  🪙${player.coins}`; $('spVal').textContent = spd;
       $('spArc').setAttribute('stroke-dasharray', `${Math.min(100, spd / (MAX * 3 * 1.5) * 100).toFixed(1)} 100`); $('spArc').setAttribute('stroke', player.boost > 0 ? '#ff7a1a' : '#ffd400');
-      const rolling = player.item && T < (player.item.ready || 0), sig = [player.item && player.item.id + player.item.uses, player.item2 && player.item2.id, rolling ? 'r' + Math.floor(T * 10) : ''].join('|');
-      if (sig !== hudSig) { hudSig = sig; const f = (el, itm) => { el.style.display = itm ? 'flex' : 'none'; const sid = itm && itm === player.item && rolling ? ITEMS[Math.floor(Math.random() * ITEMS.length)][0] : itm && itm.id; el.innerHTML = itm ? `<img data-item="${sid}" alt="">${itm.uses > 1 && sid === itm.id ? `<span class="cnt">×${itm.uses}</span>` : ''}` : ''; fixItemImgs(el); }; f($('it1'), player.item); f($('it2'), player.item2); } }
+      const pn = player.pend ? player.pend.length : 0, rl = { id: '', uses: 1, roll: true };
+      const s1 = player.item || (pn ? rl : null), s2 = player.item2 || (player.item ? (pn ? rl : null) : (pn > 1 ? rl : null)), spin = Math.floor(T * 10);
+      const sig = [s1 && (s1.roll ? 'r' + spin : s1.id + s1.uses), s2 && (s2.roll ? 'r' + spin : s2.id)].join('|');
+      if (sig !== hudSig) { hudSig = sig; const f = (el, itm) => { el.style.display = itm ? 'flex' : 'none'; const sid = itm && (itm.roll ? ITEMS[Math.floor(Math.random() * ITEMS.length)][0] : itm.id); el.innerHTML = itm ? `<img data-item="${sid}" alt="">${itm.uses > 1 ? `<span class="cnt">×${itm.uses}</span>` : ''}` : ''; fixItemImgs(el); }; f($('it1'), s1); f($('it2'), s2); } }
     $('ink').style.opacity = Math.min(1, player.ink);
     if (player.finished) $('big').textContent = `Finished ${place}${['st','nd','rd'][place-1]||'th'}! (R = restart)`;
-    { const th = themeAt(player.idx); applyEnv(th, 1 - Math.exp(-2.5 * dt)); if (th !== lastTheme) { lastTheme = th; zoneBanner(th.name); audio.music(race.track.id, Object.keys(THEMES).find(k => THEMES[k] === th)); } }
+    { const th = themeAt(player.idx); applyEnv(th, 1 - Math.exp(-2.5 * dt)); if (th !== lastTheme) { lastTheme = th; zoneBanner(th.name); audio.music(trackDef.id, Object.keys(THEMES).find(k => THEMES[k] === th)); } }
     const back = V(-Math.sin(player.heading), 0, -Math.cos(player.heading)), s01 = Math.min(1, Math.abs(player.speed) / MAX);
     const cy = (player.air || player.lift) ? player.ty : player.pos.y;
     camera.position.lerp(player.pos.clone().addScaledVector(back, 10 + 3 * s01 - (player.boost > 0 ? 1.5 : 0)).setY(cy + 5.2 + s01), 1 - Math.pow(.001, dt));
