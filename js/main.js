@@ -342,8 +342,20 @@ const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
 const fwd = k => V(Math.sin(k.heading), 0, Math.cos(k.heading));
 const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 function mk(geo, color, glow = .3) { const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: glow })); m.castShadow = true; scene.add(m); return m; }
-function clearWorld() { karts.forEach(k => { (k._cm || []).forEach(m => scene.remove(m)); k._cm = []; k._ck = ''; k.holding = false; }); [...projs, ...hazards, ...boxes, ...fxs].forEach(o => scene.remove(o.mesh)); projs = []; hazards = []; boxes = []; fxs = []; }
+function clearWorld() { coinObjs.forEach(c => scene.remove(c.mesh)); coinObjs = []; karts.forEach(k => { (k._cm || []).forEach(m => scene.remove(m)); k._cm = []; k._ck = ''; k.holding = false; }); [...projs, ...hazards, ...boxes, ...fxs].forEach(o => scene.remove(o.mesh)); projs = []; hazards = []; boxes = []; fxs = []; }
+let coinObjs = [];
+function spawnCoins() {
+  for (const frac of [.13, .27, .42, .57, .72, .87]) {
+    const off = [-5, 0, 5][Math.floor(Math.random() * 3)];
+    for (let j = 0; j < 4; j++) {
+      const i = (Math.floor(N * frac) + j * 3) % N, t = tangent(i), n = V(-t.z, 0, t.x), p = samples[i].clone().addScaledVector(n, off);
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(.9, .9, .2, 16), new THREE.MeshStandardMaterial({ color: 0xffd400, emissive: 0xffa000, emissiveIntensity: .6 })); m.rotation.x = Math.PI / 2; scene.add(m);
+      m.position.set(p.x, p.y + 1.4, p.z); coinObjs.push({ mesh: m, pos: p, respawn: 0 });
+    }
+  }
+}
 function spawnBoxes() {
+  spawnCoins();
   if (!race.items.length) return;
   for (const frac of [.06, .2, .34, .5, .64, .8, .93]) {
     const i = Math.floor(N * frac), t = tangent(i), n = V(-t.z, 0, t.x);
@@ -374,7 +386,7 @@ function guard(k) {
 function hit(k, power) {
   if (k.remote) return false;   // damage to other players is applied on their own screen
   if (k.starT > 0 || k.rocketT > 0 || k.immune > 0) return false;
-  k.spin = power * (k.spinMul || 1); k.immune = power + 1.2; k.speed *= .15; k.boost = 0; burst(k.pos, 0xffe14a, 14, 12); if (k === player) audio.sfx('hit'); return true;
+  k.spin = power * (k.spinMul || 1); k.coins = Math.max(0, k.coins - 2); k.immune = power + 1.2; k.speed *= .15; k.boost = 0; burst(k.pos, 0xffe14a, 14, 12); if (k === player) audio.sfx('hit'); return true;
 }
 function fx(pos, color, r) { const m = mk(new THREE.SphereGeometry(1, 16, 12), color, 1); m.material.transparent = true; m.position.copy(pos); m.position.y += 1; fxs.push({ mesh: m, life: .45, r }); }
 function explode(pos, r, power, color) { burst(pos, color, 60, 28); audio.sfx('boom', Math.max(.15, 1 - dist2(pos, player.pos) / 120)); karts.forEach(k => { if (dist2(k.pos, pos) < r) hit(k, power); }); fx(pos, color, r); }
@@ -415,7 +427,7 @@ function useItem(k, back) {
     case 'leaf': k.leafT = .6; fx(k.pos, 0x7ddf4a, 7); projs.forEach(p => { if (p.owner !== k && dist2(p.pos, k.pos) < 8) p.life = 0; }); karts.forEach(o => { if (o !== k && dist2(o.pos, k.pos) < 7) hit(o, .8); }); break;
     case 'coin': k.coins = Math.min(10, k.coins + 3); break;
     case 'ink': ranked.slice(0, rankOf(k) - 1).forEach(o => { if (!o.starT && !o.rocketT) o.ink = 5; }); break;
-    case 'bolt': karts.forEach(o => { if (o !== k && hit(o, .9)) o.shrink = 6; }); { const f = $('flash'); f.style.transition = 'none'; f.style.opacity = .9; setTimeout(() => { f.style.transition = 'opacity 1s'; f.style.opacity = 0; }, 40); } break;
+    case 'bolt': karts.forEach(o => { if (o !== k && hit(o, .9)) { o.shrink = 6; o.item = o.item2 = null; o.holding = false; } }); { const f = $('flash'); f.style.transition = 'none'; f.style.opacity = .9; setTimeout(() => { f.style.transition = 'opacity 1s'; f.style.opacity = 0; }, 40); } break;
     case 'horn': projs.forEach(p => { if (dist2(p.pos, k.pos) < 40) p.life = 0; }); karts.forEach(o => { if (o !== k && dist2(o.pos, k.pos) < 14) hit(o, .7); }); fx(k.pos, 0xffffff, 40); break;
   }
   if (--it.uses <= 0) { k.item = k.item2 || null; k.item2 = null; k.holding = false; k.useAt = T + 1 + Math.random() * 2; }
@@ -423,6 +435,11 @@ function useItem(k, back) {
 }
 function updateWorld(dt) {
   for (const p of pads) for (const k of karts) if (dist2(k.pos, p.pos) < 4.2 && Math.abs(k.pos.y - p.pos.y) < 4 && k.boost < .6) { k.boost = 1; k.speed += 6; burst(k.pos, 0xffb040, 16, 10); if (k === player) audio.sfx('boost'); }
+  for (const c of coinObjs) {
+    if (c.respawn > 0) { c.respawn -= dt; c.mesh.visible = c.respawn <= 0; continue; }
+    c.mesh.rotation.z += dt * 4;
+    for (const k of karts) if (!k.remote && !k.finished && k.coins < 10 && dist2(k.pos, c.pos) < 3.2) { k.coins++; c.respawn = 10; c.mesh.visible = false; if (k === player) audio.sfx('pickup', .35); break; }
+  }
   // item boxes
   for (const b of boxes) {
     if (b.respawn > 0) { b.respawn -= dt; b.mesh.visible = b.respawn <= 0; continue; }
@@ -438,6 +455,7 @@ function updateWorld(dt) {
       if (close) aim = tp; else { p.idx = nearest(p.pos.x, p.pos.z, p.idx).i; aim = samples[(p.idx + 10) % N]; }
       p.dir.lerp(V(aim.x - p.pos.x, 0, aim.z - p.pos.z).normalize(), Math.min(1, 7 * dt)).normalize();
     }
+    if (p.target === player && (p.type === 'rshell') && p.pos.distanceTo(player.pos) < 55 && T >= (p.beepAt || 0)) { audio.sfx('beep', .4); p.beepAt = T + .15 + p.pos.distanceTo(player.pos) / 160; }
     p.pos.addScaledVector(p.dir, p.speed * dt); p.idx = nearest(p.pos.x, p.pos.z, p.idx).i; p.pos.y = samples[p.idx].y + (p.type === 'bshell' ? 6 : 1.1);
     if (p.type === 'gshell' || p.type === 'fire') {
       const nr = nearest(p.pos.x, p.pos.z, p.idx); p.idx = nr.i;
@@ -658,7 +676,7 @@ function loop() {
     if (state === 'racing' && !race.over) { const hs = karts.filter(k => !k.isBot && !(k.remote && String(k.pid).startsWith('bot'))); if (hs.length && hs.every(k => k.finished)) { race.over = true; setTimeout(() => { if (state !== 'idle') $('menuBtn').textContent = 'NEXT ▶'; }, 2500); } }
     const place = ranked.indexOf(player) + 1, it = player.item;
     { const lap = Math.min(Math.max(player.lap + 1, 1), race.laps), spd = Math.round(Math.abs(player.speed) * 3), col = ['#ffd400', '#d8dde6', '#cd7f32'][place - 1] || '#ffffff';
-      $('posVal').textContent = `${place}/${karts.length}`; $('posVal').style.color = col; $('lapBox').textContent = `LAP ${lap}/${race.laps}`; $('spVal').textContent = spd;
+      $('posVal').textContent = `${place}/${karts.length}`; $('posVal').style.color = col; $('lapBox').textContent = `LAP ${lap}/${race.laps}  🪙${player.coins}`; $('spVal').textContent = spd;
       $('spArc').setAttribute('stroke-dasharray', `${Math.min(100, spd / (MAX * 3 * 1.5) * 100).toFixed(1)} 100`); $('spArc').setAttribute('stroke', player.boost > 0 ? '#ff7a1a' : '#ffd400');
       const rolling = player.item && T < (player.item.ready || 0), sig = [player.item && player.item.id + player.item.uses, player.item2 && player.item2.id, rolling ? 'r' + Math.floor(T * 10) : ''].join('|');
       if (sig !== hudSig) { hudSig = sig; const f = (el, itm) => { el.style.display = itm ? 'flex' : 'none'; const sid = itm && itm === player.item && rolling ? ITEMS[Math.floor(Math.random() * ITEMS.length)][0] : itm && itm.id; el.innerHTML = itm ? `<img data-item="${sid}" alt="">${itm.uses > 1 && sid === itm.id ? `<span class="cnt">×${itm.uses}</span>` : ''}` : ''; fixItemImgs(el); }; f($('it1'), player.item); f($('it2'), player.item2); } }
