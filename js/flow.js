@@ -50,8 +50,9 @@ const CSS = `
 #flow .srow.off{opacity:.35;filter:grayscale(1)}
 #flow .srow .v{display:flex;gap:22px;align-items:center}#flow .srow .v em{font-style:normal;min-width:150px;text-align:center}#flow .srow .ar{cursor:pointer;padding:0 8px}#flow .srow .ar:hover{transform:scale(1.4)}
 #flow .igrid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
-#flow .it{position:relative;border-radius:16px;background:#ffffff1c;border:4px solid transparent;padding:8px 4px 6px;text-align:center;cursor:pointer;font-size:11px;font-weight:700}
-#flow .it img{width:100%;max-width:62px;display:block;margin:0 auto 4px}
+#flow .it{position:relative;aspect-ratio:1/1;overflow:hidden;border-radius:16px;background:#ffffff1c;border:4px solid transparent;box-sizing:border-box;padding:6px 6px 22px;text-align:center;cursor:pointer;font-size:11px;font-weight:700}
+#flow .it img{width:100%;height:100%;object-fit:contain;display:block}
+#flow .it .nm{position:absolute;left:0;right:0;bottom:0;height:22px;line-height:22px;background:#0006;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;padding:0 2px}
 #flow .it.off{opacity:.3;filter:grayscale(1)}
 #flow .it.cur{border-color:#fff;box-shadow:0 0 0 3px #e60012,0 0 20px #ff5a5a;transform:scale(1.08);z-index:2}
 #flow .ibtns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
@@ -90,8 +91,8 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
   try { Object.assign(S, JSON.parse(localStorage.getItem('kz-flow') || '{}')); S.name = localStorage.getItem('kz-name') || S.name; } catch (e) {}
   if (!Array.isArray(S.items) || S.items.some(id => !ALL.includes(id))) S.items = [...ALL];   // item ids were renamed: reset old saved choices
   const save = () => { try { localStorage.setItem('kz-flow', JSON.stringify(S)); localStorage.setItem('kz-name', S.name); } catch (e) {} };
-  let lo = garageUI.get(), room = null, cur = 'none', mode = 'single', msg = '';
-  const setLo = patch => { lo = { ...lo, ...patch }; garageUI.set(lo); };
+  let lo = (() => { try { const v = JSON.parse(localStorage.getItem('kz-lo') || 'null'); if (v) garageUI.set(v); } catch (e) {} return garageUI.get(); })(), room = null, cur = 'none', mode = 'single', msg = '';
+  const setLo = patch => { garageUI.set({ ...lo, ...patch }); lo = garageUI.get(); try { localStorage.setItem('kz-lo', JSON.stringify(lo)); } catch (e) {} };
   const inRoom = () => mode === 'online' && room;
   const opts = () => ({ bots: (mode === 'online' && !S.cpuOn) ? 0 : S.bots, diff: DIFFV[S.diff], laps: String(S.laps), cls: CLS[S.speed], mirror: S.speed === 4, items: S.items, gfx: S.gfx, lo, trackId: S.track });
 
@@ -183,7 +184,7 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
     items: {
       draw() {
         const nb = 4;
-        frame('Items', `<div class="igrid">${ITEMS.map(([id, name], i) => `<div class="it${S.items.includes(id) ? '' : ' off'}${ic === i ? ' cur' : ''}" data-i="${i}"><img data-item="${id}" alt="">${esc(name)}</div>`).join('')}</div>
+        frame('Items', `<div class="igrid">${ITEMS.map(([id, name], i) => `<div class="it${S.items.includes(id) ? '' : ' off'}${ic === i ? ' cur' : ''}" data-i="${i}"><img data-item="${id}" alt=""><span class="nm">${esc(name)}</span></div>`).join('')}</div>
           <div class="ibtns">${['Random', 'All On', 'All Off'].map((t, i) => `<button class="fb${ic === ITEMS.length + i ? ' sel' : ''}" data-b="${i}">${t}</button>`).join('')}</div>`, '', { one: true, sub: `${S.items.length} / ${ITEMS.length} ON` });
         fixItemImgs(root); root.querySelectorAll('.it').forEach(t => t.onclick = () => { ic = +t.dataset.i; toggle(); });
         root.querySelectorAll('[data-b]').forEach(b => b.onclick = e => { e.stopPropagation(); bulk(+b.dataset.b); });
