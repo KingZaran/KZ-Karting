@@ -23,7 +23,7 @@ export function initGarageUI({ $, audio, garage, lo0 }) {
   }
   function change(i, d) {
     const [key, , list] = defs[i], n = list.length, cur = idxOf(key, list), nx = (cur + d + n) % n;
-    lo = { ...lo, [key]: key === 'paint' ? nx : list[nx].id }; update(); audio.sfx('tick');
+    lo = { ...lo, [key]: key === 'paint' ? nx : list[nx].id }; update(); audio.sfx('vertical-scroll');
   }
   update();
   Object.assign(api, { refresh: update, rows, change, set: l => { lo = validLoadout(l); update(); }, get: () => ({ ...lo }) }); return api;

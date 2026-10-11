@@ -5,10 +5,15 @@ export function createAudio() {
   let ctx, master, o1, o2, filt, engG, nFilt, nG, muted = false, timer = null, step = 0, gv = 1;
   const MUS = { meadow: [120, 'square'], dunes: [110, 'triangle'], frost: [100, 'sine'], neon: [130, 'square'], hollow: [80, 'sine'], silk: [96, 'triangle'], ink: [150, 'square'], backrooms: [55, 'sawtooth'], brawl: [140, 'sawtooth'], lava: [118, 'sawtooth'], candy: [135, 'triangle'] };
   const ok = () => ctx && ctx.state !== 'closed';
-  const FILES = ['tick', 'ok', 'back', 'fall', 'beep', 'go', 'pickup', 'use', 'boost', 'hit', 'boom', 'lap', 'engine', 'drift', 'music', 'music-title', 'music-menu', 'music-single', 'music-online', ...TRACKS.map(t => 'music-' + t.id), ...Object.keys(MUS).map(k => 'music-' + k), ...['banana', 'blooper', 'bob-omb', 'boo', 'boomerang-flower', 'bullet-bill', 'coin', 'crazy-8', 'feather', 'fire-flower', 'golden-mushroom', 'green-shell', 'lightning', 'mushroom', 'piranha-plant', 'red-shell', 'spiny-shell', 'super-horn', 'super-leaf', 'starman', 'triple-bananas', 'triple-green-shells', 'triple-mushrooms', 'triple-red-shells'].map(k => 'use-' + k)];
+  const MENU_MUS = { menu: ['menu'], 'menu-no-intro': ['menu-no-intro', 'menu'], 'single-player': ['single-player', 'menu-no-intro', 'menu'], 'online-multiplayer': ['online-multiplayer', 'menu-no-intro', 'menu'] };
+  const FILES = ['fall', 'beep', 'go', 'pickup', 'use', 'boost', 'hit', 'boom', 'engine', 'drift', 'alert',
+    'title-cursor', 'decide', 'small-decide', 'start-race', 'back', 'alt-cursor', 'side-scroll', 'vertical-scroll',   // menu sfx (.wav or .mp3)
+    ...Object.keys(MENU_MUS), 'course-intro', 'starting-grid', 'countdown', 'next-lap', 'last-lap', 'finish', 'finish-1', 'finish-2-6', 'finish-7-12', 'results-win', 'results-loss', 'item-box',
+    'music', ...TRACKS.map(t => 'music-' + t.id), ...Object.keys(MUS).map(k => 'music-' + k),
+    ...['banana', 'blooper', 'bob-omb', 'boo', 'boomerang-flower', 'bullet-bill', 'coin', 'crazy-8', 'feather', 'fire-flower', 'golden-mushroom', 'green-shell', 'lightning', 'mushroom', 'piranha-plant', 'red-shell', 'spiny-shell', 'super-horn', 'super-leaf', 'starman', 'triple-bananas', 'triple-green-shells', 'triple-mushrooms', 'triple-red-shells'].map(k => 'use-' + k)];
   const bufs = {}; let curMus = null, engSrc = null, engCG = null, skSrc = null, skCG = null, musSrc = null, musG = null;
   function loadFiles() {
-    for (const n of FILES) (async () => { for (const ext of ['wav', 'mp3']) { try { const r = await fetch(`audio/${n}.${ext}`); if (!r.ok) continue; bufs[n] = await ctx.decodeAudioData(await r.arrayBuffer()); if (n.startsWith('music')) startWant(); return; } catch (e) {} } })();
+    for (const n of FILES) (async () => { for (const ext of ['wav', 'mp3']) { try { const r = await fetch(`audio/${n}.${ext}`); if (!r.ok) continue; bufs[n] = await ctx.decodeAudioData(await r.arrayBuffer()); if (n.startsWith('music') || MENU_MUS[n]) startWant(); return; } catch (e) {} } })();
   }
   const loop = (buf, vol) => { const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = buf; src.loop = true; g.gain.value = vol; src.connect(g); g.connect(master); src.start(); return [src, g]; };
   function play(buf, vol) { const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = buf; g.gain.value = vol; src.connect(g); g.connect(master); src.start(); }
@@ -31,7 +36,7 @@ export function createAudio() {
     if (!bufs.engine) { o1.frequency.setTargetAtTime(48 + sp * 150 + (boost ? 30 : 0), t, .05); o2.frequency.setTargetAtTime(24 + sp * 75, t, .05); filt.frequency.setTargetAtTime(350 + sp * 1500, t, .08); engG.gain.setTargetAtTime(.05 + sp * .05, t, .1); }
     if (!bufs.drift) { nG.gain.setTargetAtTime(skid * .09, t, .05); nFilt.frequency.setTargetAtTime(skid > .7 ? 2200 : 900, t, .1); }
   }
-  function silence() { if (!ok()) return; const t = ctx.currentTime; engG.gain.setTargetAtTime(0, t, .1); nG.gain.setTargetAtTime(0, t, .1); if (engCG) engCG.gain.setTargetAtTime(0, t, .1); if (skCG) skCG.gain.setTargetAtTime(0, t, .1); music(null); }
+  function silence() { if (!ok()) return; const t = ctx.currentTime; engG.gain.setTargetAtTime(0, t, .1); nG.gain.setTargetAtTime(0, t, .1); if (engCG) engCG.gain.setTargetAtTime(0, t, .1); if (skCG) skCG.gain.setTargetAtTime(0, t, .1); music(null); stopJingles(); }
   function tone(f0, f1, dur, type = 'square', vol = .2, delay = 0) {
     if (!ok()) return; const t = ctx.currentTime + delay, o = ctx.createOscillator(), g = ctx.createGain();
     o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t + dur);
@@ -51,20 +56,35 @@ export function createAudio() {
     boost: () => { tone(200, 900, .5, 'sawtooth', .14); noiseBurst(.4, .15, 2500); },
     hit: () => { tone(500, 90, .4, 'sawtooth', .3); noiseBurst(.25, .25, 800); },
     boom: () => { noiseBurst(.7, .5, 300); tone(120, 30, .6, 'sine', .4); },
+    'title-cursor': () => tone(1100, 1100, .04, 'square', .1), 'alt-cursor': () => tone(900, 900, .03, 'square', .08), 'side-scroll': () => tone(760, 760, .05, 'triangle', .12), 'vertical-scroll': () => tone(600, 700, .05, 'triangle', .12),
+    decide: () => { tone(660, 990, .12, 'triangle', .2); tone(990, 1320, .15, 'triangle', .15, .08); }, 'small-decide': () => tone(800, 1000, .08, 'triangle', .18), 'start-race': () => { tone(660, 990, .12, 'triangle', .2); tone(990, 1320, .2, 'triangle', .2, .1); },
+    alert: () => { tone(1400, 1400, .09, 'square', .25); tone(1400, 1400, .09, 'square', .25, .13); },
     lap: () => [0, 1].forEach(i => tone(660 * (1 + i * .5), 660 * (1 + i * .5), .15, 'triangle', .25, i * .12)),
   };
   // sounds layer on top of each other; the music dips briefly for the loud ones
-  const DUCK = /^(use|boost|hit|boom|pickup|fall|lap)/;
+  const DUCK = /^(use|boost|hit|boom|pickup|fall|lap|alert)/;
   function duck() { if (!musG || !ok()) return; const t = ctx.currentTime; musG.gain.cancelScheduledValues(t); musG.gain.setTargetAtTime(.3, t, .03); musG.gain.setTargetAtTime(muted ? 0 : .5, t + .6, .25); }
   function sfx(name, v = 1, fb) { if (!ok() || muted) return; if (DUCK.test(name) && v >= .5) duck(); const c = [name, ...[].concat(fb || [])], key = c.find(n => bufs[n]); if (key) { play(bufs[key], v); return; } const syn = c[c.length - 1]; gv = v; S[syn] && S[syn](); gv = 1; }
   // music(name, zone): name is 'title' | 'menu' | 'single' | 'online' | a track id.  Looks for music-<name>.wav/mp3, then (races only)
   // music-<zone> and music.wav, then falls back to the synth loop for the zone. Menus without a file stay silent (online falls back to menu, menu to title).
   let want = null;
-  const MENU_FB = { online: ['menu', 'title'], single: ['menu', 'title'], menu: ['title'], title: [] };
-  function music(name, zone) { want = name ? [name, zone] : null; startWant(); }
+  let introDone = false;   // menu.mp3 (with its intro) plays once; coming back to the menus uses menu-no-intro.mp3
+  function music(name, zone) { if (name === 'menu' && introDone) name = 'menu-no-intro'; if (name === 'single-player' || name === 'online-multiplayer') introDone = true; want = name ? [name, zone] : null; startWant(); }
+  // one-shot jingles (course intro, starting grid, countdown, finish...): jingle(name, { vol, onend, fb }) - onend runs when it ends (or after fb seconds if the file is missing)
+  const jing = new Set();
+  function jingle(name, o = {}) {
+    const h = { stopped: false, src: null, t: 0 }, end = () => { if (h.stopped) return; h.stopped = true; jing.delete(h); clearTimeout(h.t); o.onend && o.onend(); };
+    if (!ok() || muted || !bufs[name]) { h.t = setTimeout(end, (o.fb || 0) * 1000); jing.add(h); h.stop = () => { h.stopped = true; clearTimeout(h.t); jing.delete(h); }; return h; }
+    const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = bufs[name]; g.gain.value = o.vol == null ? 1 : o.vol; src.connect(g); g.connect(master); src.onended = end; src.start(); h.src = src; jing.add(h);
+    h.stop = () => { if (h.stopped) return; h.stopped = true; jing.delete(h); try { src.onended = null; src.stop(); } catch (e) {} };
+    return h;
+  }
+  const dur = name => bufs[name] ? bufs[name].duration : 0;
+  function stopJingles() { [...jing].forEach(h => h.stop()); }
+  function musicVol(v) { if (musG && ok()) musG.gain.setTargetAtTime(muted ? 0 : v, ctx.currentTime, .15); }
   function startWant() {
     if (!want || !ok()) { if (!want) stopMus(); return; }
-    const [name, zone] = want, keys = [name, ...(MENU_FB[name] || [])].map(k => 'music-' + k); if (zone) keys.push('music-' + zone, 'music');
+    const [name, zone] = want, keys = MENU_MUS[name] ? [...MENU_MUS[name]] : ['music-' + name]; if (zone) keys.push('music-' + zone, 'music');
     const mb = keys.map(k => bufs[k]).find(Boolean);
     if (mb && mb === curMus && musSrc) return;   // same track already playing: never restart it
     if (!mb && timer && curSyn === zone) return;
@@ -80,5 +100,5 @@ export function createAudio() {
   let curSyn = null;
   function stopMus() { clearInterval(timer); timer = null; curSyn = null; if (musSrc) { try { musSrc.stop(); } catch (e) {} musSrc = null; } curMus = null; }
   function toggle() { muted = !muted; if (master) master.gain.value = muted ? 0 : .6; if (musG) musG.gain.value = muted ? 0 : .5; return muted; }
-  return { init, engine, silence, sfx, music, toggle };
+  return { init, engine, silence, sfx, music, toggle, jingle, dur, stopJingles, musicVol };
 }

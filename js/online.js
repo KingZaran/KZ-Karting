@@ -5,7 +5,7 @@ import { randomLoadout } from './roster.js';
 const SB_CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';   // loaded on demand so the game still starts if it's blocked
 const SUPABASE_URL = 'https://fbcyonrppxttuaiwikmb.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Q9yPEkVjcySlAsEJfuu-4A_-aBWewGs';   // publishable key: safe to ship in client code
-const MAX_PLAYERS = 8;
+const MAX_PLAYERS = 12;
 
 export function createOnline({ TRACKS, getLoadout, onStart, onRoom, onRoomUpdate, onError }) {
   const myId = Math.random().toString(36).slice(2, 10), joinedAt = Date.now();

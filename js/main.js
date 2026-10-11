@@ -37,7 +37,7 @@ function readSettings() {
   settings = { bots: +$('bots').value, diff: $('diff').value, laps: $('laps').value, cls: $('cls').value, items: readItems(), gfx: $('gfx').value, lo: garageUI.get() }; save(); return settings;
 }
 ['pointerdown', 'keydown'].forEach(ev => addEventListener(ev, () => audio.init(), { once: true }));   // lets the title music start on the first touch/key
-function show(id) { if (id === 'title') audio.music('title'); for (const s of ['title', 'main', 'menu', 'vote', 'flow']) { const e = $(s); if (e) e.classList.toggle('on', s === id); } }
+function show(id) { if (id === 'title') audio.music('menu'); for (const s of ['title', 'main', 'menu', 'vote', 'flow']) { const e = $(s); if (e) e.classList.toggle('on', s === id); } }
 
 // ---------- scene ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -255,18 +255,18 @@ const COLORS = [0xe53935,0x1e88e5,0x43a047,0xfdd835,0x8e24aa,0xfb8c00,0x00acc1,0
 function makeKart(color, lo) { const g = buildKart(THREE, lo || randomLoadout(), color, mainEnv); scene.add(g); return g; }
 
 const keys = {};
-addEventListener('keydown', e => { keys[e.code] = true; if (ctl.is('mute', e.code)) zoneBanner(audio.toggle() ? '🔇 Sound off' : '🔊 Sound on'); if (ctl.is('restart', e.code) && state !== 'idle' && !online.racing) startRace(lastOpts);
+addEventListener('keydown', e => { keys[e.code] = true; if (ctl.is('mute', e.code)) zoneBanner(audio.toggle() ? '🔇 Sound off' : '🔊 Sound on'); if (ctl.is('restart', e.code) && state !== 'idle' && !online.racing) startRace(lastOpts, true);
   if (!e.repeat && ctl.is('item', e.code) && state === 'racing' && player && !player.finished && player.spin <= 0 && !player.lift && player.item) { if (TRAIL.includes(BASE[player.item.id])) player.holding = true; else useItem(player, ctl.held('down')); } });
 addEventListener('keyup', e => { keys[e.code] = false; if (ctl.is('item', e.code) && player && player.holding) { player.holding = false; if (state === 'racing' && player.item && !player.finished) { const b = BASE[player.item.id]; useItem(player, b === 'banana' ? !ctl.held('down') : ctl.held('down')); } } });
 
 let lastCd = -1, race = { laps: 3 }, karts = [], player, state = 'idle', countdown = 0, lastOpts = null, clock = new THREE.Clock();
 
-function startRace(o) {
-  lastOpts = o; stopShowcase(); applyGfx(o.gfx); flow.hideTag(); renderer.domElement.style.transform = $('mini').style.transform = o.mirror ? 'scaleX(-1)' : ''; lastCd = -1; $('mini').style.display = 'block'; show(null); clearWorld(); loadTrack(o.track);
+function startRace(o, noIntro) {
+  lastOpts = o; stopShowcase(); audio.stopJingles(); audio.music(null); musTheme = null; applyGfx(o.gfx); flow.hideTag(); renderer.domElement.style.transform = $('mini').style.transform = o.mirror ? 'scaleX(-1)' : ''; lastCd = -1; $('mini').style.display = 'block'; show(null); clearWorld(); loadTrack(o.track);
   karts.forEach(k => scene.remove(k.mesh)); karts = [];
   race = { laps: +o.laps, items: o.items, finishOrder: [], mirror: !!o.mirror, over: false }; $('menuBtn').textContent = '☰ Menu'; hudSig = '';
   MAX = 48 * +o.cls; const diff = +o.diff, usedChars = new Set([o.lo.char]), usedPaints = new Set([o.lo.paint]);
-  const OL = o.online, total = OL ? OL.roster.length : o.bots + 1;
+  const OL = o.online, total = OL ? OL.roster.length : Math.min(12, o.bots + 1);   // never more than 12 racers
   if (OL && OL.host) { /* host runs the CPU karts */ }
   for (let n = 0; n < total; n++) {
     const row = Math.floor(n/2), side = n % 2 ? 1 : -1;
@@ -276,10 +276,28 @@ function startRace(o) {
     karts.push({ lo, col: PAINT[lo.paint].hex, mesh: makeKart(PAINT[lo.paint].hex, lo), top: MAX * st.speedMul, acc: ACC * st.accMul, hand: st.hand, driftMul: st.driftMul, mass: st.mass, size: st.size, spinMul: st.spinMul, offMul: st.offMul, pos: p, heading: Math.atan2(t.x, t.z), speed: 0, idx, lap: -1, progress: -1 + idx/N, boost: 0, driftT: 0, item: null, spin: 0, star: 0, shrink: 0, rocket: 0, plantT: 0, invuln: 0, useCd: 0, inkT: 0, coins: 0, hopY: 0,
       isBot: OL ? !!(OL.roster[n].bot && OL.host) : n !== 0, remote: OL ? (OL.roster[n].bot ? !OL.host : OL.roster[n].id !== OL.me) : false, pid: OL ? OL.roster[n].id : null, name: OL ? OL.roster[n].name : n === 0 ? 'YOU' : 'Bot ' + n, skill: diff - Math.random() * 0.12, lane: (Math.random()-.5) * (WIDTH * .5), finished: false , immune: 0, starT: 0, rocketT: 0, ink: 0, useAt: 0, gotAt: 0 });
   }
-  karts.forEach(k => k.mesh.scale.setScalar(k.size)); lastTheme = null; player = karts.find(k => !k.isBot && !k.remote) || karts[0]; ranked = [...karts]; spawnBoxes(); state = 'countdown'; countdown = 3.99; clock.getDelta();
-  $('hud').style.display = $('menuBtn').style.display = 'block'; $('big').textContent = '';
+  karts.forEach(k => k.mesh.scale.setScalar(k.size)); lastTheme = null; player = karts.find(k => !k.isBot && !k.remote) || karts[0]; ranked = [...karts]; spawnBoxes(); clock.getDelta(); $('big').textContent = ''; $('shellAlert').style.display = 'none';
+  if (noIntro) { $('hud').style.display = $('menuBtn').style.display = 'block'; state = 'grid'; gridPhase(); }
+  else { state = 'intro'; introT = 0; introAt = performance.now(); introLen = Math.max(6, audio.dur('course-intro') || 12); $('hud').style.display = 'none'; $('menuBtn').style.display = 'none'; $('introName').textContent = trackDef.name; $('introUI').style.display = 'flex'; introJ = audio.jingle('course-intro', { onend: endIntro, fb: introLen }); }
 }
-function toMenu() { const inRoom = online.racing; renderer.domElement.style.transform = $('mini').style.transform = ''; state = 'idle'; audio.silence(); $('mini').style.display = 'none'; karts.forEach(k => scene.remove(k.mesh)); karts = []; clearWorld(); $('hud').style.display = $('menuBtn').style.display = 'none'; $('big').textContent = ''; startShowcase(); if (inRoom) online.backToLobby(); else flow.afterRace(); }
+// ---------- race start: course intro fly-through -> starting grid -> 3-2-1 countdown ----------
+let introT = 0, introAt = 0, introLen = 12, introJ = null, cdFile = false, musTheme = null;
+function endIntro() {
+  if (state !== 'intro') return; if (introJ) introJ.stop(); introJ = null; $('introUI').style.display = 'none';
+  $('hud').style.display = $('menuBtn').style.display = 'block'; state = 'grid'; gridPhase();
+}
+function gridPhase() { audio.jingle('starting-grid', { onend: beginCountdown, fb: 1.2 }); }
+function beginCountdown() { if (state !== 'grid') return; state = 'countdown'; countdown = 3.99; lastCd = -1; cdFile = audio.dur('countdown') > 0; audio.jingle('countdown'); }
+function skipIntro(e) { if (state === 'intro' && performance.now() - introAt > 600 && !(e && e.repeat)) endIntro(); }
+addEventListener('keydown', e => { if (e.code === 'Enter' || e.code === 'Space') skipIntro(e); });
+addEventListener('pointerdown', () => skipIntro());
+function introCam() {
+  const u = Math.min(.999, introT / introLen), seg = Math.floor(u * 5), su = u * 5 - seg, starts = [.06, .26, .46, .66, .9][seg], span = [.12, .1, .1, .12, .08][seg] * N;
+  const i = Math.floor(starts * N + su * span) % N, t = tangent(i), n = V(-t.z, 0, t.x), side = seg % 2 ? -1 : 1, hgt = seg === 1 ? 26 - su * 8 : 10 + su * 6;
+  const cp = samples[i].clone().addScaledVector(n, side * (seg === 3 ? 4 : 17)).setY(samples[i].y + hgt), look = samples[(i + 14) % N].clone().setY(samples[i].y + 1.5);
+  camera.position.copy(cp); camera.lookAt(look); camera.fov = 62; camera.updateProjectionMatrix();
+}
+function toMenu() { $('introUI').style.display = 'none'; $('shellAlert').style.display = 'none'; if (introJ) { introJ.stop(); introJ = null }; const inRoom = online.racing; renderer.domElement.style.transform = $('mini').style.transform = ''; state = 'idle'; audio.silence(); $('mini').style.display = 'none'; karts.forEach(k => scene.remove(k.mesh)); karts = []; clearWorld(); $('hud').style.display = $('menuBtn').style.display = 'none'; $('big').textContent = ''; startShowcase(); if (inRoom) online.backToLobby(); else flow.afterRace(); }
 const PTS = [15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
 $('menuBtn').onclick = () => { if (race.over && $('menuBtn').textContent.startsWith('NEXT')) { const rows = [...karts].sort(rankSort).map((k, i) => ({ pos: i + 1, name: k.remote || k.isBot || online.racing ? k.name : 'YOU', char: k.lo.char, pts: PTS[i] || 0, me: k === player })); $('hud').style.display = $('menuBtn').style.display = $('mini').style.display = 'none'; $('big').textContent = ''; flow.scoreboard(rows, toMenu); } else toMenu(); };
 
@@ -375,7 +393,7 @@ function rollItem(k) {
   for (const id of pool) { x -= wt(id); if (x <= 0) { pick = id; break; } }
   const uses = { 'triple-bananas': 3, 'triple-green-shells': 3, 'triple-red-shells': 3, 'triple-mushrooms': 3, 'boomerang-flower': 3, 'fire-flower': 8, 'crazy-8': 8 }[pick] || 1;
   const nit = { id: pick, uses };   // the roulette spins ~2s and only then hands over the item; a 2nd box grabbed meanwhile spins alongside
-  k.pend = k.pend || []; const last = k.pend[k.pend.length - 1]; nit.end = last ? last.end + .6 : T + 2.2; k.pend.push(nit); if (k === player) audio.sfx('pickup');
+  k.pend = k.pend || []; const last = k.pend[k.pend.length - 1]; nit.end = last ? last.end + .6 : T + (audio.dur('item-box') || 8); k.pend.push(nit); if (k === player && !last) audio.sfx('item-box', 1, 'pickup');   // roulette lasts as long as item-box.mp3 (8s)
 }
 const TRAIL = ['banana', 'gshell', 'rshell', 'bomb'];
 // carried banana / shells / bomb (orbiting triples, or one you're holding back) soak up a hit
@@ -458,7 +476,6 @@ function updateWorld(dt) {
       if (close) aim = tp; else { p.idx = nearest(p.pos.x, p.pos.z, p.idx).i; aim = samples[(p.idx + 10) % N]; }
       p.dir.lerp(V(aim.x - p.pos.x, 0, aim.z - p.pos.z).normalize(), Math.min(1, 7 * dt)).normalize();
     }
-    if (p.target === player && (p.type === 'rshell') && p.pos.distanceTo(player.pos) < 55 && T >= (p.beepAt || 0)) { audio.sfx('beep', .4); p.beepAt = T + .15 + p.pos.distanceTo(player.pos) / 160; }
     p.pos.addScaledVector(p.dir, p.speed * dt); p.idx = nearest(p.pos.x, p.pos.z, p.idx).i; p.pos.y = samples[p.idx].y + (p.type === 'bshell' ? 6 : 1.1);
     if (p.type === 'gshell' || p.type === 'fire') {
       const nr = nearest(p.pos.x, p.pos.z, p.idx); p.idx = nr.i;
@@ -482,6 +499,15 @@ function updateWorld(dt) {
     if (dead) { scene.remove(p.mesh); projs.splice(i, 1); continue; }
     p.mesh.position.copy(p.pos); if (p.type === 'boom') p.mesh.rotation.y += 20 * dt;
   }
+  // shell alert: a red / blue shell homing on you -> beep + its icon at the bottom of the screen on the side it comes from
+  { let hunt = null, hd = 1e9; if (player) for (const p of projs) if ((p.type === 'rshell' || p.type === 'bshell') && p.target === player) { const d = p.pos.distanceTo(player.pos); if (d < (p.type === 'bshell' ? 170 : 75) && d < hd) { hunt = p; hd = d; } }
+    const el = $('shellAlert');
+    if (hunt) {
+      const f = fwd(player), v = hunt.pos.clone().sub(player.pos).setY(0).normalize(), left = v.x * f.z - v.z * f.x, id = hunt.type === 'bshell' ? 'spiny-shell' : 'red-shell';
+      if (el.dataset.k !== id) { el.dataset.k = id; el.innerHTML = `<img data-item="${id}" alt="">`; fixItemImgs(el); }
+      el.style.display = 'flex'; el.style.left = (race.mirror ? 50 + left * 40 : 50 - left * 40) + '%';
+      if (T >= (hunt.beepAt || 0)) { audio.sfx('alert', .8, 'beep'); hunt.beepAt = T + .35 + hd / 400; }
+    } else el.style.display = 'none'; }
   // hazards
   for (let i = hazards.length - 1; i >= 0; i--) {
     const h = hazards[i]; h.life -= dt; let gone = h.life <= 0, boom = false;
@@ -650,8 +676,11 @@ function updateBot(k, dt) {
 function trackLap(k) {
   const prev = k.prevIdx ?? k.idx, lap0 = k.lap;
   if (prev > N*.9 && k.idx < N*.1) k.lap++; else if (prev < N*.1 && k.idx > N*.9) k.lap--;
-  k.prevIdx = k.idx; k.progress = k.lap + k.idx/N; if (k === player && k.lap > lap0 && k.lap > 0) audio.sfx('lap');
-  if (!k.finished && k.lap >= race.laps) { k.finished = true; race.finishOrder.push(k); }
+  k.prevIdx = k.idx; k.progress = k.lap + k.idx/N; if (k === player && k.lap > lap0 && k.lap > 0 && k.lap < race.laps) audio.sfx(k.lap + 1 === race.laps ? 'last-lap' : 'next-lap', 1, 'lap');
+  if (!k.finished && k.lap >= race.laps) {
+    k.finished = true; race.finishOrder.push(k);
+    if (k === player) { const pl = race.finishOrder.length; audio.musicVol(.15); audio.jingle('finish', { onend: () => audio.jingle(pl === 1 ? 'finish-1' : pl <= 6 ? 'finish-2-6' : 'finish-7-12') }); }
+  }
 }
 function collide() {
   for (let a = 0; a < karts.length; a++) for (let b = a+1; b < karts.length; b++) {
@@ -670,7 +699,8 @@ function loop() {
   const dt = Math.min(clock.getDelta(), .05);
   if (state !== 'idle') {
     T += dt;
-    if (state === 'countdown') { countdown -= dt; const cd = Math.floor(countdown); if (cd !== lastCd) { lastCd = cd; if (cd >= 2) audio.sfx('beep'); } $('big').textContent = countdown > 1 ? Math.floor(countdown) : 'GO!'; if (countdown <= 1) { state = 'racing'; audio.sfx('go'); setTimeout(() => { if (state === 'racing') $('big').textContent = ''; }, 800); } }
+    if (state === 'intro') { introT += dt; if (introT >= introLen) endIntro(); }
+    if (state === 'countdown') { countdown -= dt; const cd = Math.floor(countdown); if (cd !== lastCd) { lastCd = cd; if (cd >= 2 && !cdFile) audio.sfx('beep'); } $('big').textContent = countdown > 1 ? Math.floor(countdown) : 'GO!'; if (countdown <= 1) { state = 'racing'; if (!cdFile) audio.sfx('go'); setTimeout(() => { if (state === 'racing') $('big').textContent = ''; }, 800); } }
     ranked = [...karts].sort(rankSort);
     karts.forEach(k => tick(k, dt));
     karts.forEach(k => k.remote ? updateRemote(k, dt) : (k.isBot || k.rocketT > 0) ? updateBot(k, dt) : updatePlayer(k, dt));
@@ -699,7 +729,7 @@ function loop() {
       if (sig !== hudSig) { hudSig = sig; const f = (el, itm) => { el.style.display = itm ? 'flex' : 'none'; const sid = itm && (itm.roll ? ITEMS[Math.floor(Math.random() * ITEMS.length)][0] : itm.id); el.innerHTML = itm ? `<img data-item="${sid}" alt="">${itm.uses > 1 ? `<span class="cnt">×${itm.uses}</span>` : ''}${itm.active ? `<div class="itring" style="--p:${Math.max(0, itm.t / itm.max * 360).toFixed(0)}deg"></div>` : ''}` : ''; fixItemImgs(el); }; f($('it1'), s1); f($('it2'), s2); } }
     $('ink').style.opacity = Math.min(1, player.ink);
     if (player.finished) $('big').textContent = `Finished ${place}${['st','nd','rd'][place-1]||'th'}! (R = restart)`;
-    { const th = themeAt(player.idx); applyEnv(th, 1 - Math.exp(-2.5 * dt)); if (th !== lastTheme) { lastTheme = th; zoneBanner(th.name); audio.music(trackDef.id, Object.keys(THEMES).find(k => THEMES[k] === th)); } }
+    { const th = themeAt(player.idx); applyEnv(th, 1 - Math.exp(-2.5 * dt)); if (th !== lastTheme && state !== 'intro') { lastTheme = th; zoneBanner(th.name); } if (state === 'racing' && th !== musTheme) { musTheme = th; audio.music(trackDef.id, Object.keys(THEMES).find(k => THEMES[k] === th)); } }
     const back = V(-Math.sin(player.heading), 0, -Math.cos(player.heading)), s01 = Math.min(1, Math.abs(player.speed) / MAX);
     const cy = (player.air || player.lift) ? player.ty : player.pos.y;
     camera.position.lerp(player.pos.clone().addScaledVector(back, 10 + 3 * s01 - (player.boost > 0 ? 1.5 : 0)).setY(cy + 5.2 + s01), 1 - Math.pow(.001, dt));
@@ -708,6 +738,7 @@ function loop() {
     pfx.update(dt); drawMini(); audio.engine(s01, player.drifting ? 1 : (player.off && s01 > .2 ? .5 : 0), player.boost > 0 || player.rocketT > 0);
     camera.fov = 70 + Math.min(15, Math.abs(player.speed)*.25 + (player.boost>0?8:0)); camera.updateProjectionMatrix();
     blurNow += (((player.boost > 0 || player.starT > 0 || player.rocketT > 0) ? .16 : Math.max(0, s01 - .75) * .18) - blurNow) * Math.min(1, dt * 5); if (gradePass) gradePass.uniforms.blur.value = blurNow;
+    if (state === 'intro') introCam();
     sun.position.set(player.pos.x+100, player.pos.y+200, player.pos.z+60); sun.target.position.copy(player.pos);
   } else if (trackDef && showKarts.length) { updateShowcase(dt); garage.render(dt, flow.preview); }
   SC.follow(camera, performance.now() / 1000);

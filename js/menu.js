@@ -2,11 +2,11 @@
 import { itemIcon } from './sprites.js';
 export function initMenus({ $, show, audio, startFlow, garageUI, onOnline, onSingle, onSettings, onLeave }) {
   let screen = 'title', mainIdx = 0, f = 0, cursor = 0, panel = 'left', gf = 0;
-  const go = s => { screen = s; show(s); if (s === 'menu') { f = 0; panel = 'left'; refocus(); } if (s === 'main') { mainIdx = 0; mainFocus(); } };
+  const go = s => { screen = s; show(s); if (s === 'main' || s === 'title') audio.music('menu'); if (s === 'menu') { f = 0; panel = 'left'; refocus(); } if (s === 'main') { mainIdx = 0; mainFocus(); } };
   // ---- main menu
   const mainBtns = [...document.querySelectorAll('#main .big-btn')];
   const mainFocus = () => mainBtns.forEach((b, i) => b.classList.toggle('sel', i === mainIdx));
-  const mainPick = i => { mainIdx = i; mainFocus(); audio.sfx('ok'); if (i === 0) onSingle(); else if (i === 1) onOnline(); else onSettings(); };
+  const mainPick = i => { mainIdx = i; mainFocus(); audio.sfx('decide'); if (i === 0) onSingle(); else if (i === 1) onOnline(); else onSettings(); };
   mainBtns.forEach((b, i) => { b.onmouseenter = () => { mainIdx = i; mainFocus(); }; b.onclick = () => mainPick(i); });
   // ---- setup rows built from the hidden <select>s so main.js settings code keeps working
   let onl = false, isHostNow = true;   // online room mode: Bots row becomes Track, Bot Difficulty is hidden, only the host's settings count
@@ -16,7 +16,7 @@ export function initMenus({ $, show, audio, startFlow, garageUI, onOnline, onSin
     row.innerHTML = `<span>${label}</span><span class="val"><b class="ar">◀</b><em></em><b class="ar">▶</b></span>`;
     const em = row.querySelector('em'), ars = row.querySelectorAll('.ar');
     const refresh = () => { const sel = cur(); em.textContent = sel.options[sel.selectedIndex].text; };
-    const change = d => { if (onl && !isHostNow && id !== 'gfx') { audio.sfx('back'); return; } const sel = cur(); const n = sel.options.length; sel.selectedIndex = (sel.selectedIndex + d + n) % n; sel.dispatchEvent(new Event('change')); refresh(); audio.sfx('tick'); };
+    const change = d => { if (onl && !isHostNow && id !== 'gfx') { audio.sfx('back'); return; } const sel = cur(); const n = sel.options.length; sel.selectedIndex = (sel.selectedIndex + d + n) % n; sel.dispatchEvent(new Event('change')); refresh(); audio.sfx('title-cursor'); };
     ars[0].onclick = e => { e.stopPropagation(); change(-1); }; ars[1].onclick = e => { e.stopPropagation(); change(1); };
     row.onclick = () => { f = defs.findIndex(d => d[0] === id); refocus(); };
     refresh(); $('rows').append(row); return { row, change, refresh, id };
@@ -43,28 +43,28 @@ export function initMenus({ $, show, audio, startFlow, garageUI, onOnline, onSin
     $('leftPanel').classList.toggle('dimp', !L); $('garage').classList.toggle('dimp', L);
   };
   $('start').onmouseenter = () => { f = 6; refocus(); };
-  const toggleTile = () => { if (onl && !isHostNow) return; tiles()[cursor].click(); audio.sfx('tick'); };
+  const toggleTile = () => { if (onl && !isHostNow) return; tiles()[cursor].click(); audio.sfx('title-cursor'); };
   document.addEventListener('click', e => { const t = e.target.closest && e.target.closest('#items > .tile'); if (t) { cursor = tiles().indexOf(t); f = 5; refocus(); } });
   garageUI.onFocus = i => { panel = 'right'; gf = i; refocus(); };
   $('leftPanel').addEventListener('mousedown', () => { if (panel !== 'left') { panel = 'left'; refocus(); } });
   const back = () => { audio.sfx('back'); if (onl) { onLeave(); setOnline(false); } go('main'); };
   $('backBtn').onclick = back;
-  $('title').addEventListener('pointerdown', () => { if (screen === 'title') { audio.init(); audio.sfx('ok'); go('main'); } });
+  $('title').addEventListener('pointerdown', () => { if (screen === 'title') { audio.init(); audio.sfx('decide'); go('main'); } });
   // ---- keyboard
   addEventListener('keydown', e => {
     const c = e.code;
     if (!$(screen).classList.contains('on')) return;
-    if (screen === 'title') { if (c === 'Enter' || c === 'Space') { audio.init(); audio.sfx('ok'); go('main'); } }
+    if (screen === 'title') { if (c === 'Enter' || c === 'Space') { audio.init(); audio.sfx('decide'); go('main'); } }
     else if (screen === 'main') {
-      if (c === 'ArrowDown' || c === 'KeyS') { mainIdx = (mainIdx + 1) % mainBtns.length; mainFocus(); audio.sfx('tick'); }
-      else if (c === 'ArrowUp' || c === 'KeyW') { mainIdx = (mainIdx + mainBtns.length - 1) % mainBtns.length; mainFocus(); audio.sfx('tick'); }
+      if (c === 'ArrowDown' || c === 'KeyS') { mainIdx = (mainIdx + 1) % mainBtns.length; mainFocus(); audio.sfx('title-cursor'); }
+      else if (c === 'ArrowUp' || c === 'KeyW') { mainIdx = (mainIdx + mainBtns.length - 1) % mainBtns.length; mainFocus(); audio.sfx('title-cursor'); }
       else if (c === 'Enter' || c === 'Space') mainPick(mainIdx);
       else if (c === 'Escape') { audio.sfx('back'); go('title'); }
     } else if (screen === 'menu') {
       if (c === 'Escape') { back(); return; }
-      if (c === 'Tab') { panel = panel === 'left' ? 'right' : 'left'; audio.sfx('tick'); refocus(); e.preventDefault(); return; }
+      if (c === 'Tab') { panel = panel === 'left' ? 'right' : 'left'; audio.sfx('title-cursor'); refocus(); e.preventDefault(); return; }
       if (panel === 'right') {
-        if (c === 'ArrowDown' || c === 'ArrowUp') { gf = (gf + (c === 'ArrowDown' ? 1 : 3)) % 4; audio.sfx('tick'); refocus(); }
+        if (c === 'ArrowDown' || c === 'ArrowUp') { gf = (gf + (c === 'ArrowDown' ? 1 : 3)) % 4; audio.sfx('title-cursor'); refocus(); }
         else if (c === 'ArrowLeft' || c === 'ArrowRight') garageUI.change(gf, c === 'ArrowRight' ? 1 : -1);
         else if (c === 'Enter' || c === 'Space') { panel = 'left'; f = 6; refocus(); }
         e.preventDefault(); return;
@@ -72,12 +72,12 @@ export function initMenus({ $, show, audio, startFlow, garageUI, onOnline, onSin
       if (c === 'ArrowDown' || c === 'ArrowUp') {
         const d = c === 'ArrowDown' ? 1 : -1;
         if (f === 5 && ((d > 0 && cursor < 14) || (d < 0 && cursor >= 7))) cursor += d * 7; else { f = Math.max(0, Math.min(6, f + d)); if (onl && f === 1) f += d > 0 ? 1 : -1; if (f === 5) cursor = d > 0 ? Math.min(cursor, 6) : cursor % 7 + 14; }
-        audio.sfx('tick'); refocus(); e.preventDefault();
+        audio.sfx('title-cursor'); refocus(); e.preventDefault();
       } else if (c === 'ArrowLeft' || c === 'ArrowRight') {
         const d = c === 'ArrowRight' ? 1 : -1;
-        if (f < 5) rows[f].change(d); else if (f === 5) { cursor = (cursor + d + 21) % 21; audio.sfx('tick'); refocus(); }
+        if (f < 5) rows[f].change(d); else if (f === 5) { cursor = (cursor + d + 21) % 21; audio.sfx('title-cursor'); refocus(); }
         e.preventDefault();
-      } else if (c === 'Enter' || c === 'Space') { if (f === 5) toggleTile(); else if (f === 6) { audio.sfx('ok'); startFlow(); } else { f = Math.min(6, f + 1); refocus(); } e.preventDefault(); }
+      } else if (c === 'Enter' || c === 'Space') { if (f === 5) toggleTile(); else if (f === 6) { audio.sfx('decide'); startFlow(); } else { f = Math.min(6, f + 1); refocus(); } e.preventDefault(); }
     }
   });
   return { go, setOnline, get online() { return onl; }, get screen() { return screen; } };
