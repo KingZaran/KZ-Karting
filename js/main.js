@@ -409,29 +409,31 @@ function drop(k, type, back) {
   hazards.push({ type, mesh: m, pos, life: 60, fuse: 3 });
 }
 function useItem(k, back) {
-  const it = k.item; if (!it || k.lift) return;   // no items while being lifted back onto the track
+  const it = k.item; if (!it || k.lift || (it.active && T < (k.actNext || 0))) return;   // no items while being lifted back onto the track
   let id = it.id; if (id === 'crazy-8') id = ['banana', 'green-shell', 'red-shell', 'bob-omb', 'mushroom', 'fire-flower', 'boomerang-flower', 'coin'][Math.floor(Math.random() * 8)];
   if (online.racing && (k === player || (k.isBot && online.isHost))) online.sendItem(id, back, k.pid);
-  const base = BASE[id];
+  const base = BASE[id]; let keep = false;
   { const fb = ['use-' + (SINGLE[id] || id), ['mush', 'gmush', 'star', 'rocket'].includes(base) ? 'boost' : 'use'].filter((x, i, a) => i || x !== a[0]); if (k === player) audio.sfx('use-' + id, 1, fb); else if (dist2(k.pos, player.pos) < 60) audio.sfx('use-' + id, .35, fb); }
   switch (base) {
     case 'banana': drop(k, 'banana', back); break;
     case 'gshell': case 'rshell': case 'bshell': case 'fire': case 'boom': shoot(k, base, back); break;
     case 'bomb': if (back) drop(k, 'bomb', true); else shoot(k, 'bomb', false); break;
     case 'mush': k.boost = Math.max(k.boost, 1.4); k.speed += 12; break;
-    case 'gmush': k.boost = Math.max(k.boost, 7); k.speed += 12; break;
+    case 'gmush': case 'plant': {   // timed items: the bar drains whether or not you press; each press (max 1/s) gives a boost / a bite
+      if (!it.active) { it.active = true; it.t = it.max = base === 'plant' ? 10 : 7.5; if (base === 'plant') k.plantT = it.t; }
+      if (T >= (k.actNext || 0)) { k.actNext = T + 1; if (base === 'gmush') { k.boost = Math.max(k.boost, 1); k.speed += 8; } else { k.biteT = .45; k.boost = Math.max(k.boost, .5); } }
+      keep = true; break; }
     case 'star': k.starT = 8; k.boost = Math.max(k.boost, 1.2); break;
     case 'rocket': k.rocketT = 6; break;
-    case 'plant': k.plantT = 10; break;
     case 'boo': k.immune = Math.max(k.immune, 5); { const v = ranked[rankOf(k) - 2] || ranked.find(o => o !== k && o.item); if (v && v.item) { k._steal = v.item; v.item = v.item2 || null; v.item2 = null; } } fx(k.pos, 0xcfd8ff, 6); break;
     case 'feather': k.hopT = 1; k.boost = Math.max(k.boost, .5); break;
     case 'leaf': k.leafT = .6; fx(k.pos, 0x7ddf4a, 7); projs.forEach(p => { if (p.owner !== k && dist2(p.pos, k.pos) < 8) p.life = 0; }); karts.forEach(o => { if (o !== k && dist2(o.pos, k.pos) < 7) hit(o, .8); }); break;
     case 'coin': k.coins = Math.min(10, k.coins + 3); break;
     case 'ink': ranked.slice(0, rankOf(k) - 1).forEach(o => { if (!o.starT && !o.rocketT) o.ink = 5; }); break;
-    case 'bolt': karts.forEach(o => { if (o !== k && hit(o, .9)) { o.shrink = 6; o.item = o.item2 = null; o.holding = false; } }); { const f = $('flash'); f.style.transition = 'none'; f.style.opacity = .9; setTimeout(() => { f.style.transition = 'opacity 1s'; f.style.opacity = 0; }, 40); } break;
+    case 'bolt': karts.forEach(o => { if (o !== k && hit(o, .9)) { o.shrink = 6; o.item = o.item2 = null; o.holding = false; o.plantT = 0; } }); { const f = $('flash'); f.style.transition = 'none'; f.style.opacity = .9; setTimeout(() => { f.style.transition = 'opacity 1s'; f.style.opacity = 0; }, 40); } break;
     case 'horn': projs.forEach(p => { if (dist2(p.pos, k.pos) < 40) p.life = 0; }); karts.forEach(o => { if (o !== k && dist2(o.pos, k.pos) < 14) hit(o, .7); }); fx(k.pos, 0xffffff, 40); break;
   }
-  if (--it.uses <= 0) { k.item = k.item2 || null; k.item2 = null; k.holding = false; k.useAt = T + 1 + Math.random() * 2; }
+  if (!keep && --it.uses <= 0) { k.item = k.item2 || null; k.item2 = null; k.holding = false; k.useAt = T + 1 + Math.random() * 2; }
   if (k._steal) { if (!k.item) k.item = k._steal; else if (!k.item2) k.item2 = k._steal; k._steal = null; k.gotAt = T; }
 }
 function updateWorld(dt) {
@@ -496,7 +498,8 @@ function updateWorld(dt) {
   // chomper plant & star contact
   for (const k of karts) if (k.plantT > 0) {
     const c = k.pos.clone().addScaledVector(fwd(k), 4.5);
-    for (const o of karts) if (o !== k && dist2(o.pos, c) < 5.5 && hit(o, 1.1)) k.boost = Math.max(k.boost, .6);
+    if (!(k.biteT > 0) && !k.remote && T >= (k.autoBite || 0) && karts.some(o => o !== k && o.starT <= 0 && dist2(o.pos, c) < 13)) { k.biteT = .45; k.autoBite = T + 1.1; k.boost = Math.max(k.boost, .4); k.speed += 4; }   // lunges at anyone close by
+    for (const o of karts) if (o !== k && dist2(o.pos, c) < (k.biteT > 0 ? 8.5 : 5.5) && hit(o, 1.1)) k.boost = Math.max(k.boost, .6);
     for (let i = hazards.length - 1; i >= 0; i--) if (dist2(hazards[i].pos, c) < 6) { scene.remove(hazards[i].mesh); hazards.splice(i, 1); }
   }
   for (let i = fxs.length - 1; i >= 0; i--) {
@@ -530,7 +533,7 @@ function botItems(k) {
   else if (base === 'leaf') use = karts.some(o => o !== k && dist2(o.pos, k.pos) < 8) || waited > 12;
   else if (base === 'horn') use = projs.some(p => p.owner !== k && dist2(p.pos, k.pos) < 35) || waited > 20;
   else use = waited > .8;
-  if (use) { useItem(k, back); k.useAt = T + .5 + Math.random() * 1.2; }
+  if (use) { useItem(k, back); k.useAt = T + (k.item && k.item.active ? 1.05 : .5 + Math.random() * 1.2); }
 }
 
 // ---------- particles ----------
@@ -592,7 +595,11 @@ function resolvePend(k) {
     k.gotAt = T; if (k === player) audio.sfx('ok', .5);
   }
 }
-function tick(k, dt) { resolvePend(k); for (const s of ['spin', 'immune', 'starT', 'rocketT', 'plantT', 'shrink', 'ink', 'hopT', 'leafT']) if (k[s] > 0) k[s] = Math.max(0, k[s] - dt); }
+function tick(k, dt) {
+  resolvePend(k);
+  if (k.biteT > 0) k.biteT = Math.max(0, k.biteT - dt);
+  const ai = k.item;
+  if (ai && ai.active) { ai.t -= dt; if (ai.t <= 0) { if (BASE[ai.id] === 'plant') k.plantT = 0; k.item = k.item2 || null; k.item2 = null; k.holding = false; k.useAt = T + 1 + Math.random() * 2; } } for (const s of ['spin', 'immune', 'starT', 'rocketT', 'plantT', 'shrink', 'ink', 'hopT', 'leafT']) if (k[s] > 0) k[s] = Math.max(0, k[s] - dt); }
 function updatePlayer(k, dt) {
   const near = nearest(k.pos.x, k.pos.z, k.idx); k.idx = near.i; if (grounding(k, near, dt)) return;
   if (k.spin > 0) { k.drifting = false; k.speed *= Math.pow(.2, dt); move(k, dt); return; }
@@ -688,8 +695,8 @@ function loop() {
       $('spArc').setAttribute('stroke-dasharray', `${Math.min(100, spd / (MAX * 3 * 1.5) * 100).toFixed(1)} 100`); $('spArc').setAttribute('stroke', player.boost > 0 ? '#ff7a1a' : '#ffd400');
       const pn = player.pend ? player.pend.length : 0, rl = { id: '', uses: 1, roll: true };
       const s1 = player.item || (pn ? rl : null), s2 = player.item2 || (player.item ? (pn ? rl : null) : (pn > 1 ? rl : null)), spin = Math.floor(T * 10);
-      const sig = [s1 && (s1.roll ? 'r' + spin : s1.id + s1.uses), s2 && (s2.roll ? 'r' + spin : s2.id)].join('|');
-      if (sig !== hudSig) { hudSig = sig; const f = (el, itm) => { el.style.display = itm ? 'flex' : 'none'; const sid = itm && (itm.roll ? ITEMS[Math.floor(Math.random() * ITEMS.length)][0] : itm.id); el.innerHTML = itm ? `<img data-item="${sid}" alt="">${itm.uses > 1 ? `<span class="cnt">×${itm.uses}</span>` : ''}` : ''; fixItemImgs(el); }; f($('it1'), s1); f($('it2'), s2); } }
+      const sig = [s1 && (s1.roll ? 'r' + spin : s1.id + s1.uses + (s1.active ? 'a' + Math.floor(s1.t * 8) : '')), s2 && (s2.roll ? 'r' + spin : s2.id)].join('|');
+      if (sig !== hudSig) { hudSig = sig; const f = (el, itm) => { el.style.display = itm ? 'flex' : 'none'; const sid = itm && (itm.roll ? ITEMS[Math.floor(Math.random() * ITEMS.length)][0] : itm.id); el.innerHTML = itm ? `<img data-item="${sid}" alt="">${itm.uses > 1 ? `<span class="cnt">×${itm.uses}</span>` : ''}${itm.active ? `<div class="itbar"><i style="width:${Math.max(0, itm.t / itm.max * 100).toFixed(0)}%"></i></div>` : ''}` : ''; fixItemImgs(el); }; f($('it1'), s1); f($('it2'), s2); } }
     $('ink').style.opacity = Math.min(1, player.ink);
     if (player.finished) $('big').textContent = `Finished ${place}${['st','nd','rd'][place-1]||'th'}! (R = restart)`;
     { const th = themeAt(player.idx); applyEnv(th, 1 - Math.exp(-2.5 * dt)); if (th !== lastTheme) { lastTheme = th; zoneBanner(th.name); audio.music(trackDef.id, Object.keys(THEMES).find(k => THEMES[k] === th)); } }
