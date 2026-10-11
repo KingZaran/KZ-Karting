@@ -4,7 +4,7 @@ export function createAudio() {
   let ctx, master, o1, o2, filt, engG, nFilt, nG, muted = false, timer = null, step = 0, gv = 1;
   const MUS = { meadow: [120, 'square'], dunes: [110, 'triangle'], frost: [100, 'sine'], neon: [130, 'square'], hollow: [80, 'sine'], silk: [96, 'triangle'], ink: [150, 'square'], backrooms: [55, 'sawtooth'], brawl: [140, 'sawtooth'], lava: [118, 'sawtooth'], candy: [135, 'triangle'] };
   const ok = () => ctx && ctx.state !== 'closed';
-  const FILES = ['tick', 'ok', 'back', 'fall', 'beep', 'go', 'pickup', 'use', 'boost', 'hit', 'boom', 'lap', 'engine', 'drift', 'music', ...Object.keys(MUS).map(k => 'music-' + k), ...['banana', 'gshell', 'rshell', 'bshell', 'bomb', 'mush', 'gmush', 'star', 'ink', 'bolt', 'rocket', 'fire', 'boom', 'plant', 'horn', 'coin'].map(k => 'use-' + k)];
+  const FILES = ['tick', 'ok', 'back', 'fall', 'beep', 'go', 'pickup', 'use', 'boost', 'hit', 'boom', 'lap', 'engine', 'drift', 'music', ...Object.keys(MUS).map(k => 'music-' + k), ...['banana', 'blooper', 'bob-omb', 'boo', 'boomerang-flower', 'bullet-bill', 'coin', 'crazy-8', 'feather', 'fire-flower', 'golden-mushroom', 'green-shell', 'lightning', 'mushroom', 'piranha-plant', 'red-shell', 'spiny-shell', 'super-horn', 'super-leaf', 'starman', 'triple-bananas', 'triple-green-shells', 'triple-mushrooms', 'triple-red-shells'].map(k => 'use-' + k)];
   const bufs = {}; let curMus = null, engSrc = null, engCG = null, skSrc = null, skCG = null, musSrc = null, musG = null;
   function loadFiles() {
     for (const n of FILES) (async () => { for (const ext of ['wav', 'mp3']) { try { const r = await fetch(`audio/${n}.${ext}`); if (!r.ok) continue; bufs[n] = await ctx.decodeAudioData(await r.arrayBuffer()); return; } catch (e) {} } })();
@@ -55,7 +55,7 @@ export function createAudio() {
   // sounds layer on top of each other; the music dips briefly for the loud ones
   const DUCK = /^(use|boost|hit|boom|pickup|fall|lap)/;
   function duck() { if (!musG || !ok()) return; const t = ctx.currentTime; musG.gain.cancelScheduledValues(t); musG.gain.setTargetAtTime(.3, t, .03); musG.gain.setTargetAtTime(muted ? 0 : .5, t + .6, .25); }
-  function sfx(name, v = 1, fb) { if (!ok() || muted) return; if (DUCK.test(name) && v >= .5) duck(); const key = bufs[name] ? name : fb || name; if (bufs[key]) { play(bufs[key], v); return; } gv = v; S[key] && S[key](); gv = 1; }
+  function sfx(name, v = 1, fb) { if (!ok() || muted) return; if (DUCK.test(name) && v >= .5) duck(); const c = [name, ...[].concat(fb || [])], key = c.find(n => bufs[n]); if (key) { play(bufs[key], v); return; } const syn = c[c.length - 1]; gv = v; S[syn] && S[syn](); gv = 1; }
   function music(id) {
     const mb = id && ok() ? (bufs['music-' + id] || bufs.music) : null;
     if (mb && mb === curMus && musSrc) return;   // same track already playing: never restart it
