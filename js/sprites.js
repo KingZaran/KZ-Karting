@@ -29,17 +29,23 @@ const ART = {
   plant(g) { poly(g, [[26, 62], [70, 62], [64, 92], [32, 92]], '#3aa63a', '#14501a', 4); g.fillStyle = '#d22'; g.strokeStyle = '#500'; g.lineWidth = 4; g.beginPath(); g.arc(48, 38, 28, 0, 6.2832); g.fill(); g.stroke(); [[34, 26], [60, 24], [64, 44]].forEach(([x, y]) => circ(g, x, y, 5, '#fff')); g.fillStyle = '#400'; g.beginPath(); g.ellipse(48, 46, 20, 11, 0, 0, 3.14); g.fill(); for (let i = 0; i < 4; i++) poly(g, [[32 + i * 11, 46], [38 + i * 11, 46], [35 + i * 11, 54]], '#fff', null); },
   horn(g) { poly(g, [[8, 44], [8, 62], [44, 64], [44, 40]], '#e0a800', '#5a3a00', 4); g.beginPath(); g.moveTo(44, 40); g.lineTo(84, 18); g.quadraticCurveTo(96, 52, 84, 86); g.lineTo(44, 64); g.closePath(); g.fillStyle = grad(g, 70, 52, 40, '#ffe680', '#d49a00'); g.fill(); g.strokeStyle = '#5a3a00'; g.lineWidth = 4; g.stroke(); g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.arc(70, 52, 10, -1, 1); g.stroke(); },
   eight(g) { circ(g, 48, 52, 36, grad(g, 48, 52, 36, '#ff7a7a', '#b00'), '#400', 4); g.fillStyle = '#fff'; g.strokeStyle = '#400'; g.lineWidth = 4; g.font = '900 56px Arial Black, Impact, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.strokeText('8', 48, 54); g.fillText('8', 48, 54); },
+  boo(g) { circ(g, 48, 50, 34, grad(g, 48, 50, 34, '#ffffff', '#c9d2ee'), '#333', 4); eyes(g, 48, 44, 11, 4); g.fillStyle = '#7a1030'; g.strokeStyle = '#333'; g.lineWidth = 3; g.beginPath(); g.ellipse(48, 66, 12, 9, 0, 0, 6.2832); g.fill(); g.stroke(); g.fillStyle = '#ff6b8a'; g.beginPath(); g.ellipse(48, 70, 8, 5, 0, 0, 3.1416); g.fill(); },
+  feather(g) { g.fillStyle = '#f4f6ff'; g.strokeStyle = '#4a5a8a'; g.lineWidth = 4; g.beginPath(); g.moveTo(16, 88); g.bezierCurveTo(6, 40, 50, 4, 88, 8); g.bezierCurveTo(82, 50, 52, 82, 16, 88); g.closePath(); g.fill(); g.stroke(); g.beginPath(); g.moveTo(16, 88); g.lineTo(76, 20); g.stroke(); g.strokeStyle = '#9fb0e0'; g.lineWidth = 2; for (let i = 0; i < 5; i++) { g.beginPath(); g.moveTo(26 + i * 11, 76 - i * 12); g.lineTo(40 + i * 11, 68 - i * 12); g.stroke(); } },
+  leaf(g) { poly(g, [[10, 86], [22, 40], [50, 12], [86, 10], [88, 44], [60, 76]], '#d9792b', '#5a2a08', 5); g.strokeStyle = '#5a2a08'; g.lineWidth = 4; g.beginPath(); g.moveTo(10, 86); g.lineTo(70, 28); g.stroke(); circ(g, 62, 54, 5, '#ffcf8a', '#5a2a08', 2); circ(g, 42, 40, 5, '#ffcf8a', '#5a2a08', 2); },
   coin(g) { circ(g, 48, 52, 36, grad(g, 48, 52, 36, '#fff3a0', '#d49a00'), '#6a4a00', 5); circ(g, 48, 52, 26, null, '#a87a00', 4); g.fillStyle = '#a87a00'; g.beginPath(); g.roundRect(43, 36, 10, 32, 4); g.fill(); },
 };
+// item id -> which drawing to use
+const ART_OF = { 'triple-bananas': 'banana', blooper: 'ink', 'bob-omb': 'bomb', 'boomerang-flower': 'boom', 'bullet-bill': 'rocket', 'crazy-8': 'eight', 'fire-flower': 'fire', 'golden-mushroom': 'gmush', 'green-shell': 'gshell', 'triple-green-shells': 'gshell',
+  lightning: 'bolt', mushroom: 'mush', 'triple-mushrooms': 'mush', 'piranha-plant': 'plant', 'red-shell': 'rshell', 'triple-red-shells': 'rshell', 'spiny-shell': 'bshell', 'super-horn': 'horn', 'super-leaf': 'leaf', starman: 'star' };
 export function itemIcon(id) {
   if (cache[id]) return cache[id];
-  const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d'), triple = id.endsWith('3'), base = triple ? id.slice(0, -1) : id;
+  const c = document.createElement('canvas'); c.width = c.height = 96; const g = c.getContext('2d'), triple = id.startsWith('triple-'), base = ART_OF[id] || id;
   const art = ART[base] || ART.coin;
   if (triple) [[.62, 30, 10], [.62, 10, 44], [.62, 50, 44]].forEach(([s, x, y]) => { g.save(); g.translate(x, y); g.scale(s, s); art(g); g.restore(); }); else art(g);
   return cache[id] = c.toDataURL();
 }
 
-// Custom item art: drop PNGs in  icons/items/<item id>.png  (ids: banana, banana3, gshell, gshell3, rshell, rshell3, bomb, mush, mush3, gmush, star, ink, bolt, rocket, bshell, fire, boom, plant, horn, eight, coin).
+// Custom item art: drop PNGs in  icons/items/<item id>.png  (ids: see ITEMS in tracks.js, e.g. banana, green-shell, triple-bananas, super-leaf).
 // Any <img data-item="id"> inside `root` gets the PNG, falling back to the built-in sprite when there isn't one.
 export function fixItemImgs(root) {
   root.querySelectorAll('img[data-item]').forEach(img => { const id = img.dataset.item; if (img.dataset.set === id) return; img.dataset.set = id; img.onerror = () => { img.onerror = null; img.src = itemIcon(id); }; img.src = 'icons/items/' + id + '.png'; });
