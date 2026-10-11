@@ -26,18 +26,28 @@ export function createControls() {
   #ctlBox .k:hover{border-color:#8fa3ff}
   #ctlBox .k.wait{border-color:#ffd34a;color:#ffd34a;animation:ctlp .8s infinite alternate}
   @keyframes ctlp{to{background:#3b4a8a}}
+  #ctlBox .tabs{display:flex;gap:6px;margin:8px 0 12px}
+  #ctlBox .tab{flex:1;background:#232c55;color:#cfd6ff;border:2px solid transparent;border-radius:10px;padding:8px 4px;font-size:13px;cursor:pointer}
+  #ctlBox .tab.on{background:#3a4a9a;border-color:#8fa3ff;color:#fff}
+  #ctlBox .soon{opacity:.7;font-size:12px;margin:0 0 10px}
+  #ctlBox .pad{display:grid;grid-template-columns:1fr auto;gap:6px 14px;font-size:14px}#ctlBox .pad b{color:#ffd34a;text-align:right}
   #ctlBox .f{display:flex;gap:10px;justify-content:space-between;margin-top:16px}`;
   document.head.appendChild(css);
   const btn = document.createElement('button'); btn.id = 'ctlBtn'; btn.className = 'sec'; btn.textContent = '⌨ Controls';
   const ov = document.createElement('div'); ov.id = 'ctlOv'; ov.innerHTML = '<div id="ctlBox"></div>';
   document.body.append(btn, ov); const box = ov.firstChild;
-  let waiting = null;   // [action, slot]
+  let waiting = null, tab = 'keyboard';   // waiting = [action, slot]
   const render = () => {
-    box.innerHTML = '<h2>CONTROLS</h2><div class="sub">Click a key box, then press the key you want. Esc cancels · Backspace clears a slot.</div>' +
-      ACTIONS.map(([a, l]) => `<div class="r"><span>${l}</span>${[0, 1].map(i => `<button class="k${waiting && waiting[0] === a && waiting[1] === i ? ' wait' : ''}" data-a="${a}" data-i="${i}">${waiting && waiting[0] === a && waiting[1] === i ? 'Press a key…' : nice(map[a][i])}</button>`).join('')}</div>`).join('') +
-      '<div class="f"><button class="sec" id="ctlReset">Reset to default</button><button class="go" id="ctlDone">Done</button></div>';
+    const tabs = `<div class="tabs">${[['keyboard', '⌨ Keyboard'], ['controller', '🎮 Controller'], ['touch', '👆 Touch']].map(([t, l]) => `<button class="tab${tab === t ? ' on' : ''}" data-t="${t}">${l}</button>`).join('')}</div>`;
+    const kb = '<div class="sub">Click a key box, then press the key you want. Esc cancels · Backspace clears a slot.</div>' +
+      ACTIONS.map(([a, l]) => `<div class="r"><span>${l}</span>${[0, 1].map(i => `<button class="k${waiting && waiting[0] === a && waiting[1] === i ? ' wait' : ''}" data-a="${a}" data-i="${i}">${waiting && waiting[0] === a && waiting[1] === i ? 'Press a key…' : nice(map[a][i])}</button>`).join('')}</div>`).join('');
+    const pad = '<div class="soon">Controller support is coming in a later update. Planned layout:</div><div class="pad"><span>Steer</span><b>Left stick / D-pad</b><span>Accelerate</span><b>A / RT</b><span>Brake / Reverse</span><b>B / LT</b><span>Drift / Hop</span><b>RB / LB</b><span>Use item</span><b>X / Y</b><span>Look back</span><b>R-stick down</b><span>Menu</span><b>Start</b></div>';
+    const touch = '<div class="soon">Touch support is coming in a later update. Planned layout:</div><div class="pad"><span>Steer</span><b>Left thumb: slide</b><span>Accelerate</span><b>Automatic</b><span>Brake / Reverse</span><b>Hold brake button</b><span>Drift / Hop</span><b>Right thumb: drift button</b><span>Use item</span><b>Tap the item circle</b><span>Drop item behind</span><b>Swipe down on item</b></div>';
+    box.innerHTML = '<h2>CONTROLS</h2>' + tabs + (tab === 'keyboard' ? kb : tab === 'controller' ? pad : touch) +
+      `<div class="f">${tab === 'keyboard' ? '<button class="sec" id="ctlReset">Reset to default</button>' : '<span></span>'}<button class="go" id="ctlDone">Done</button></div>`;
+    box.querySelectorAll('.tab').forEach(b => b.onclick = () => { tab = b.dataset.t; waiting = null; render(); });
     box.querySelectorAll('.k').forEach(b => b.onclick = () => { waiting = [b.dataset.a, +b.dataset.i]; render(); });
-    box.querySelector('#ctlReset').onclick = () => { map = JSON.parse(JSON.stringify(DEFAULTS)); waiting = null; save(); render(); };
+    const rs = box.querySelector('#ctlReset'); if (rs) rs.onclick = () => { map = JSON.parse(JSON.stringify(DEFAULTS)); waiting = null; save(); render(); };
     box.querySelector('#ctlDone').onclick = close;
   };
   const open = () => { waiting = null; render(); ov.classList.add('on'); }, close = () => { waiting = null; ov.classList.remove('on'); btn.blur(); };
