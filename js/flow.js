@@ -88,6 +88,7 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
   const ALL = ITEMS.map(i => i[0]);
   let S = { speed: 1, diff: 1, bots: 5, laps: 3, gfx: 'high', cpuOn: true, items: ALL, track: 'random', name: '' };
   try { Object.assign(S, JSON.parse(localStorage.getItem('kz-flow') || '{}')); S.name = localStorage.getItem('kz-name') || S.name; } catch (e) {}
+  if (!Array.isArray(S.items) || S.items.some(id => !ALL.includes(id))) S.items = [...ALL];   // item ids were renamed: reset old saved choices
   const save = () => { try { localStorage.setItem('kz-flow', JSON.stringify(S)); localStorage.setItem('kz-name', S.name); } catch (e) {} };
   let lo = garageUI.get(), room = null, cur = 'none', mode = 'single', msg = '';
   const setLo = patch => { lo = { ...lo, ...patch }; garageUI.set(lo); };
