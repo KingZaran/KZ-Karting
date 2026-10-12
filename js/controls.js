@@ -11,9 +11,10 @@ export function createControls() {
   addEventListener('keydown', e => { down[e.code] = true; }, true); addEventListener('keyup', e => { down[e.code] = false; }, true);
   addEventListener('blur', () => { for (const k in down) down[k] = false; });
   // ---- touch: on-screen steer pad / drift / brake while racing; tap the item circle to use it (swipe down to drop behind)
-  const tv = { left: 0, right: 0, down: 0, drift: 0 }, gv = { up: 0, left: 0, right: 0, down: 0, drift: 0 }; let touchMode = false;
+  const tv = { left: 0, right: 0, down: 0, drift: 0, up: 0 }, gv = { up: 0, left: 0, right: 0, down: 0, drift: 0 }; let touchMode = false;
   const racing = () => { const h = document.getElementById('hud'); return !!h && h.style.display === 'block'; };
   const held = a => map[a].some(c => c && down[c]) || !!tv[a] || !!gv[a] || (a === 'up' && touchMode && racing() && !tv.down), is = (a, code) => map[a].includes(code);
+  const heldRaw = a => map[a].some(c => c && down[c]) || !!tv[a] || !!gv[a];   // without touch auto-accelerate (used for the countdown rocket start)
 
   // ---- UI ----
   const css = document.createElement('style');
@@ -24,7 +25,7 @@ export function createControls() {
   #tknob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:#fffc}
   .tbtn{position:absolute;pointer-events:auto;border-radius:50%;border:4px solid #fff;background:#0007;color:#fff;font-weight:800;font-style:italic;font-size:17px;display:flex;align-items:center;justify-content:center;opacity:.8}
   .tbtn.on{background:#ffd400;color:#000;opacity:1}
-  #tDrift{right:30px;bottom:150px;width:104px;height:104px}#tBrake{right:150px;bottom:160px;width:80px;height:80px;font-size:14px}
+  #tBoost{display:none;left:50%;bottom:34%;width:132px;height:132px;margin-left:-66px;font-size:16px;text-align:center;line-height:1.1;background:#e5393588}body.cd #tBoost{display:flex}#tDrift{right:30px;bottom:150px;width:104px;height:104px}#tBrake{right:150px;bottom:160px;width:80px;height:80px;font-size:14px}
   body.touch #it1{pointer-events:auto}
   
   #ctlBtn{display:none !important;position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:60;background:#3a4a7a;color:#fff;font-size:13px;padding:7px 12px;border-radius:10px;opacity:.85}
@@ -47,12 +48,13 @@ export function createControls() {
   #ctlBox .f{display:flex;gap:10px;justify-content:space-between;margin-top:16px}`;
   document.head.appendChild(css);
   const tc = document.createElement('div'); tc.id = 'tctl';
-  tc.innerHTML = '<div id="tpad"><div id="tring"><div id="tknob"></div></div></div><div class="tbtn" id="tDrift">DRIFT</div><div class="tbtn" id="tBrake">BRAKE</div>';
+  tc.innerHTML = '<div id="tpad"><div id="tring"><div id="tknob"></div></div></div><div class="tbtn" id="tDrift">DRIFT</div><div class="tbtn" id="tBrake">BRAKE</div><div class="tbtn" id="tBoost">HOLD<br>TO BOOST</div>';
   document.body.appendChild(tc);
   const setTouch = () => { if (touchMode) return; touchMode = true; document.body.classList.add('touch'); };
   if (matchMedia('(pointer: coarse)').matches) setTouch();
   addEventListener('pointerdown', e => { if (e.pointerType === 'touch') setTouch(); }, true);
   setInterval(() => tc.classList.toggle('on', touchMode && racing()), 250);
+  const cdOn = v => document.body.classList.toggle('cd', !!v && touchMode);
   addEventListener('contextmenu', e => { if (touchMode) e.preventDefault(); });
   const pad = tc.querySelector('#tpad'), ring = tc.querySelector('#tring'), knob = tc.querySelector('#tknob'); let padId = null, px = 0;
   const steerTo = x => { const dx = x - px; tv.left = dx < -16 ? 1 : 0; tv.right = dx > 16 ? 1 : 0; knob.style.transform = `translateX(${Math.max(-45, Math.min(45, dx))}px)`; };
@@ -60,7 +62,7 @@ export function createControls() {
   pad.onpointermove = e => { if (e.pointerId === padId) steerTo(e.clientX); };
   const padEnd = e => { if (e.pointerId !== padId) return; padId = null; tv.left = tv.right = 0; ring.style.display = 'none'; knob.style.transform = ''; };
   pad.onpointerup = pad.onpointercancel = padEnd;
-  for (const [id, a] of [['tDrift', 'drift'], ['tBrake', 'down']]) { const b = tc.querySelector('#' + id); b.onpointerdown = e => { b.setPointerCapture(e.pointerId); tv[a] = 1; b.classList.add('on'); }; b.onpointerup = b.onpointercancel = () => { tv[a] = 0; b.classList.remove('on'); }; }
+  for (const [id, a] of [['tDrift', 'drift'], ['tBrake', 'down'], ['tBoost', 'up']]) { const b = tc.querySelector('#' + id); b.onpointerdown = e => { b.setPointerCapture(e.pointerId); tv[a] = 1; b.classList.add('on'); }; b.onpointerup = b.onpointercancel = () => { tv[a] = 0; b.classList.remove('on'); }; }
   let itY = 0, itCode = '';
   addEventListener('pointerdown', e => { if (e.pointerType !== 'touch' || !racing()) return; const t = e.target.closest && e.target.closest('#it1'); if (!t) return; itY = e.clientY; itCode = map.item[0] || map.item[1]; if (itCode) dispatchEvent(new KeyboardEvent('keydown', { code: itCode })); }, true);
   addEventListener('pointerup', e => { if (!itCode) return; if (e.clientY - itY > 35) tv.down = 1; dispatchEvent(new KeyboardEvent('keyup', { code: itCode })); tv.down = 0; itCode = ''; }, true);
@@ -126,5 +128,5 @@ export function createControls() {
   const hint = () => `${nice(map.up[0])}/${nice(map.left[0])}/${nice(map.down[0])}/${nice(map.right[0])} drive · ${nice(map.drift[0])} drift · ${nice(map.item[0])} item · ${nice(map.restart[0])} restart · ${nice(map.mute[0])} mute`;
   const sync = () => { const f = document.querySelector('#menu .foot small'); if (f) f.textContent = (hint() + ' · hold ' + nice(map.down[0]) + ' to drop item behind').toUpperCase(); };
   sync(); const _c = close; ov.addEventListener('click', sync); box.addEventListener('click', sync); addEventListener('keyup', sync);
-  return { held, is, hint, open };
+  return { held, heldRaw, countdownUI: cdOn, is, hint, open };
 }

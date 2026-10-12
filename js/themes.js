@@ -268,6 +268,30 @@ export function buildThemes(THREE) {
   T.smashv = { name: 'Smashville', sky: 0x8fd0ff, ground: 0x7ac24a, road: 0xb08850, roadStyle: 'planks', edge: 0xffffff, line: '#ffffff', kerb: ['#ffffff', '#ffb3d1'], accent: '#ffb347', fog: [150, 600], hemi: 1.05, sun: 1.35, clouds: 1, mount: 0x6aaa6a, mountTop: 0xd8f0d8, hill: 1,
     decor: [acFruit, acFruit, acFruit, acBalloon, acBalloon, acBoard, acFence, acFence, acHouse, acHouse, flowers, flowers, bushy] };
 
+  // ===== batch 5: Tilted Towers, Moray Towers, Obby =====
+  // --- Fortnite: Tilted Towers-style city
+  const tiBldg = () => { const w = R(8, 13), d = R(8, 12), h = R(16, 34), c = pick([0xd8cdb4, 0xc9bda0, 0xb9c4cc, 0xe0d4be]), m = M(c, { roughness: .85 }), g = grp(bk(m, w, h, d, 0, h / 2, 0), bk(M(0x5a5560), w + .8, 1, d + .8, 0, h + .5, 0)); for (let y = 4; y < h - 1; y += 4.5) for (let x = -w / 2 + 1.8; x < w / 2 - 1; x += 3) g.add(bk(E(0xbfe8ff, .25), 1.5, 2, .15, x, y, d / 2 + .05)); if (Math.random() < .4) g.add(bk(fn.metalM, 2.4, 1.6, 2.4, R(-2, 2), h + 1.8, R(-2, 2))); return g; };
+  const tiClock = () => grp(bk(fn.stoneM, 4, 26, 4, 0, 13, 0), bk(fn.stoneM, 5, 7, 5, 0, 29, 0), pb('cyl', white, 1.8, .3, 1.8, 0, 29, 2.6, Math.PI / 2), bk(fn.roof, 5.6, .8, 5.6, 0, 33, 0), pb('cone', fn.roof, 3.6, 4, 3.6, 0, 35.4, 0, 0, Math.PI / 4));
+  const tiBarrier = () => grp(bk(M(0x9a9a98), 5, 1.4, 1.2, 0, .7, 0), bk(M(0xff8a2a), 5, .3, 1.25, 0, 1.2, 0));
+  const tiCar = () => { const c = pick([0xc83a3a, 0x3a6ac8, 0xdadada, 0x3a3a3a]); return grp(bk(M(c, { roughness: .4 }), 4.4, 1.2, 2.2, 0, 1, 0), bk(M(c, { roughness: .4 }), 2.4, 1, 2, -.2, 2, 0), ...[[-1.4, -1.1], [-1.4, 1.1], [1.4, -1.1], [1.4, 1.1]].map(([x, z]) => pb('cyl', iron, .45, .4, .45, x, .5, z, Math.PI / 2))); };
+  T.tilted = { name: 'Tilted Towers', sky: 0x86c4f0, ground: 0x6a7a5a, road: 0x4a4a52, roadStyle: 'asphalt', edge: 0xffd23f, line: '#ffd23f', kerb: ['#ffd23f', '#3a3a44'], accent: '#9a3bff', fog: [140, 560], hemi: 1, sun: 1.25, clouds: .8, mount: 0x7a8a9a, mountTop: 0xdce4ee, hill: .4,
+    decor: [tiBldg, tiBldg, tiBldg, tiBldg, tiClock, tiBarrier, tiBarrier, tiCar, tiCar, fnDrop, fnChest, fnRamp(fn.metalM)] };
+
+  // --- Splatoon: Moray Towers-style tall inked scaffolds
+  const mtTower = () => { const h = R(24, 40), c = pick([0xff2d95, 0x2dffa5, 0xffd42d]), m = M(0x7a8090, { metalness: .5, roughness: .5 }), g = grp(); for (const [x, z] of [[-2.2, -2.2], [2.2, -2.2], [-2.2, 2.2], [2.2, 2.2]]) g.add(pb('cyl', m, .35, h, .35, x, h / 2, z)); for (let y = 4; y < h; y += 5) { g.add(bk(m, 5.2, .35, 5.2, 0, y, 0), bk(E(c, .35), 5.4, .2, 5.4, 0, y + .25, 0)); } g.add(bk(E(c, .8), 6, 1, 6, 0, h + .5, 0)); return g; };
+  const mtGrate = () => grp(bk(M(0x6a7080, { metalness: .5 }), 7, .4, 4, 0, 2.4, 0), bk(E(pick([0xff2d95, 0x2dffa5, 0x7a2dff]), .5), 7.1, .12, 4.1, 0, 2.62, 0), pb('cyl', iron, .25, 2.4, .25, -3, 1.2, -1.6), pb('cyl', iron, .25, 2.4, .25, 3, 1.2, 1.6));
+  const mtSplat = () => { const c = pick([0xff2d95, 0x2dffa5, 0x7a2dff]); return grp(pb(geo.blob, E(c, .5), R(2, 3.4), .25, R(2, 3.4), 0, .15, 0), pb('sph', E(c, .5), .5, .5, .5, R(-3, 3), .2, R(-3, 3)), pb('sph', E(c, .5), .35, .35, .35, R(-3, 3), .2, R(-3, 3))); };
+  T.moray = { name: 'Moray Towers', sky: 0x2a1858, ground: 0x1a1a3a, road: 0x2a2a44, roadStyle: 'ink', edge: 0xff2d95, line: '#2dffa5', kerb: ['#ff2d95', '#2dffa5'], accent: '#ff2d95', fog: [90, 460], hemi: .8, sun: .8, stars: 1, clouds: .3, mount: 0x2a2a6a, mountTop: 0x7a4aff, hill: .5, lamp: 0xff5ab8,
+    decor: [mtTower, mtTower, mtTower, mtGrate, mtGrate, mtSplat, mtSplat, mtSplat, spCan, spSquid, spCrates] };
+
+  // --- Roblox: Obby sky course - neon parts, kill bricks, checkpoints, truss
+  const obP = () => { const c = pick([0xff4a4a, 0x4ac8ff, 0x7aff4a, 0xffd23f, 0xb04aff]), w = R(4, 8), d = R(4, 8), y = R(0, 14); return grp(bk(E(c, .55), w, 1, d, 0, y + .5, 0), studs(E(c, .55), w, d, y + 1)); };
+  const obKill = () => grp(bk(E(0xff1a1a, 1), 6, .6, 6, 0, .3, 0), ...[-1.6, 0, 1.6].map(x => bk(E(0xffffff, .3), .4, .6, 6.1, x, .31, 0)));
+  const obCheck = () => grp(bk(M(0xd8d8d8), 5, .5, 5, 0, .25, 0), pb('cyl', M(0xd8d8d8), .12, 4, .12, -2, 2.5, -2), pb('cyl', M(0xd8d8d8), .12, 4, .12, 2, 2.5, -2), bk(E(0x4aff7a, 1), 4.2, 1.2, .15, 0, 4, -2));
+  const obSpin = () => { const y = R(3, 6); return grp(pb('cyl', M(0xe8e8e8), .5, y, .5, 0, y / 2, 0), bk(E(0xffd23f, .6), 9, .6, .9, 0, y, 0), bk(E(0xff4a4a, .6), .9, .6, 9, 0, y + .7, 0)); };
+  T.obby = { name: 'Obby', sky: 0x4a9aff, ground: 0x6a6a74, road: 0xdadbe0, roadStyle: 'studs', edge: 0xff4a4a, line: '#ffffff', kerb: ['#ff4a4a', '#ffffff'], accent: '#00b2ff', fog: [170, 640], hemi: 1.1, sun: 1.2, clouds: 1, mount: 0x5a8ac8, mountTop: 0xffffff, hill: .3,
+    decor: [obP, obP, obP, obKill, obKill, obCheck, obSpin, obSpin, rbTruss, rbCone, noob, spawnPad] };
+
   T.flatMat = c => E(c, 0.2);
   return T;
 }

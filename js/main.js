@@ -712,7 +712,8 @@ function loop() {
   if (state !== 'idle') {
     T += dt;
     if (state === 'intro') { introT += dt; if (introT >= introLen) endIntro(); }
-    if (state === 'countdown') { countdown -= dt; { const held = player && !player.remote && ctl.held('up'); if (held && rsPress === null) rsPress = countdown - 1; else if (!held) rsPress = null; } const cd = Math.floor(countdown); if (cd !== lastCd) { lastCd = cd; if (cd >= 2 && !cdFile) audio.sfx('beep'); } $('big').textContent = countdown > 1 ? Math.floor(countdown) : 'GO!'; if (countdown <= 1) { state = 'racing'; rocketStart(); if (!cdFile) audio.sfx('go'); setTimeout(() => { if (state === 'racing') $('big').textContent = ''; }, 800); } }
+    ctl.countdownUI(state === 'countdown');
+    if (state === 'countdown') { countdown -= dt; { const held = player && !player.remote && ctl.heldRaw('up'); if (held && rsPress === null) rsPress = countdown - 1; else if (!held) rsPress = null; } const cd = Math.floor(countdown); if (cd !== lastCd) { lastCd = cd; if (cd >= 2 && !cdFile) audio.sfx('beep'); } $('big').textContent = countdown > 1 ? Math.floor(countdown) : 'GO!'; if (countdown <= 1) { state = 'racing'; rocketStart(); if (!cdFile) audio.sfx('go'); setTimeout(() => { if (state === 'racing') $('big').textContent = ''; }, 800); } }
     ranked = [...karts].sort(rankSort);
     karts.forEach(k => tick(k, dt));
     karts.forEach(k => k.remote ? updateRemote(k, dt) : (k.isBot || k.rocketT > 0) ? updateBot(k, dt) : updatePlayer(k, dt));

@@ -42,6 +42,9 @@ export const TRACKS = [
   { id: 'pokestadium', name: 'Pok\u00e9mon Stadium', width: 24, elev: [4, 1, 1, 0, 1, 2, 0], pts: SHAPE.oval, zones: [['stadium', 1]] },
   { id: 'dreamland', name: 'Dream Land', width: 22, elev: [12, 4, 2, 0, 2, 5, 1], pts: SHAPE.dream, zones: [['dream', 1]] },
   { id: 'smashville', name: 'Smashville', width: 22, elev: [14, 4, 2, 0, 2, 5, 1], pts: SHAPE.town, zones: [['smashv', 1]] },
+  { id: 'tilted', name: 'Tilted Towers', width: 22, elev: [8, 2, 1, 0, 1, 3, 0], pts: SHAPE.city, zones: [['tilted', 1]] },
+  { id: 'moray', name: 'Moray Towers', width: 20, elev: [22, 6, 3, 0, 4, 7, 1], pts: SHAPE.tri, zones: [['moray', 1]] },
+  { id: 'obby', name: 'Obby', width: 20, elev: [18, 5, 2, 1, 3, 6, 0], pts: SHAPE.arena, zones: [['obby', 1]] },
   { id: 'battleisland', name: 'Battle Island', width: 22, elev: [16, 5, 3, 0, 3, 6, 1], pts: SHAPE.island, zones: [['storm', 1]] },
 ];
 export const ITEMS = [
