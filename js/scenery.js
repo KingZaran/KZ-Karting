@@ -43,6 +43,10 @@ export function createScenery(THREE, renderer) {
       case 'neon': { g.strokeStyle = 'rgba(0,255,225,.08)'; g.lineWidth = 2; for (let i = 0; i <= W; i += 64) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, H); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(W, i); g.stroke(); } grain(g, W, H, 7000, .1); edge(line, 8, 20); dash(line2, 8, 18); rough = .35; glow = .35; break; }
       case 'metal': { grain(g, W, H, 9000, .12); g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 4; for (let i = 0; i <= 4; i++) { g.beginPath(); g.moveTo(0, i * 128); g.lineTo(W, i * 128); g.stroke(); } g.beginPath(); g.moveTo(W / 2, 0); g.lineTo(W / 2, H); g.stroke(); g.fillStyle = 'rgba(255,255,255,.25)'; for (let i = 0; i < 4; i++) for (let j = 0; j < 8; j++) { g.beginPath(); g.arc(i * 128 + 14 + (i % 2) * 100, j * 64 + 12, 3, 0, 6.3); g.fill(); } g.save(); g.beginPath(); g.rect(0, 0, 26, H); g.rect(W - 26, 0, 26, H); g.clip(); g.fillStyle = line; g.fillRect(0, 0, W, H); g.fillStyle = '#111'; for (let y = -64; y < H + 64; y += 64) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y - 40); g.lineTo(W, y - 8); g.lineTo(0, y + 32); g.fill(); } g.restore(); rough = .45; break; }
       case 'ink': { grain(g, W, H, 12000, .15); wear(); const ic = ['#ff2d95', '#2dff95', '#7a2dff', '#ffd400', '#00c8ff']; for (let i = 0; i < 14; i++) { g.fillStyle = ic[i % 5] + '30'; g.beginPath(); g.ellipse(Math.random() * W, Math.random() * H, R(14, 50), R(10, 36), Math.random() * 3, 0, 6.3); g.fill(); } edge(line, 9); dash(line2, 7); rough = .6; break; }
+      case 'blocks': { const c = 32; for (let i = 0; i < W / c; i++) for (let j = 0; j < H / c; j++) { const v = Math.floor(R(-26, 26)); g.fillStyle = v > 0 ? `rgba(255,255,255,${v / 140})` : `rgba(0,0,0,${-v / 110})`; g.fillRect(i * c, j * c, c, c); g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 2; g.strokeRect(i * c, j * c, c, c); } edge(line, 9); break; }
+      case 'studs': { grain(g, W, H, 6000, .08); for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { g.fillStyle = 'rgba(255,255,255,.2)'; g.beginPath(); g.arc(i * 64 + 32, j * 64 + 32, 14, 0, 6.3); g.fill(); g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.arc(i * 64 + 35, j * 64 + 36, 14, 0, 6.3); g.fill(); g.fillStyle = 'rgba(255,255,255,.28)'; g.beginPath(); g.arc(i * 64 + 32, j * 64 + 31, 11, 0, 6.3); g.fill(); } edge(line, 9); break; }
+      case 'pooltile': { grain(g, W, H, 5000, .06); g.strokeStyle = 'rgba(70,140,160,.45)'; g.lineWidth = 3; for (let i = 0; i <= W; i += 64) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, H); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(W, i); g.stroke(); } const gr = g.createLinearGradient(0, 0, W, H); gr.addColorStop(0, 'rgba(255,255,255,.22)'); gr.addColorStop(1, 'rgba(60,150,190,.18)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); edge(line, 9); dash(line2, 6); break; }
+      case 'planks': { const ph = 64; for (let j = 0; j < H / ph; j++) { g.fillStyle = j % 2 ? 'rgba(120,80,40,.35)' : 'rgba(255,230,180,.12)'; g.fillRect(0, j * ph, W, ph); g.strokeStyle = 'rgba(0,0,0,.4)'; g.lineWidth = 3; g.beginPath(); g.moveTo(0, j * ph); g.lineTo(W, j * ph); g.stroke(); for (let x = R(60, 200); x < W; x += R(160, 260)) { g.beginPath(); g.moveTo(x, j * ph); g.lineTo(x, j * ph + ph); g.stroke(); } } grain(g, W, H, 9000, .12); edge(line, 9); dash(line2, 7); break; }
       default: grain(g, W, H, 15000, .17); wear(); for (let i = 0; i < 4; i++) crack(g, W, H, 'rgba(0,0,0,.3)', 1.5); edge(line, 9); dash(line2, 7);
     }
     const t = tex(c); const m = new THREE.MeshStandardMaterial({ map: t, roughness: rough, metalness: style === 'metal' ? .25 : 0, side: THREE.DoubleSide });
@@ -56,7 +60,20 @@ export function createScenery(THREE, renderer) {
     const t = tex(c), m = th.kerbGlow ? new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide }) : new THREE.MeshStandardMaterial({ map: t, roughness: .6, side: THREE.DoubleSide }); return kerbCache[key] = m;
   }
   let wallM = null, ceilM = null;
+  let poolWallM = null, poolCeilM = null;
+  function poolWall() {
+    if (poolWallM) return poolWallM; const [c, g] = cvs(256, 256); g.fillStyle = '#e9f6f8'; g.fillRect(0, 0, 256, 256); g.strokeStyle = 'rgba(110,170,185,.5)'; g.lineWidth = 2;
+    for (let i = 0; i <= 256; i += 32) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 256); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(256, i); g.stroke(); }
+    g.fillStyle = '#9fd6e4'; g.fillRect(0, 192, 256, 32); g.fillStyle = '#e9f6f8'; g.fillRect(0, 224, 256, 32); grain(g, 256, 256, 2500, .06);
+    poolWallM = new THREE.MeshStandardMaterial({ map: tex(c, true, false), roughness: .35, side: THREE.DoubleSide }); poolWallM.map.wrapT = THREE.RepeatWrapping; return poolWallM;
+  }
+  function poolCeil() {
+    if (poolCeilM) return poolCeilM; const [c, g] = cvs(256, 256); g.fillStyle = '#f4fbfc'; g.fillRect(0, 0, 256, 256); g.strokeStyle = 'rgba(120,180,195,.5)'; g.lineWidth = 2;
+    for (let i = 0; i <= 256; i += 64) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 256); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(256, i); g.stroke(); }
+    const t = tex(c, true, true); poolCeilM = new THREE.MeshStandardMaterial({ map: t, roughness: 1, emissive: new THREE.Color(0xffffff), emissiveMap: t, emissiveIntensity: .9, side: THREE.DoubleSide }); return poolCeilM;
+  }
   function wallMaterial(th) {
+    if (th.wallStyle === 'pool') return poolWall();
     if (wallM) return wallM; const [c, g] = cvs(256, 256);
     g.fillStyle = hex(th.wallColor); g.fillRect(0, 0, 256, 256); g.fillStyle = 'rgba(120,90,0,.14)'; for (let x = 0; x < 256; x += 32) g.fillRect(x, 0, 16, 256);
     g.strokeStyle = 'rgba(100,70,0,.22)'; g.lineWidth = 3; for (let x = 8; x < 256; x += 32) { for (let y = 12; y < 230; y += 36) { g.beginPath(); g.arc(x + 8, y, 3.5, 0, 6.3); g.stroke(); } }
@@ -65,6 +82,7 @@ export function createScenery(THREE, renderer) {
     wallM = new THREE.MeshStandardMaterial({ map: tex(c, true, false), roughness: .95, side: THREE.DoubleSide }); wallM.map.wrapT = THREE.RepeatWrapping; return wallM;
   }
   function ceilMaterial(th) {
+    if (th.wallStyle === 'pool') return poolCeil();
     if (ceilM) return ceilM; const [c, g] = cvs(256, 256), [e, ge] = cvs(256, 256);
     g.fillStyle = '#d8d0a0'; g.fillRect(0, 0, 256, 256); grain(g, 256, 256, 4000, .14, 1.2); g.strokeStyle = 'rgba(70,60,20,.55)'; g.lineWidth = 3; for (let i = 0; i <= 256; i += 128) { g.beginPath(); g.moveTo(i, 0); g.lineTo(i, 256); g.stroke(); g.beginPath(); g.moveTo(0, i); g.lineTo(256, i); g.stroke(); }
     ge.fillStyle = '#000'; ge.fillRect(0, 0, 256, 256); g.fillStyle = '#fffbe0'; g.fillRect(34, 56, 60, 16); ge.fillStyle = '#fff7c8'; ge.fillRect(34, 56, 60, 16);

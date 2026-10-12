@@ -389,6 +389,7 @@ function spawnBoxes() {
   }
 }
 const rankOf = k => ranked.indexOf(k) + 1;
+let itemBoxJ = null;
 function rollItem(k) {
   const n = karts.length, f = n > 1 ? (rankOf(k) - 1) / (n - 1) : 0, a = Math.min(1, f * 2), bi = f < .5 ? 0 : 1;   // item odds slide smoothly from the front of the pack to the back
   const wt = id => { const w = WGT[id]; return w[bi] + (w[bi + 1] - w[bi]) * a + .05; };
@@ -396,7 +397,7 @@ function rollItem(k) {
   for (const id of pool) { x -= wt(id); if (x <= 0) { pick = id; break; } }
   const uses = { 'triple-bananas': 3, 'triple-green-shells': 3, 'triple-red-shells': 3, 'triple-mushrooms': 3, 'boomerang-flower': 3, 'fire-flower': 8, 'crazy-8': 8 }[pick] || 1;
   const nit = { id: pick, uses };   // the roulette spins ~2s and only then hands over the item; a 2nd box grabbed meanwhile spins alongside
-  k.pend = k.pend || []; const last = k.pend[k.pend.length - 1]; nit.end = last ? last.end + .6 : T + (audio.dur('item-box') || 8); k.pend.push(nit); if (k === player) audio.sfx('item-box', 1, 'pickup');   // roulette lasts as long as item-box.mp3 (8s)
+  k.pend = k.pend || []; const last = k.pend[k.pend.length - 1]; nit.end = last ? last.end + .6 : T + (audio.dur('item-box') || 8); k.pend.push(nit); if (k === player) { if (itemBoxJ) itemBoxJ.stop(); if (audio.dur('item-box')) itemBoxJ = audio.jingle('item-box'); else audio.sfx('pickup'); }   // a new pickup restarts the roulette sound   // roulette lasts as long as item-box.mp3 (8s)
 }
 const TRAIL = ['banana', 'gshell', 'rshell', 'bomb'];
 // carried banana / shells / bomb (orbiting triples, or one you're holding back) soak up a hit

@@ -6,7 +6,13 @@ const SHAPE = {
   twist: [[0,0],[60,-40],[130,-30],[170,30],[140,90],[80,110],[90,170],[40,220],[-30,200],[-50,140],[-110,120],[-150,60],[-100,0],[-50,-20]],
   kidney: ring(10, a => 150 + 50 * Math.cos(2 * a)),
   hairpin: [[0,0],[120,-10],[220,30],[260,100],[200,150],[100,120],[60,170],[100,230],[180,260],[120,320],[10,300],[-60,240],[-70,150],[-50,60]],
+  blocky: [[0,0],[120,0],[120,100],[40,100],[40,180],[160,180],[160,280],[-40,280],[-40,100],[-100,100],[-100,0]],
+  clover: ring(16, a => 150 + 32 * Math.cos(4 * a)),
+  island: [[0,0],[110,30],[200,0],[260,70],[220,150],[120,130],[100,210],[160,270],[60,310],[-40,260],[-60,170],[-120,100],[-70,30]],
   frost: ring(12, a => 140 + 35 * Math.sin(3 * a + 1)),
+  pool: [[0,0],[140,0],[140,80],[60,80],[60,160],[200,160],[200,260],[0,260],[0,180],[-70,180],[-70,70],[0,70]],
+  void: ring(12, a => 135 + 42 * Math.cos(3 * a + .5)),
+  city: [[0,0],[110,10],[190,-20],[250,40],[230,120],[150,150],[160,220],[90,260],[10,230],[-20,150],[-90,120],[-110,40],[-60,0]],
 };
 export const TRACKS = [
   { id: 'circuit', name: 'Grand Circuit', width: 20, elev: [15, 4, 2, 0, 2, 5, 1], pts: SHAPE.loop, zones: [['meadow', .34], ['ink', .67], ['dunes', 1]] },
@@ -15,6 +21,12 @@ export const TRACKS = [
   { id: 'halls', name: 'The Yellow Halls', width: 20, elev: [14, 3, 2, 0, 1.5, 5, 1], pts: SHAPE.wide, zones: [['backrooms', .6], ['neon', .8], ['backrooms', 1]] },
   { id: 'mayhem', name: 'Crossover Mayhem', width: 22, elev: [20, 6, 3, 0, 3, 5, 2], pts: SHAPE.hairpin, zones: [['meadow', .16], ['hollow', .33], ['ink', .5], ['backrooms', .66], ['brawl', .83], ['silk', 1]] },
   { id: 'frostfire', name: 'Frost & Fire', width: 24, elev: [16, 4, 3, 1, 2, 6, 0], pts: SHAPE.frost, zones: [['frost', .34], ['lava', .67], ['candy', 1]] },
+  { id: 'overworld', name: 'Overworld Rush', width: 22, elev: [14, 4, 2, 0, 2, 5, 1], pts: SHAPE.blocky, zones: [['blocky', .62], ['nether', 1]] },
+  { id: 'baseplate', name: 'Baseplate Speedway', width: 24, elev: [8, 2, 1, 0, 1, 3, 0], pts: SHAPE.clover, zones: [['brick', 1]] },
+  { id: 'poolrooms', name: 'The Poolrooms', width: 22, elev: [6, 2, 1, 0, 1, 2, 0], pts: SHAPE.pool, zones: [['pool', 1]] },
+  { id: 'theend', name: 'The End', width: 22, elev: [18, 6, 3, 0, 3, 6, 2], pts: SHAPE.void, zones: [['end', 1]] },
+  { id: 'cityoftears', name: 'City of Tears', width: 20, elev: [12, 4, 2, 0, 2, 5, 1], pts: SHAPE.city, zones: [['city', 1]] },
+  { id: 'battleisland', name: 'Battle Island', width: 22, elev: [16, 5, 3, 0, 3, 6, 1], pts: SHAPE.island, zones: [['storm', 1]] },
 ];
 export const ITEMS = [
   ['banana','Banana'],['blooper','Blooper'],['bob-omb','Bob-omb'],['boo','Boo'],['boomerang-flower','Boomerang Flower'],['bullet-bill','Bullet Bill'],

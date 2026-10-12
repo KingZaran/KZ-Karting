@@ -72,6 +72,125 @@ export function buildThemes(THREE) {
         () => grp(part('sph', pick(candy), 2, 2.4, 2, 1.4), part('sph', white, .5, .5, .5, 3.6)), () => grp(part('cyl', brown, 1.5, 2, 1.5, 1), part(geo.blob, pick(candy), 2.1, 1.5, 2.1, 3), part('sph', M(0xe53935), .35, .35, .35, 4.6)),
         () => grp(part('cyl', white, .35, 7, .35, 3.5), part('cyl', M(0xe53935), .37, 1.2, .37, 1.5), part('cyl', M(0xe53935), .37, 1.2, .37, 4.2), part('cyl', white, .4, 1, .4, 6.5, 0, 0, true, 0, 0))] },
   };
+
+  // ===== game-accurate props & new game zones =====
+  // pb: a part with an exact position/rotation (no random spin) so multi-part props keep their shape
+  const pb = (g, m, sx, sy, sz, x, y, z, rx = 0, ry = 0, rz = 0) => { const o = new THREE.Mesh(Array.isArray(g) ? pick(g) : geo[g] || g, m); o.scale.set(sx, sy, sz); o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.castShadow = true; return o; };
+  const bk = (m, w, h, d, x, y, z) => pb('box', m, w, h, d, x, y, z);
+
+  // --- Hollow Knight: benches, lumafly lanterns, soul totems, geo, vengefly-white masks on pedestals, thorns
+  const bone = M(0xe8ecf4, { roughness: .6 }), iron = M(0x20242e, { roughness: .5, metalness: .4 }), soul = E(0xdff6ff, 1.4), geoM = E(0xe8e0c0, .5), thorn = M(0x16241c);
+  const hkBench = () => grp(bk(iron, 3.2, .3, 1.2, 0, .9, 0), bk(iron, 3.2, 1.3, .2, 0, 1.6, -.5), bk(iron, .25, 1, .25, -1.3, .45, 0), bk(iron, .25, 1, .25, 1.3, .45, 0), pb('cyl', iron, .1, 4.4, .1, 1.9, 2.2, -.7), pb('sph', E(0xbff3ff, 1.6), .5, .6, .5, 1.9, 4.6, -.7));
+  const hkTotem = () => grp(pb('cyl', cave[0], 1.1, 2.4, 1.1, 0, 1.2, 0), pb('cyl', bone, .8, 1.1, .8, 0, 3, 0), pb('sph', soul, .55, .35, .55, 0, 3.8, 0));
+  const hkLantern = () => grp(pb('cyl', iron, .08, 7, .08, 0, 3.5, 0), pb('cyl', iron, .45, .1, .45, 0, 6.9, 0), pb('sph', E(0xffe27a, 1.8), .38, .45, .38, 0, 6.5, 0), pb('cyl', iron, .45, .1, .45, 0, 6.1, 0));
+  const hkMask = () => { const m = grp(pb('cyl', cave[1], 1.4, 2.4, 1.4, 0, 1.2, 0), pb('sph', bone, 1.3, 1.5, .8, 0, 3.6, 0), pb('sph', M(0x000000), .38, .55, .2, -.45, 3.7, .65), pb('sph', M(0x000000), .38, .55, .2, .45, 3.7, .65)); for (const sx of [-1, 1]) m.add(pb('cone', bone, .28, 1.5, .28, sx * .75, 4.9, 0, 0, 0, -sx * .4)); return m; };
+  const hkThorns = () => grp(Array.from({ length: 7 }, () => { const h = R(1.2, 3); return pb('cone', thorn, .22, h, .22, R(-1.4, 1.4), h / 2, R(-1.4, 1.4), R(-.5, .5), 0, R(-.5, .5)); }));
+  const hkGeo = () => grp(Array.from({ length: 5 }, () => pb('sph', geoM, .32, .32, .32, R(-.9, .9), .3, R(-.9, .9))));
+  T.hollow.decor.push(hkBench, hkTotem, hkLantern, hkMask, hkThorns, hkGeo, hkLantern);
+
+  // --- Silksong: bells, thread spools, Hornet's needle, cogs
+  const thread = M(0xd02a3a, { roughness: .5 }), brassM = E(0xc79a3a, .35, { metalness: .6, roughness: .35 });
+  const ssBell = () => grp(pb('cyl', dark, .12, 5, .12, 0, 7.5, 0), pb(new THREE.SphereGeometry(1, 16, 10, 0, Math.PI * 2, 0, Math.PI * .62), brassM, 1.8, 2, 1.8, 0, 3.8, 0, Math.PI), pb('sph', brassM, .3, .3, .3, 0, 2.6, 0), pb('torus', brassM, .5, .5, .5, 0, 4.8, 0));
+  const ssSpool = () => grp(pb('cyl', M(0x6b4a2b), 1.6, .3, 1.6, 0, .15, 0), pb('cyl', thread, 1.1, 2.2, 1.1, 0, 1.3, 0), pb('cyl', M(0x6b4a2b), 1.6, .3, 1.6, 0, 2.55, 0));
+  const ssNeedle = () => grp(pb('cyl', M(0xe8e2d0, { metalness: .5 }), .12, 9, .12, 0, 4.5, 0), pb('cone', M(0xe8e2d0, { metalness: .5 }), .12, 1.2, .12, 0, 9.6, 0), pb('cyl', thread, .2, 2.2, .2, 0, 1.4, 0), pb('torus', brassM, .5, .5, .5, 0, 2.6, 0, Math.PI / 2));
+  const ssCog = () => { const g = grp(pb('cyl', brassM, 2.2, .5, 2.2, 0, 4, 0, Math.PI / 2)); for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2; g.add(pb('box', brassM, .6, .5, .7, Math.cos(a) * 2.35, 4 + Math.sin(a) * 2.35, 0, 0, 0, a)); } g.add(pb('cyl', dark, .15, 4, .15, 0, 2, 0)); return g; };
+  geo.torus = new THREE.TorusGeometry(1, .22, 8, 18); geo.sqpyr = new THREE.ConeGeometry(1, 1, 4);
+  T.silk.decor.push(ssBell, ssSpool, ssNeedle, ssCog, ssBell);
+
+  // --- Smash: Smash Ball, Poké Ball, trophy podium, Final Destination style hover platforms
+  const smashBall = () => { const g = grp(pb('sph', E(0x7ad0ff, 1.1), 1.7, 1.7, 1.7, 0, 9, 0), pb('torus', E(0xffd400, 1.3), 2.2, 2.2, 2.2, 0, 9, 0, Math.PI / 2), pb('torus', E(0xff3b6b, 1.3), 2.2, 2.2, 2.2, 0, 9, 0, 0, 0, Math.PI / 2.4)); g.userData.float = 1; return g; };
+  const pokeball = () => grp(pb('sph', M(0xe53935, { roughness: .3 }), 1.5, 1.5, 1.5, 0, 1.5, 0), pb(new THREE.SphereGeometry(1, 16, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), M(0xffffff, { roughness: .3 }), 1.5, 1.5, 1.5, 0, 1.5, 0), pb('cyl', M(0x111111), 1.52, .14, 1.52, 0, 1.5, 0), pb('cyl', white, .35, .2, .35, 0, 1.5, 1.45, Math.PI / 2));
+  const podium = () => grp(bk(plat, 4, 1, 4, 0, .5, 0), bk(E(0xffd400, .5), 3.4, .4, 3.4, 0, 1.2, 0), pb('cyl', E(0xffd400, .9), .5, 2.4, .5, 0, 2.7, 0), pb('sph', E(0xffd400, .9), .8, .8, .8, 0, 4.2, 0));
+  const hoverPlat = () => grp(bk(plat, 9, .9, 6, 0, R(10, 16), 0), bk(E(0x6ad0ff, 1), 9.2, .2, 6.2, 0, R(10, 16) - .5, 0));
+  T.brawl.decor.push(smashBall, pokeball, podium, hoverPlat);
+
+  // --- Splatoon: paint cans, squid sculptures, ink drips, crate stacks
+  const spCan = () => { const c = pick(inkCols); return grp(pb('cyl', M(0xdfe3ea, { metalness: .5, roughness: .35 }), .9, 1.4, .9, 0, .7, 0), pb('cyl', E(c, .8), .95, .12, .95, 0, 1.42, 0), pb('sph', E(c, .7), .6, .22, .6, 0, 1.55, 0)); };
+  const spSquid = () => { const c = pick(inkCols), g = grp(pb('sph', E(c, .55), 1.6, 2.2, 1.6, 0, 4.2, 0), pb('sph', white, .5, .65, .1, -.55, 4.6, 1.3), pb('sph', white, .5, .65, .1, .55, 4.6, 1.3), pb('sph', M(0x111111), .2, .3, .1, -.55, 4.6, 1.38), pb('sph', M(0x111111), .2, .3, .1, .55, 4.6, 1.38)); for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; g.add(pb('cone', E(c, .55), .35, 2.4, .35, Math.cos(a) * .9, 1.2, Math.sin(a) * .9, Math.sin(a) * .35, 0, -Math.cos(a) * .35)); } return g; };
+  const spCrates = () => { const c = pick(inkCols); return grp(bk(M(0x6b5a46), 2.2, 2.2, 2.2, 0, 1.1, 0), bk(M(0x6b5a46), 2, 2, 2, 2.4, 1, .3), bk(M(0x6b5a46), 1.8, 1.8, 1.8, .6, 3.1, 0), pb('sph', E(c, .5), 1.7, .15, 1.7, 0, 2.25, 0)); };
+  const spDrip = () => { const c = pick(inkCols); return grp(bk(concrete, 6, 9, 3, 0, 4.5, 0), pb('sph', E(c, .55), 2.4, 1.1, 1.5, 0, 8.6, 1.3), pb('cyl', E(c, .55), .35, 4, .2, -.9, 6.4, 1.5), pb('cyl', E(c, .55), .3, 2.6, .2, 1.1, 7.2, 1.5), pb('sph', E(c, .55), .4, .55, .2, -.9, 4.2, 1.5)); };
+  T.ink.decor.push(spCan, spSquid, spCrates, spDrip, spCan);
+
+  // --- Minecraft: Overworld
+  const mc = { grass: M(0x5d9c3a, { roughness: 1 }), dirt: M(0x7a5232, { roughness: 1 }), log: M(0x6b4a2b, { roughness: 1 }), birchLog: M(0xdcd8c8, { roughness: 1 }), leaf: M(0x3f8a2c, { roughness: 1 }), stone: M(0x8a8a8a, { roughness: 1 }), cobble: M(0x777777, { roughness: 1 }), plank: M(0xb08a4f, { roughness: 1 }), tnt: M(0xd32f2f, { roughness: 1 }), diam: E(0x4fe6ee, .8), coal: M(0x222222), gold: E(0xffd23f, .5), obs: M(0x1a0f26, { roughness: .3 }), portal: E(0x8a2be2, 1.5, { transparent: true, opacity: .75 }), pig: M(0xf2a0a8, { roughness: 1 }), green: M(0x4caf50, { roughness: 1 }), cream: M(0xf2e9c9), melon: M(0x6aa832), pump: M(0xe48a1b), glow: E(0xffd27a, 1.3), torchW: M(0x8a6a3a), black: M(0x050505) };
+  const mcTree = (log, leaf) => () => { const h = Math.round(R(4, 6)), u = 1.4, H = h * u, g = grp(bk(log, u, H, u, 0, H / 2, 0), bk(leaf, 5 * u, 2 * u, 5 * u, 0, H + 0, 0), bk(leaf, 3 * u, 2 * u, 3 * u, 0, H + 2 * u, 0), bk(leaf, 3 * u, u, 3 * u, 0, H + 3.4 * u, 0)); return g; };
+  const creeper = () => { const u = .75; return grp(...[[-.5, -.5], [.5, -.5], [-.5, .5], [.5, .5]].map(([x, z]) => bk(mc.green, u, 1.5, u, x * 1.1, .75, z * 1.1)), bk(mc.green, 1.7, 3, 1.1, 0, 3, 0), bk(mc.green, 2.2, 2.2, 2.2, 0, 5.6, 0), bk(mc.black, .5, .55, .1, -.55, 5.9, 1.12), bk(mc.black, .5, .55, .1, .55, 5.9, 1.12), bk(mc.black, .5, .9, .1, 0, 5.1, 1.12), bk(mc.black, 1.2, .45, .1, 0, 5.3, 1.12)); };
+  const tntBlock = () => grp(bk(mc.tnt, 2.4, 2.4, 2.4, 0, 1.2, 0), bk(mc.cream, 2.46, .8, 2.46, 0, 1.2, 0), bk(mc.black, 1.4, .3, .1, 0, 1.2, 1.25), bk(mc.black, .1, .3, 1.4, 1.25, 1.2, 0));
+  const oreBlock = (ore) => () => { const g = grp(bk(mc.stone, 2.2, 2.2, 2.2, 0, 1.1, 0)); for (let i = 0; i < 6; i++) g.add(bk(ore, .55, .55, .3, R(-.8, .8), R(.5, 1.7), 1.12)); return g; };
+  const grassCube = () => grp(bk(mc.dirt, 2.2, 2.2, 2.2, 0, 1.1, 0), bk(mc.grass, 2.24, .45, 2.24, 0, 2.1, 0), bk(mc.dirt, 2.2, 2.2, 2.2, 2.2, 1.1, 0), bk(mc.grass, 2.24, .45, 2.24, 2.2, 2.1, 0));
+  const mcPig = () => grp(bk(mc.pig, 1.6, 1.3, 2.5, 0, 1.4, 0), bk(mc.pig, 1.4, 1.3, 1.3, 0, 1.7, 1.7), bk(M(0xd87d86), .7, .5, .3, 0, 1.5, 2.4), ...[[-.5, -.8], [.5, -.8], [-.5, .8], [.5, .8]].map(([x, z]) => bk(mc.pig, .5, .8, .5, x, .4, z)));
+  const mcTorch = () => grp(bk(mc.torchW, .3, 2.2, .3, 0, 1.1, 0), bk(mc.glow, .4, .5, .4, 0, 2.3, 0));
+  const mcPortal = () => grp(bk(mc.obs, 1.2, 8, 1.2, -2.2, 4, 0), bk(mc.obs, 1.2, 8, 1.2, 2.2, 4, 0), bk(mc.obs, 5.6, 1.2, 1.2, 0, .6, 0), bk(mc.obs, 5.6, 1.2, 1.2, 0, 7.4, 0), bk(mc.portal, 3.2, 6, .3, 0, 4, 0));
+  const mcHouse = () => grp(bk(mc.plank, 8, 4.2, 7, 0, 2.1, 0), bk(mc.cobble, 8.4, .6, 7.4, 0, .3, 0), bk(mc.log, 8.4, 5, .8, 0, 2.5, 3.6), bk(mc.log, 8.4, 5, .8, 0, 2.5, -3.6), ...[0, 1, 2].map(i => bk(mc.cobble, 9 - i * 2.4, .8, 8 - i * .2, 0, 4.6 + i * .8, 0)), bk(M(0x3a2a1a), 1.4, 2.6, .2, 0, 1.4, 3.55), bk(E(0xbfe8ff, .5), 1.6, 1.4, .15, 2.4, 2.6, 3.55));
+  const mcMelon = () => grp(bk(mc.melon, 2, 2, 2, 0, 1, 0), bk(mc.pump, 2, 2, 2, 2.3, 1, .6), bk(mc.black, .5, .5, .1, 2.0, 1.4, 1.65), bk(mc.black, .5, .5, .1, 2.8, 1.4, 1.65));
+  T.blocky = { name: 'Blocky Overworld', sky: 0x78a7ff, ground: 0x5d9c3a, road: 0x7d7d7d, roadStyle: 'blocks', edge: 0x4a4a4a, line: '#d9d9d9', kerb: ['#6b6b6b', '#9a9a9a'], accent: '#6cc24a', fog: [150, 600], hemi: 1, sun: 1.25, clouds: 1, mount: 0x6a9a4a, mountTop: 0xb8c8d8, hill: 1,
+    decor: [mcTree(mc.log, mc.leaf), mcTree(mc.log, mc.leaf), mcTree(mc.birchLog, M(0x5aa83a, { roughness: 1 })), creeper, tntBlock, oreBlock(mc.diam), oreBlock(mc.coal), grassCube, mcPig, mcTorch, mcHouse, mcMelon, mcPortal] };
+  // --- Minecraft: the Nether
+  const nr = [0x8a2f2f, 0x732626].map(c => M(c, { roughness: 1 })), nbrick = M(0x3a1418, { roughness: .9 }), lavaM = E(0xff6a00, 1.4, { transparent: true, opacity: .9 }), glowst = E(0xffd27a, 1.5);
+  const nPillar = () => { const h = Math.round(R(3, 8)); return grp(...Array.from({ length: h }, (_, i) => bk(pick(nr), 2.4, 2.4, 2.4, R(-.15, .15), i * 2.4 + 1.2, R(-.15, .15)))); };
+  const nLavafall = () => grp(bk(nr[0], 5, 2, 3, 0, 14, 0), bk(lavaM, 2, 14, .6, 0, 7, 1.4), bk(lavaM, 4, .5, 4, 0, .3, 2));
+  const nGlow = () => grp(...Array.from({ length: 6 }, () => bk(glowst, R(.8, 1.6), R(.8, 1.6), R(.8, 1.6), R(-1.5, 1.5), R(8, 12) + R(-1, 1), R(-1.5, 1.5))), bk(nr[1], 3, 2, 3, 0, 13.5, 0));
+  const ghast = () => { const g = grp(bk(M(0xf4f4f4, { roughness: 1 }), 6, 6, 6, 0, 22, 0), bk(M(0x2a2a2a), 1.2, 1.2, .1, -1.4, 22.3, 3.05), bk(M(0x2a2a2a), 1.2, 1.2, .1, 1.4, 22.3, 3.05), bk(M(0x2a2a2a), 1.4, .8, .1, 0, 20.4, 3.05)); for (let i = 0; i < 9; i++) g.add(bk(M(0xf4f4f4, { roughness: 1 }), .7, R(3, 6), .7, ((i % 3) - 1) * 1.8, 16.5, (Math.floor(i / 3) - 1) * 1.8)); return g; };
+  const fortress = () => grp(bk(nbrick, 3, 10, 3, -4, 5, 0), bk(nbrick, 3, 10, 3, 4, 5, 0), bk(nbrick, 11, 2.4, 3, 0, 9.5, 0), bk(nbrick, 11, 1.2, 3.4, 0, 11, 0), bk(M(0x240a0e), 5, 7, 2, 0, 3.5, 0));
+  T.nether = { name: 'The Nether', sky: 0x3a0c0c, ground: 0x6a2020, road: 0x2e1a1a, roadStyle: 'blocks', edge: 0xff6a00, line: '#ff7a1a', kerb: ['#ff6a00', '#3a1418'], kerbGlow: true, accent: '#ff6a00', fog: [30, 260], hemi: .55, sun: .5, stars: .1, mount: 0x3a1010, mountTop: 0xff5a00, lamp: 0xff9a3a, hill: 1.1,
+    flat: { colors: [0xff5a00, 0xff8a00], onRoad: false, emissive: true, count: 50 }, decor: [nPillar, nPillar, nLavafall, nGlow, ghast, fortress, nPillar] };
+
+  // --- Roblox: baseplate, studded bricks, noobs, spawn pads, trusses
+  const rb = { red: 0xc4281c, blue: 0x0d69ac, yellow: 0xf5cd30, green: 0x4b974b, orange: 0xda8541, white: 0xf2f3f3 }, rbM = Object.fromEntries(Object.entries(rb).map(([k, c]) => [k, M(c, { roughness: .5 })])), rbList = Object.values(rbM), skin = M(0xf5cd30, { roughness: .5 }), truss = M(0x8a8a8a, { metalness: .4, roughness: .5 });
+  const studs = (m, w, d, y, cols = Math.max(1, Math.round(w / 1.4)), rows = Math.max(1, Math.round(d / 1.4))) => { const a = []; for (let i = 0; i < cols; i++) for (let j = 0; j < rows; j++) a.push(pb('cyl', m, .42, .26, .42, (i - (cols - 1) / 2) * 1.4, y + .13, (j - (rows - 1) / 2) * 1.4)); return a; };
+  const rbBrick = () => { const m = pick(rbList), w = R(2.8, 7), d = R(2.8, 5.6), h = R(1.4, 3); return grp(bk(m, w, h, d, 0, h / 2, 0), studs(m, w, d, h)); };
+  const rbTower = () => { const g = grp(); let y = 0; for (let i = 0; i < Math.round(R(3, 7)); i++) { const m = pick(rbList); g.add(bk(m, 4.2, 2, 4.2, 0, y + 1, 0), ...studs(m, 4.2, 4.2, y + 2)); y += 2.1; } return g; };
+  const noob = () => grp(pb('cyl', skin, .9, 1.1, .9, 0, 5.2, 0), bk(M(0x000000), .15, .3, .1, -.3, 5.3, .9), bk(M(0x000000), .15, .3, .1, .3, 5.3, .9), bk(M(0x000000), .6, .1, .1, 0, 4.85, .9), bk(rbM.blue, 2.2, 2.2, 1.1, 0, 3.3, 0), bk(skin, .9, 2.2, .9, -1.6, 3.3, 0), bk(skin, .9, 2.2, .9, 1.6, 3.3, 0), bk(rbM.green, 1, 2.2, 1, -.6, 1.1, 0), bk(rbM.green, 1, 2.2, 1, .6, 1.1, 0));
+  const spawnPad = () => grp(bk(M(0xc8c8c8, { metalness: .3 }), 5, .5, 5, 0, .25, 0), bk(rbM.white, 4.4, .1, 4.4, 0, .55, 0), bk(E(0x00b2ff, 1.2), 4.6, .12, .4, 0, .6, 0), bk(E(0x00b2ff, 1.2), .4, .12, 4.6, 0, .6, 0));
+  const rbTruss = () => { const h = R(8, 16), g = grp(...[[-.8, -.8], [.8, -.8], [-.8, .8], [.8, .8]].map(([x, z]) => bk(truss, .18, h, .18, x, h / 2, z))); for (let y = 1; y < h; y += 1.6) g.add(bk(truss, 1.7, .14, .14, 0, y, .8), bk(truss, 1.7, .14, .14, 0, y, -.8)); return g; };
+  const rbCone = () => grp(bk(rbM.orange, 1.6, .2, 1.6, 0, .1, 0), pb('cone', rbM.orange, .7, 2, .7, 0, 1.2, 0), pb('cyl', rbM.white, .5, .3, .5, 0, 1.4, 0));
+  T.brick = { name: 'Baseplate', sky: 0x6fb4ff, ground: 0x4a8a3a, road: 0xa3a2a5, roadStyle: 'studs', edge: 0xf5cd30, line: '#f5cd30', kerb: ['#c4281c', '#f2f3f3'], accent: '#00b2ff', fog: [160, 620], hemi: 1.05, sun: 1.2, clouds: .7, mount: 0x4a8a6a, mountTop: 0xcfe6ff, hill: .7,
+    decor: [rbBrick, rbBrick, rbTower, noob, spawnPad, rbTruss, rbCone, rbBrick] };
+
+  // --- Fortnite: builds, supply drops, loot llamas, chests, storm-wall, battle bus
+  const fn = { wood: M(0xb5834a, { roughness: .9 }), wood2: M(0x96693a, { roughness: .9 }), brickM: M(0xb04a3a, { roughness: .9 }), metalM: M(0x7d8896, { metalness: .5, roughness: .5 }), stoneM: M(0x9a9a98, { roughness: 1 }), beige: M(0xe3d3b0), roof: M(0x7a3a2a), storm: E(0x9a3bff, .8, { transparent: true, opacity: .25, depthWrite: false }) };
+  const fnBuild = (m) => () => { const g = grp(bk(m, 6, 6, .6, 0, 3, -3), bk(m, 6, 6, .6, -3, 3, 0, 0), bk(m, .6, 6, 6, 3, 3, 0), bk(m, 6, .5, 6, 0, 6, 0)); const r = bk(m, 6.4, .5, 7.6, 0, 7.4, 3.8); r.rotation.x = -.55; g.add(r); return g; };
+  const fnRamp = (m) => () => { const r = bk(m, 6, .6, 8.5, 0, 3.4, 0); r.rotation.x = .78; return grp(r, bk(m, .5, 6, .5, -2.8, 3, -3), bk(m, .5, 6, .5, 2.8, 3, -3)); };
+  const fnDrop = () => grp(bk(M(0x1aa6c8, { roughness: .6 }), 2.4, 2.2, 2.4, 0, 1.1, 0), bk(white, 2.5, .35, 2.5, 0, 1.1, 0), pb('cyl', white, .03, 7, .03, -.9, 5.6, -.9), pb('cyl', white, .03, 7, .03, .9, 5.6, .9), pb('sph', E(0xff3b3b, .4), 1.8, 2.2, 1.8, -.9, 9.8, -.9), pb('sph', E(0xffffff, .4), 1.8, 2.2, 1.8, .9, 9.8, .9), pb('sph', E(0x3b6bff, .4), 1.8, 2.2, 1.8, 0, 10.8, 0));
+  const fnLlama = () => { const c = [0xff5ab0, 0x5ad0ff, 0xffd23f, 0x9a5aff][Math.floor(Math.random() * 4)], lm = M(c, { roughness: .6 }); return grp(pb('sph', lm, 1.5, 1.4, 2.4, 0, 3, 0), bk(lm, .9, 2.6, .9, 0, 4.4, 1.9), bk(lm, 1.2, 1.2, 1.7, 0, 6, 2.2), bk(lm, .3, .9, .3, -.4, 6.9, 2), bk(lm, .3, .9, .3, .4, 6.9, 2), ...[[-.8, -1.2], [.8, -1.2], [-.8, 1.2], [.8, 1.2]].map(([x, z]) => bk(lm, .5, 2, .5, x, 1, z)), pb('oct', E(0xffe14a, .8), .7, .7, .3, 0, 3.4, -1.4)); };
+  const fnChest = () => grp(bk(M(0x6a3a1a), 2.6, 1.4, 1.6, 0, .7, 0), bk(E(0xffc93f, .6), 2.7, .3, 1.7, 0, 1.4, 0), bk(E(0xffe27a, 1.6), .5, .5, .3, 0, 1, .85), pb('cyl', E(0xffd45a, 1.2, { transparent: true, opacity: .25, depthWrite: false }), .5, 30, .5, 0, 16, 0));
+  const fnTower = () => { const w = R(6, 9), h = R(14, 26); return grp(bk(fn.beige, w, h, w, 0, h / 2, 0), bk(fn.roof, w + 1, 1, w + 1, 0, h + .5, 0), pb('cone', fn.roof, w * .8, 3.5, w * .8, 0, h + 2.7, 0, 0, Math.PI / 4), ...[0, 1, 2].map(i => bk(E(0xbfe8ff, .3), 1.3, 1.8, .15, (i - 1) * 2, h * .5, w / 2 + .05)), bk(M(0x333333), 1.6, 2.6, .15, 0, 1.3, w / 2 + .05)); };
+  const fnBus = () => { if (Math.random() > .12) return grp(); const g = grp(bk(M(0x3b82d8, { roughness: .5 }), 14, 5, 5, 0, 52, 0), bk(white, 14.2, .5, 5.2, 0, 50.5, 0), ...[-4, -1.5, 1, 3.5].map(x => bk(E(0xbfe8ff, .4), 1.8, 1.6, 5.2, x, 53, 0)), ...[[-4, -2.6], [4, -2.6], [-4, 2.6], [4, 2.6]].map(([x, z]) => pb('cyl', iron, 1, .7, 1, x, 49.5, z, Math.PI / 2)), pb('sph', E(0xfff0a0, .6), 5.5, 6.5, 5.5, 0, 63, 0), pb('cyl', iron, .08, 8, .08, -3, 57, 0), pb('cyl', iron, .08, 8, .08, 3, 57, 0)); g.userData.sky = 1; return g; };
+  T.storm = { name: 'Battle Island', sky: 0x8ec9ff, ground: 0x6fb04a, road: 0x6a6a70, roadStyle: 'planks', edge: 0xffffff, line: '#ffffff', kerb: ['#ffd23f', '#3b82d8'], accent: '#9a3bff', fog: [150, 600], hemi: 1, sun: 1.3, clouds: .9, mount: 0x5b8f6a, mountTop: 0xd8e4ff, hill: 1.1,
+    decor: [pineTree(pines), pineTree(pines), fnBuild(fn.wood), fnBuild(fn.stoneM), fnBuild(fn.metalM), fnRamp(fn.wood), fnDrop, fnLlama, fnChest, fnTower, fnTower, bushy, fnBus] };
+
+
+  // ===== batch 2: more game zones =====
+  // --- Backrooms: Level 37 "The Poolrooms" - pale tiles, still water, white arches
+  const tileW = M(0xeaf7f8, { roughness: .35 }), tileB = M(0x9fd6e4, { roughness: .3 }), chrome = M(0xdfe6ee, { metalness: .8, roughness: .2 }), poolWater = E(0x4fd0e8, .5, { transparent: true, opacity: .85, roughness: .1 });
+  const plPillar = () => { const h = R(9, 12); return grp(bk(tileW, 3, h, 3, 0, h / 2, 0), bk(tileB, 3.1, 1.2, 3.1, 0, .6, 0), bk(tileB, 3.1, .5, 3.1, 0, h * .35, 0), bk(tileW, 3.8, .8, 3.8, 0, h, 0)); };
+  const plArch = () => grp(bk(tileW, 2.2, 9, 2.2, -5, 4.5, 0), bk(tileW, 2.2, 9, 2.2, 5, 4.5, 0), pb(new THREE.TorusGeometry(5, 1.1, 6, 20, Math.PI), tileW, 1, 1, 1.9, 0, 9, 0));
+  const plLadder = () => grp(...[-.6, .6].map(x => pb('cyl', chrome, .09, 4.2, .09, x, 2.1, 0)), ...[1, 2, 3].map(y => pb('cyl', chrome, .07, 1.3, .07, 0, y, 0, 0, 0, Math.PI / 2)), pb(new THREE.TorusGeometry(.8, .09, 6, 12, Math.PI), chrome, 1, 1, 1, 0, 4.2, 0));
+  const plRing = () => { const c = pick([0xff5a7a, 0xffd23f, 0xffffff]); return grp(pb(geo.torus, M(c, { roughness: .35 }), 1.7, 1.7, 1.7, 0, 1.2, 0, Math.PI / 2 - .2)); };
+  const plBench = () => grp(bk(tileB, 5, 1, 1.4, 0, .5, 0), bk(tileW, 5.2, .25, 1.6, 0, 1.1, 0));
+  T.pool = { name: 'The Poolrooms', sky: 0xbfe9f2, ground: 0xcfeef2, road: 0xaed8e0, roadStyle: 'pooltile', edge: 0xffffff, line: '#ffffff', kerb: ['#9fd6e4', '#ffffff'], accent: '#6fe0f5', fog: [40, 260], hemi: 1.9, sun: .6, walls: true, wallStyle: 'pool', wallColor: 0xe6f4f6, hill: 0,
+    flat: { colors: [0x4fd0e8, 0x7fe3f2], onRoad: false, emissive: true, count: 80 }, decor: [plPillar, plPillar, plArch, plLadder, plRing, plBench] };
+
+  // --- Minecraft: the End - end stone, obsidian pillars topped by end crystals, endermen, the gateway beam
+  const endStone = [0xdcd89f, 0xcfcb8c].map(c => M(c, { roughness: 1 })), obsE = M(0x14101c, { roughness: .3, metalness: .2 }), crystalE = E(0xff5ad8, 1.5), cageE = E(0xb04aff, .9), chorus = M(0x8a5aa8, { roughness: 1 }), chorusF = E(0xe0b0ff, .8), enderEye = E(0xd05aff, 2);
+  const endPillar = () => { const h = R(18, 34); return grp(bk(obsE, 4, h, 4, 0, h / 2, 0), bk(M(0x7a7a80, { metalness: .6 }), 4.6, .5, 4.6, 0, h + .3, 0), bk(crystalE, 1.5, 1.5, 1.5, 0, h + 2, 0), bk(cageE, 2.2, .25, 2.2, 0, h + 2, 0), bk(cageE, .25, 2.2, 2.2, 0, h + 2, 0)); };
+  const enderman = () => { const m = M(0x0c0a10, { roughness: .8 }); return grp(bk(m, .7, 4.6, .7, -.55, 2.3, 0), bk(m, .7, 4.6, .7, .55, 2.3, 0), bk(m, 1.8, 2.8, .9, 0, 6, 0), bk(m, .5, 4.4, .5, -1.4, 5.2, 0), bk(m, .5, 4.4, .5, 1.4, 5.2, 0), bk(m, 1.6, 1.6, 1.6, 0, 8.2, 0), bk(enderEye, .5, .25, .1, -.4, 8.3, .82), bk(enderEye, .5, .25, .1, .4, 8.3, .82)); };
+  const chorusPlant = () => { const g = grp(); let y = 0; for (let i = 0; i < Math.round(R(3, 6)); i++) { g.add(bk(chorus, 1.1, 2, 1.1, R(-.4, .4), y + 1, R(-.4, .4))); y += 2; } g.add(bk(chorusF, 1.5, 1.5, 1.5, 0, y + .5, 0)); return g; };
+  const endIsland = () => grp(pb(geo.blob, pick(endStone), R(5, 9), R(2, 3.2), R(5, 9), R(8, 20)), pb(geo.blob, endStone[1], R(2, 4), R(3, 6), R(2, 4), R(4, 12), 0, 0, true));
+  const endGate = () => grp(pb('cyl', E(0xd8b0ff, 1, { transparent: true, opacity: .3, depthWrite: false }), 1.3, 90, 1.3, 0, 45, 0, 0, 0, 0), bk(M(0x1a1a22), 3, .8, 3, 0, .4, 0));
+  const dragonEgg = () => grp(pb('sph', M(0x0a0610, { roughness: .2, metalness: .3 }), 1.1, 1.5, 1.1, 0, 1.6, 0), pb('sph', E(0x8a2aff, .9), .5, .35, .5, .3, 2.2, .85), bk(M(0x14101c), 3, .8, 3, 0, .4, 0));
+  T.end = { name: 'The End', sky: 0x0e0816, ground: 0xdcd89f, road: 0x2c2240, roadStyle: 'blocks', edge: 0xb04aff, line: '#c78aff', kerb: ['#14101c', '#b04aff'], kerbGlow: true, accent: '#c78aff', fog: [80, 480], hemi: .85, sun: .6, stars: 1, clouds: 0, mount: 0x15101f, mountTop: 0x6a3aa8, hill: .35,
+    decor: [endPillar, endPillar, enderman, enderman, chorusPlant, chorusPlant, endIsland, endIsland, dragonEgg, endGate] };
+
+  // --- Hollow Knight: the City of Tears - rain-dark gothic spires, Lumafly lamps, stone Watcher statues, ornate arches
+  const cityStone = [0x2a3550, 0x33405e, 0x222c46].map(c => M(c, { roughness: .8 })), cityTrim = M(0x6a7ea8, { roughness: .6 }), windowE = E(0xffe9a0, 1.2);
+  const spire = () => { const w = R(3, 5), h = R(22, 44); const g = grp(bk(pick(cityStone), w, h, w, 0, h / 2, 0), bk(cityTrim, w + .8, .8, w + .8, 0, h * .55, 0), bk(cityTrim, w + .8, .8, w + .8, 0, h, 0), pb('cone', cityStone[2], w * .75, h * .35, w * .75, 0, h + h * .17, 0, 0, Math.PI / 4)); for (let y = 4; y < h - 4; y += 5) for (const sx of [-1, 1]) g.add(bk(windowE, .1, 1.8, .9, sx * (w / 2 + .05), y, 0)); return g; };
+  const cityArch = () => grp(bk(pick(cityStone), 2, 12, 2.4, -6, 6, 0), bk(pick(cityStone), 2, 12, 2.4, 6, 6, 0), pb(new THREE.TorusGeometry(6, 1, 6, 20, Math.PI), cityTrim, 1, 1, 1.2, 0, 12, 0), pb('cone', cityTrim, .8, 3, .8, 0, 19.5, 0));
+  const statue = () => grp(bk(cityStone[1], 2.6, 1.2, 2.6, 0, .6, 0), pb('cone', M(0x1a2236), 1.5, 5.5, 1.5, 0, 4, 0), pb('sph', bone, .9, 1, .8, 0, 7.2, 0), pb('cone', bone, .22, 1.6, .22, -.55, 8.1, 0, 0, 0, .5), pb('cone', bone, .22, 1.6, .22, .55, 8.1, 0, 0, 0, -.5), pb('sph', M(0x000000), .22, .3, .1, -.3, 7.3, .7), pb('sph', M(0x000000), .22, .3, .1, .3, 7.3, .7));
+  const rainLamp = () => grp(pb('cyl', iron, .14, 9, .14, 0, 4.5, 0), pb('cyl', iron, 1.1, .15, 1.1, 0, 9.1, 0), pb('sph', E(0xffe27a, 1.8), .55, .65, .55, 0, 8.4, 0), pb('cone', iron, .9, .7, .9, 0, 9.6, 0));
+  T.city = { name: 'City of Tears', sky: 0x0b1424, ground: 0x141c2c, road: 0x2a3446, roadStyle: 'stone', edge: 0x9fc4ff, line: '#9fc4ff', kerb: ['#2a3350', '#9fc4ff'], kerbGlow: true, accent: '#9fc4ff', fog: [50, 300], hemi: .6, sun: .45, stars: .35, clouds: .6, mount: 0x1a2438, mountTop: 0x4a6a9a, hill: .5, lamp: 0xffe27a,
+    decor: [spire, spire, cityArch, statue, rainLamp, hkBench, hkLantern, spire, hkMask, rainLamp] };
+
   T.flatMat = c => E(c, 0.2);
   return T;
 }
