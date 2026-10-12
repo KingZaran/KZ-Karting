@@ -45,6 +45,9 @@ export const TRACKS = [
   { id: 'tilted', name: 'Tilted Towers', width: 22, elev: [8, 2, 1, 0, 1, 3, 0], pts: SHAPE.city, zones: [['tilted', 1]] },
   { id: 'moray', name: 'Moray Towers', width: 20, elev: [22, 6, 3, 0, 4, 7, 1], pts: SHAPE.tri, zones: [['moray', 1]] },
   { id: 'obby', name: 'Obby', width: 20, elev: [18, 5, 2, 1, 3, 6, 0], pts: SHAPE.arena, zones: [['obby', 1]] },
+  { id: 'village', name: 'Village', width: 22, elev: [8, 2, 1, 0, 1, 3, 0], pts: SHAPE.town, zones: [['village', 1]] },
+  { id: 'greenpath', name: 'Greenpath', width: 20, elev: [14, 4, 2, .5, 2, 5, 1], pts: SHAPE.grotto, zones: [['greenpath', 1]] },
+  { id: 'deepnest', name: 'Deepnest', width: 18, elev: [12, 4, 2, 0, 2, 5, 1], pts: SHAPE.void, zones: [['deepnest', 1]] },
   { id: 'battleisland', name: 'Battle Island', width: 22, elev: [16, 5, 3, 0, 3, 6, 1], pts: SHAPE.island, zones: [['storm', 1]] },
 ];
 export const ITEMS = [

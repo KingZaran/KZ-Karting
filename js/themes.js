@@ -292,6 +292,36 @@ export function buildThemes(THREE) {
   T.obby = { name: 'Obby', sky: 0x4a9aff, ground: 0x6a6a74, road: 0xdadbe0, roadStyle: 'studs', edge: 0xff4a4a, line: '#ffffff', kerb: ['#ff4a4a', '#ffffff'], accent: '#00b2ff', fog: [170, 640], hemi: 1.1, sun: 1.2, clouds: 1, mount: 0x5a8ac8, mountTop: 0xffffff, hill: .3,
     decor: [obP, obP, obP, obKill, obKill, obCheck, obSpin, obSpin, rbTruss, rbCone, noob, spawnPad] };
 
+  // ===== batch 6: Minecraft Village, Greenpath, Deepnest =====
+  const vlg = { wheat: M(0xd8c44a, { roughness: 1 }), farm: M(0x6a4a2a, { roughness: 1 }), water: E(0x3a6ae8, .3, { transparent: true, opacity: .8 }), hay: M(0xc8a83a, { roughness: 1 }), path: M(0x9a7a4a, { roughness: 1 }), robe: M(0x7a5a3a), skin: M(0xc89a7a) };
+  const vlFarm = () => { const g = grp(bk(vlg.farm, 7, .6, 5, 0, .3, 0), bk(vlg.water, 1, .62, 5, 0, .31, 0)); for (let i = -3; i <= 3; i++) if (i) g.add(bk(vlg.wheat, .8, R(1, 1.7), 4.4, i, 1.1, 0)); return g; };
+  const vlWell = () => grp(bk(mc.cobble, 3.4, 1.8, 3.4, 0, .9, 0), bk(vlg.water, 2.2, .1, 2.2, 0, 1.75, 0), bk(mc.log, .4, 3.4, .4, -1.5, 3.5, -1.5), bk(mc.log, .4, 3.4, .4, 1.5, 3.5, 1.5), bk(mc.plank, 3.8, .4, 3.8, 0, 5.4, 0));
+  const vlHay = () => grp(bk(vlg.hay, 2, 2, 2, 0, 1, 0), bk(M(0x8a6a2a), 2.05, .3, 2.05, 0, 1, 0));
+  const vlVillager = () => grp(bk(vlg.robe, 1.1, 2, .8, 0, 1.6, 0), bk(vlg.skin, 1, 1.1, 1, 0, 3.2, 0), bk(vlg.skin, .3, .8, .3, 0, 3, .6), bk(M(0x4a2a1a), 1.1, .15, .15, 0, 3.4, .52));
+  const vlGolem = () => grp(bk(M(0xd8d8d8), 2.4, 3, 1.6, 0, 3.5, 0), bk(M(0xd8d8d8), 1.4, 1.4, 1.4, 0, 5.8, 0), bk(M(0xd8d8d8), .8, 3.6, .8, -1.6, 3.2, 0), bk(M(0xd8d8d8), .8, 3.6, .8, 1.6, 3.2, 0), bk(M(0xd8d8d8), .9, 2, .9, -.6, 1, 0), bk(M(0xd8d8d8), .9, 2, .9, .6, 1, 0), bk(M(0x4a8a3a), .3, .3, .6, 0, 5.7, .9), bk(M(0x3a5a2a), .5, .2, .2, 1.2, 4, 0));
+  T.village = { name: 'Village', sky: 0x78a7ff, ground: 0x5d9c3a, road: 0x9a7a4a, roadStyle: 'blocks', edge: 0x6a4a2a, line: '#e0c890', kerb: ['#8a8a8a', '#bdbdbd'], accent: '#e0c040', fog: [150, 600], hemi: 1, sun: 1.25, clouds: 1, mount: 0x6a9a4a, mountTop: 0xb8c8d8, hill: .8,
+    decor: [mcHouse, mcHouse, mcHouse, vlFarm, vlFarm, vlWell, vlHay, vlHay, vlVillager, vlVillager, vlGolem, mcTree(mc.log, mc.leaf), mcTorch, mcPig] };
+
+  // --- Hollow Knight: Greenpath
+  const gpM = [0x2f7a3a, 0x3a9a44, 0x1f5a2c].map(c => M(c, { roughness: .9 })), gpGlow = E(0xb8ff6a, 1.3), gpStone = M(0x3a4a3a, { roughness: 1 }), gpThorn = M(0x1a4a22, { roughness: 1 });
+  const gpTree = () => { const h = R(9, 16); return grp(pb('cyl', gpStone, .9, h, .9, 0, h / 2, 0), pb(geo.blob, pick(gpM), R(4, 6), 3, R(4, 6), 0, h + 1, 0), pb(geo.blob, pick(gpM), 3, 2.4, 3, 2.4, h - .5, 1), pb(geo.blob, pick(gpM), 3, 2.4, 3, -2.2, h - 1, -1)); };
+  const gpVines = () => grp(...Array.from({ length: 5 }, (_, i) => pb('cyl', gpThorn, .12, R(5, 11), .12, i * .9 - 1.8, 12, R(-.8, .8))), bk(gpStone, 5, .8, 1.6, 0, 18, 0));
+  const gpLumafly = () => grp(...Array.from({ length: 4 }, () => pb('sph', gpGlow, .22, .22, .22, R(-2, 2), R(3, 7), R(-2, 2), 0, 0, 0, false)));
+  const gpMound = () => grp(pb(geo.blob, pick(gpM), R(3, 5), R(1.2, 2.2), R(3, 5), 0, .5, 0), ...Array.from({ length: 4 }, () => pb('cone', gpThorn, .3, R(1.4, 2.6), .3, R(-1.8, 1.8), 1, R(-1.8, 1.8))));
+  const gpAcid = () => grp(bk(E(0x9aff3a, .8, { transparent: true, opacity: .7 }), 7, .4, 4, 0, .2, 0), bk(gpStone, 7.6, .8, .6, 0, .4, 2.2), bk(gpStone, 7.6, .8, .6, 0, .4, -2.2));
+  T.greenpath = { name: 'Greenpath', sky: 0x0e2a1c, ground: 0x1f5a2a, road: 0x4a5a42, roadStyle: 'stone', edge: 0xb8ff6a, line: '#b8ff6a', kerb: ['#2f7a3a', '#cfffb0'], kerbGlow: true, accent: '#b8ff6a', fog: [60, 360], hemi: .9, sun: .5, stars: 0, clouds: 0, mount: 0x143a22, mountTop: 0x4adf6a, hill: .6,
+    decor: [gpTree, gpTree, gpTree, gpVines, gpVines, gpLumafly, gpLumafly, gpMound, gpMound, gpAcid, hkBench, hkLantern, hkThorns] };
+
+  // --- Hollow Knight: Deepnest
+  const dnM = [0x1a1a22, 0x24242e].map(c => M(c, { roughness: 1 })), web = M(0xe8e8f0, { transparent: true, opacity: .55, side: THREE.DoubleSide }), dnEye = E(0xffffff, 1.4);
+  const dnSpire = () => { const h = R(10, 22); return grp(pb('cone', pick(dnM), R(1.4, 2.6), h, R(1.4, 2.6), 0, h / 2, 0), pb('cone', dnM[1], .8, h * .6, .8, 1.8, h * .3, .5)); };
+  const dnWeb = () => { const g = grp(); for (let i = 0; i < 4; i++) g.add(pb('cyl', web, .04, 9, .04, 0, 6, 0, 0, 0, i * Math.PI / 4)); g.add(pb(geo.torus, web, 2.2, 2.2, 2.2, 0, 6, 0, Math.PI / 2)); return g; };
+  const dnCocoon = () => grp(pb('sph', web, 1.2, 2.2, 1.2, 0, 5, 0), pb('cyl', web, .05, 6, .05, 0, 9, 0));
+  const dnCrawler = () => { const g = grp(pb('sph', dnM[0], 1.5, 1, 2, 0, 1.4, 0), pb('sph', dnEye, .18, .18, .18, -.4, 1.7, 1.9), pb('sph', dnEye, .18, .18, .18, .4, 1.7, 1.9)); for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) g.add(pb('cyl', dnM[1], .08, 2.4, .08, sx * 1.5, .9, -.9 + i * .6, 0, 0, sx * .9)); return g; };
+  const dnBone = () => grp(pb('cyl', bone, .25, 3, .25, 0, 1.2, 0, 0, 0, .9), pb('sph', bone, 1, .9, 1.2, 1.6, 2.2, 0));
+  T.deepnest = { name: 'Deepnest', sky: 0x040408, ground: 0x0c0c12, road: 0x2a2a34, roadStyle: 'stone', edge: 0xc8c8e0, line: '#c8c8e0', kerb: ['#101018', '#7a7a90'], accent: '#c8c8e0', fog: [35, 230], hemi: .6, sun: .25, stars: 0, clouds: 0, mount: 0x08080e, mountTop: 0x2a2a3a, hill: .7, lamp: 0xd8d8ff,
+    decor: [dnSpire, dnSpire, dnSpire, dnWeb, dnWeb, dnCocoon, dnCocoon, dnCrawler, dnBone, dnBone, hkBench, hkLantern, hkTotem] };
+
   T.flatMat = c => E(c, 0.2);
   return T;
 }
