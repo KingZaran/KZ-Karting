@@ -196,7 +196,7 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
         else if (c === 'ArrowDown' && ic + 7 >= n) ic = n; else ic = Math.max(0, Math.min(n - 1, ic + d));
         alt(); this.draw(); return true;
       },
-      back() { go('setup'); }, ok() { if (ic >= ITEMS.length) bulk(ic - ITEMS.length); else if (online_()) { votes = {}; online.ui({ k: 'phase', s: 'map' }); go('map'); } else go('map'); },
+      back() { go('setup'); }, ok() { if (online_()) { votes = {}; online.ui({ k: 'phase', s: 'map' }); go('map'); } else go('map'); },
     },
     map: {
       draw() {

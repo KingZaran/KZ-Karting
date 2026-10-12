@@ -288,7 +288,8 @@ function endIntro() {
   $('hud').style.display = $('menuBtn').style.display = 'block'; state = 'grid'; gridPhase();
 }
 function gridPhase() { audio.jingle('starting-grid', { onend: beginCountdown, fb: 1.2 }); }
-function beginCountdown() { if (state !== 'grid') return; state = 'countdown'; countdown = 3.99; lastCd = -1; cdFile = audio.dur('countdown') > 0; audio.jingle('countdown'); }
+let rsPress = null;   // time-to-GO (s) when the player began holding accelerate during the countdown
+function beginCountdown() { if (state !== 'grid') return; rsPress = null; state = 'countdown'; countdown = 3.99; lastCd = -1; cdFile = audio.dur('countdown') > 0; audio.jingle('countdown'); }
 function skipIntro(e) { if (state === 'intro' && performance.now() - introAt > 600 && !(e && e.repeat)) { if (online.racing) online.ui({ k: 'skipintro' }); endIntro(); } }
 addEventListener('keydown', e => { if (e.code === 'Enter' || e.code === 'Space') skipIntro(e); });
 addEventListener('pointerdown', () => skipIntro());
@@ -677,6 +678,13 @@ function updateBot(k, dt) {
   ts *= (k.shrink > 0 ? .7 : 1) * (1 + k.coins * .012); if (k.boost > 0 || k.starT > 0) ts *= 1.3; if (rk) ts = k.top * 1.6;
   k.speed += Math.sign(ts - k.speed) * Math.min(Math.abs(ts - k.speed), k.acc * (rk ? 3 : 1) * dt); move(k, dt);
 }
+// Mario Kart 8 style rocket start: hold accelerate when the "2" appears (~2s before GO) for the best boost; later = weaker; before = spin out
+function rocketStart() {
+  const p = player; if (!p || p.remote) return;
+  if (rsPress !== null && rsPress > 2.05) { p.spin = .9 * (p.spinMul || 1); p.speed = 0; p.immune = Math.max(p.immune || 0, 1); audio.sfx('hit'); $('big').textContent = 'TOO EARLY!'; }
+  else if (rsPress !== null) { const q = rsPress >= 1.75 ? 1 : Math.max(0, (rsPress - .35) / 1.4); if (q > .05) { p.boost = Math.max(p.boost, .4 + 1.1 * q); p.speed += 6 + 9 * q; burst(p.pos, 0xffb040, 16, 10); audio.sfx('boost'); $('big').textContent = q >= 1 ? 'ROCKET START!' : 'GO!'; } }
+  rsPress = null;
+}
 function trackLap(k) {
   const prev = k.prevIdx ?? k.idx, lap0 = k.lap;
   if (prev > N*.9 && k.idx < N*.1) k.lap++; else if (prev < N*.1 && k.idx > N*.9) k.lap--;
@@ -704,7 +712,7 @@ function loop() {
   if (state !== 'idle') {
     T += dt;
     if (state === 'intro') { introT += dt; if (introT >= introLen) endIntro(); }
-    if (state === 'countdown') { countdown -= dt; const cd = Math.floor(countdown); if (cd !== lastCd) { lastCd = cd; if (cd >= 2 && !cdFile) audio.sfx('beep'); } $('big').textContent = countdown > 1 ? Math.floor(countdown) : 'GO!'; if (countdown <= 1) { state = 'racing'; if (!cdFile) audio.sfx('go'); setTimeout(() => { if (state === 'racing') $('big').textContent = ''; }, 800); } }
+    if (state === 'countdown') { countdown -= dt; { const held = player && !player.remote && ctl.held('up'); if (held && rsPress === null) rsPress = countdown - 1; else if (!held) rsPress = null; } const cd = Math.floor(countdown); if (cd !== lastCd) { lastCd = cd; if (cd >= 2 && !cdFile) audio.sfx('beep'); } $('big').textContent = countdown > 1 ? Math.floor(countdown) : 'GO!'; if (countdown <= 1) { state = 'racing'; rocketStart(); if (!cdFile) audio.sfx('go'); setTimeout(() => { if (state === 'racing') $('big').textContent = ''; }, 800); } }
     ranked = [...karts].sort(rankSort);
     karts.forEach(k => tick(k, dt));
     karts.forEach(k => k.remote ? updateRemote(k, dt) : (k.isBot || k.rocketT > 0) ? updateBot(k, dt) : updatePlayer(k, dt));
