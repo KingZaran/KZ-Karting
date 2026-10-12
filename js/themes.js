@@ -176,7 +176,7 @@ export function buildThemes(THREE) {
   const endPillar = () => { const h = R(18, 34); return grp(bk(obsE, 4, h, 4, 0, h / 2, 0), bk(M(0x7a7a80, { metalness: .6 }), 4.6, .5, 4.6, 0, h + .3, 0), bk(crystalE, 1.5, 1.5, 1.5, 0, h + 2, 0), bk(cageE, 2.2, .25, 2.2, 0, h + 2, 0), bk(cageE, .25, 2.2, 2.2, 0, h + 2, 0)); };
   const enderman = () => { const m = M(0x0c0a10, { roughness: .8 }); return grp(bk(m, .7, 4.6, .7, -.55, 2.3, 0), bk(m, .7, 4.6, .7, .55, 2.3, 0), bk(m, 1.8, 2.8, .9, 0, 6, 0), bk(m, .5, 4.4, .5, -1.4, 5.2, 0), bk(m, .5, 4.4, .5, 1.4, 5.2, 0), bk(m, 1.6, 1.6, 1.6, 0, 8.2, 0), bk(enderEye, .5, .25, .1, -.4, 8.3, .82), bk(enderEye, .5, .25, .1, .4, 8.3, .82)); };
   const chorusPlant = () => { const g = grp(); let y = 0; for (let i = 0; i < Math.round(R(3, 6)); i++) { g.add(bk(chorus, 1.1, 2, 1.1, R(-.4, .4), y + 1, R(-.4, .4))); y += 2; } g.add(bk(chorusF, 1.5, 1.5, 1.5, 0, y + .5, 0)); return g; };
-  const endIsland = () => grp(pb(geo.blob, pick(endStone), R(5, 9), R(2, 3.2), R(5, 9), R(8, 20)), pb(geo.blob, endStone[1], R(2, 4), R(3, 6), R(2, 4), R(4, 12), 0, 0, true));
+  const endIsland = () => grp(pb(geo.blob, pick(endStone), R(5, 9), R(2, 3.2), R(5, 9), 0, R(8, 20), 0), pb(geo.blob, endStone[1], R(2, 4), R(3, 6), R(2, 4), 0, R(4, 12), 0));
   const endGate = () => grp(pb('cyl', E(0xd8b0ff, 1, { transparent: true, opacity: .3, depthWrite: false }), 1.3, 90, 1.3, 0, 45, 0, 0, 0, 0), bk(M(0x1a1a22), 3, .8, 3, 0, .4, 0));
   const dragonEgg = () => grp(pb('sph', M(0x0a0610, { roughness: .2, metalness: .3 }), 1.1, 1.5, 1.1, 0, 1.6, 0), pb('sph', E(0x8a2aff, .9), .5, .35, .5, .3, 2.2, .85), bk(M(0x14101c), 3, .8, 3, 0, .4, 0));
   T.end = { name: 'The End', sky: 0x0e0816, ground: 0xdcd89f, road: 0x2c2240, roadStyle: 'blocks', edge: 0xb04aff, line: '#c78aff', kerb: ['#14101c', '#b04aff'], kerbGlow: true, accent: '#c78aff', fog: [80, 480], hemi: .85, sun: .6, stars: 1, clouds: 0, mount: 0x15101f, mountTop: 0x6a3aa8, hill: .35,
@@ -190,6 +190,42 @@ export function buildThemes(THREE) {
   const rainLamp = () => grp(pb('cyl', iron, .14, 9, .14, 0, 4.5, 0), pb('cyl', iron, 1.1, .15, 1.1, 0, 9.1, 0), pb('sph', E(0xffe27a, 1.8), .55, .65, .55, 0, 8.4, 0), pb('cone', iron, .9, .7, .9, 0, 9.6, 0));
   T.city = { name: 'City of Tears', sky: 0x0b1424, ground: 0x141c2c, road: 0x2a3446, roadStyle: 'stone', edge: 0x9fc4ff, line: '#9fc4ff', kerb: ['#2a3350', '#9fc4ff'], kerbGlow: true, accent: '#9fc4ff', fog: [50, 300], hemi: .6, sun: .45, stars: .35, clouds: .6, mount: 0x1a2438, mountTop: 0x4a6a9a, hill: .5, lamp: 0xffe27a,
     decor: [spire, spire, cityArch, statue, rainLamp, hkBench, hkLantern, spire, hkMask, rainLamp] };
+
+
+  // ===== batch 3: Silksong - Pharloom zones =====
+  const bellGeo = new THREE.SphereGeometry(1, 16, 10, 0, Math.PI * 2, 0, Math.PI * .62);
+  const bellOf = (mat, h = 7.5) => () => grp(pb('cyl', dark, .12, h - 2.5, .12, 0, h, 0), pb(bellGeo, mat, 1.8, 2, 1.8, 0, h - 3.7, 0, Math.PI), pb('sph', mat, .3, .3, .3, 0, h - 4.9, 0), pb('torus', mat, .5, .5, .5, 0, h - 2.7, 0));
+  const clay = [0x8a3a2a, 0x7a3326, 0x9a4a30].map(c => M(c, { roughness: .9 })), plaster = M(0xd9c3a0, { roughness: .95 }), timber = M(0x4a2f1c), warmWin = E(0xffc060, 1.5), beadM = M(0xefe4c8, { roughness: .4 }), banner = M(0xb0182c, { side: THREE.DoubleSide });
+  const roofM = [0x6a2a20, 0x5a2218].map(c => M(c, { roughness: .8 }));
+  // Bellhart: a warm dusk village of tiled-roof houses, hanging bells, red thread banners and bead strings
+  const bhHouse = () => { const w = R(6, 9), h = R(5, 7), d = R(5, 7); return grp(bk(plaster, w, h, d, 0, h / 2, 0), bk(timber, w + .3, .5, d + .3, 0, h * .5, 0), pb('sqpyr', pick(roofM), w * .78, 3.6, d * .78, 0, h + 1.8, 0, 0, Math.PI / 4), bk(timber, 1, 2.6, 1, w * .28, h + 2.4, 0), bk(warmWin, 1.1, 1.4, .1, -w * .22, h * .55, d / 2 + .05), bk(warmWin, 1.1, 1.4, .1, w * .22, h * .55, d / 2 + .05), bk(timber, 1.3, 2.4, .1, 0, 1.2, d / 2 + .05)); };
+  const bhBanner = () => grp(pb('cyl', timber, .15, 10, .15, 0, 5, 0), bk(banner, .08, 5, 2.2, 0, 7, 1.1), pb('torus', brassM, .35, .35, .35, 0, 9.7, 0));
+  const bhBeads = () => grp(Array.from({ length: 14 }, (_, i) => pb('sph', beadM, .24, .24, .24, Math.cos(i * .55) * 1.3, .3 + i * .05, Math.sin(i * .55) * 1.3)));
+  const bhShrine = () => grp(bk(cityStone[1], 1.4, 9, 1.4, -3, 4.5, 0), bk(cityStone[1], 1.4, 9, 1.4, 3, 4.5, 0), bk(cityTrim, 8, 1.2, 1.8, 0, 9.3, 0), pb('torus', brassM, .35, .35, .35, 0, 8.4, 0), pb(bellGeo, brassM, 2.2, 2.4, 2.2, 0, 5.4, 0, Math.PI), pb('sph', brassM, .35, .35, .35, 0, 3.8, 0));
+  const bhLamp = () => grp(pb('cyl', iron, .12, 7, .12, 0, 3.5, 0), bk(iron, 1.6, .12, .12, .8, 6.8, 0), pb('sph', E(0xffa840, 1.9), .5, .6, .5, 1.5, 6.3, 0));
+  const bhCrate = () => grp(bk(M(0x6b4a2b), 2, 2, 2, 0, 1, 0), bk(M(0x6b4a2b), 1.6, 1.6, 1.6, 2.2, .8, .4), bk(M(0x6b4a2b), 1.4, 1.4, 1.4, 1, 2.7, .1));
+  T.bellhart = { name: 'Bellhart', sky: 0xe8a070, ground: 0x5a4030, road: 0x6a5a50, roadStyle: 'stone', edge: 0xd4af37, line: '#d4af37', kerb: ['#8a1c2b', '#d4af37'], accent: '#ffb050', fog: [90, 430], hemi: .95, sun: 1.05, clouds: .7, mount: 0x6a4a50, mountTop: 0xe8b080, hill: .8, lamp: 0xffa840,
+    decor: [bhHouse, bhHouse, bhHouse, bellOf(brassM), bhBanner, bhBanner, bhBeads, bhShrine, bhLamp, bhCrate, ssSpool, rocks([M(0x5a4a40)], 1.3)] };
+
+  // Moss Grotto: glowing green caverns - giant moss caps, hanging vines, spore bulbs, mossy boulders
+  const mossM = [0x2f8a3a, 0x3da84a, 0x1f6a30].map(c => M(c, { roughness: 1 })), mossGlow = [E(0x9affb0, 1.2), E(0x6adf8a, 1.1)], vineM = M(0x2a7a35);
+  const mgCap = () => { const h = R(4, 9), r = R(2.2, 4.5); return grp(pb('cyl', M(0xdff3d0), .55, h, .55, 0, h / 2, 0), pb(geo.blob, pick(mossGlow), r, r * .45, r, 0, h, 0)); };
+  const mgVines = () => grp(Array.from({ length: 5 }, () => { const l = R(6, 16); return pb('cyl', vineM, .13, l, .13, R(-1.5, 1.5), 40 - l / 2, R(-1.5, 1.5)); }));
+  const mgBulb = () => grp(pb('cyl', vineM, .12, 4, .12, 0, 2, 0), pb('sph', pick(mossGlow), .8, .9, .8, 0, 4.3, 0), pb('sph', E(0xffffff, 1.2), .25, .25, .25, .3, 5.3, .2, false));
+  const mgBoulder = () => { const s = R(2.4, 5); return grp(pb(geo.rock, pick(mossM), s, s * .7, s, 0, s * .35, 0), pb(geo.blob, pick(mossM), s * .9, s * .35, s * .9, 0, s * .7, 0)); };
+  const mgFern = () => grp(Array.from({ length: 7 }, (_, i) => pb('cone', pick(mossM), .5, 3.2, .5, Math.cos(i) * .9, 1.4, Math.sin(i) * .9, Math.sin(i) * .7, 0, -Math.cos(i) * .7)));
+  const mgSpore = () => grp(Array.from({ length: 6 }, () => pb('sph', E(0xcaffd0, 1.6), .16, .16, .16, R(-2, 2), R(2, 9), R(-2, 2), false)));
+  T.moss = { name: 'Moss Grotto', sky: 0x143a2a, ground: 0x1f5a34, road: 0x3a4a3a, roadStyle: 'stone', edge: 0xb8ff9a, line: '#b8ff9a', kerb: ['#2f7a3a', '#cfffb0'], kerbGlow: true, accent: '#9affb0', fog: [45, 290], hemi: .85, sun: .45, stars: 0, clouds: 0, mount: 0x14402a, mountTop: 0x6adf7a, hill: .7,
+    decor: [mgCap, mgCap, mgCap, mgVines, mgVines, mgBulb, mgBoulder, mgFern, mgFern, mgSpore, hkBench, ssNeedle] };
+
+  // Mount Fay: frozen peaks - snow pines, ice-locked bells, icicles, tattered banners, snowy shrines
+  const iceBell = M(0xbfe6ff, { roughness: .1, emissive: 0x4aa8d8, emissiveIntensity: .35, metalness: .1 });
+  const mfIcicles = () => grp(Array.from({ length: 5 }, () => { const h = R(4, 11); return pb('cone', icec, R(.5, 1.1), h, R(.5, 1.1), h / 2, R(-1.6, 1.6), R(-1.6, 1.6)); }));
+  const mfBanner = () => grp(pb('cyl', timber, .14, 9, .14, 0, 4.5, 0), bk(banner, .06, 3.6, 2, 0, 7.4, 1), bk(M(0xf4f9ff), .3, .4, 2.2, 0, 9.3, 1));
+  const mfShrine = () => grp(bk(cityStone[1], 6, 1, 6, 0, .5, 0), bk(snow, 6.2, .5, 6.2, 0, 1.1, 0), bk(cityStone[1], 1, 6, 1, -2, 4, 0), bk(cityStone[1], 1, 6, 1, 2, 4, 0), bk(snow, 5.6, .8, 1.5, 0, 7.4, 0), pb(bellGeo, iceBell, 1.4, 1.6, 1.4, 0, 5.2, 0, Math.PI));
+  const mfDrift = () => grp(pb(geo.blob, snow, R(4, 8), R(1.2, 2.2), R(4, 8), 0, .3, 0));
+  T.fay = { name: 'Mount Fay', sky: 0xc8d8ea, ground: 0xe8f0f8, road: 0x6a7a8a, roadStyle: 'ice', edge: 0xcfe6ff, line: '#cfe6ff', kerb: ['#cfe6ff', '#6a8aa8'], accent: '#bfe6ff', fog: [60, 380], hemi: .95, sun: .9, clouds: 1, mount: 0x8aa0b8, mountTop: 0xffffff, hill: 1.2,
+    decor: [pineTree([M(0x2a5a4a), M(0x336a55)], true), pineTree([M(0x2a5a4a)], true), mfIcicles, mfBanner, mfShrine, bellOf(iceBell), mfDrift, mfDrift, rocks([M(0x8a96a6)], 1.6), mfBanner] };
 
   T.flatMat = c => E(c, 0.2);
   return T;

@@ -12,6 +12,9 @@ const SHAPE = {
   frost: ring(12, a => 140 + 35 * Math.sin(3 * a + 1)),
   pool: [[0,0],[140,0],[140,80],[60,80],[60,160],[200,160],[200,260],[0,260],[0,180],[-70,180],[-70,70],[0,70]],
   void: ring(12, a => 135 + 42 * Math.cos(3 * a + .5)),
+  bell: [[0,0],[90,-30],[170,-20],[220,40],[190,110],[120,140],[130,200],[70,250],[-10,230],[-40,160],[-100,130],[-120,60],[-70,10]],
+  grotto: ring(11, a => 140 + 38 * Math.sin(2 * a + .4) + 12 * Math.cos(5 * a)),
+  peak: [[0,0],[130,10],[210,60],[200,150],[120,190],[60,150],[0,210],[-80,230],[-150,170],[-130,90],[-60,60]],
   city: [[0,0],[110,10],[190,-20],[250,40],[230,120],[150,150],[160,220],[90,260],[10,230],[-20,150],[-90,120],[-110,40],[-60,0]],
 };
 export const TRACKS = [
@@ -26,6 +29,9 @@ export const TRACKS = [
   { id: 'poolrooms', name: 'The Poolrooms', width: 22, elev: [6, 2, 1, 0, 1, 2, 0], pts: SHAPE.pool, zones: [['pool', 1]] },
   { id: 'theend', name: 'The End', width: 22, elev: [18, 6, 3, 0, 3, 6, 2], pts: SHAPE.void, zones: [['end', 1]] },
   { id: 'cityoftears', name: 'City of Tears', width: 20, elev: [12, 4, 2, 0, 2, 5, 1], pts: SHAPE.city, zones: [['city', 1]] },
+  { id: 'bellhart', name: 'Bellhart', width: 20, elev: [12, 4, 2, 0, 2, 5, 1], pts: SHAPE.bell, zones: [['bellhart', 1]] },
+  { id: 'mossgrotto', name: 'Moss Grotto', width: 20, elev: [16, 5, 3, .5, 2, 6, 2], pts: SHAPE.grotto, zones: [['moss', 1]] },
+  { id: 'mountfay', name: 'Mount Fay', width: 22, elev: [20, 6, 3, 0, 3, 6, 1], pts: SHAPE.peak, zones: [['fay', 1]] },
   { id: 'battleisland', name: 'Battle Island', width: 22, elev: [16, 5, 3, 0, 3, 6, 1], pts: SHAPE.island, zones: [['storm', 1]] },
 ];
 export const ITEMS = [
