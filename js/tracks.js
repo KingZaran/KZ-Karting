@@ -15,6 +15,12 @@ const SHAPE = {
   bell: [[0,0],[90,-30],[170,-20],[220,40],[190,110],[120,140],[130,200],[70,250],[-10,230],[-40,160],[-100,130],[-120,60],[-70,10]],
   grotto: ring(11, a => 140 + 38 * Math.sin(2 * a + .4) + 12 * Math.cos(5 * a)),
   peak: [[0,0],[130,10],[210,60],[200,150],[120,190],[60,150],[0,210],[-80,230],[-150,170],[-130,90],[-60,60]],
+  oval: [[0,0],[170,0],[230,50],[230,120],[170,170],[0,170],[-60,120],[-60,50]],
+  dream: [[0,0],[100,20],[170,-10],[230,50],[200,120],[120,100],[60,150],[90,220],[20,260],[-60,220],[-80,140],[-60,60]],
+  plat: ring(9, a => 150 + 28 * Math.cos(a) + 14 * Math.sin(3 * a)),
+  tri: ring(12, a => 130 + 32 * Math.cos(3 * a)),
+  arena: ring(10, a => 150 + 24 * Math.cos(2 * a + .3)),
+  town: [[0,0],[100,20],[180,-10],[230,50],[200,120],[120,100],[90,160],[130,220],[60,260],[-20,220],[-30,140],[-100,110],[-90,30]],
   city: [[0,0],[110,10],[190,-20],[250,40],[230,120],[150,150],[160,220],[90,260],[10,230],[-20,150],[-90,120],[-110,40],[-60,0]],
 };
 export const TRACKS = [
@@ -32,6 +38,10 @@ export const TRACKS = [
   { id: 'bellhart', name: 'Bellhart', width: 20, elev: [12, 4, 2, 0, 2, 5, 1], pts: SHAPE.bell, zones: [['bellhart', 1]] },
   { id: 'mossgrotto', name: 'Moss Grotto', width: 20, elev: [16, 5, 3, .5, 2, 6, 2], pts: SHAPE.grotto, zones: [['moss', 1]] },
   { id: 'mountfay', name: 'Mount Fay', width: 22, elev: [20, 6, 3, 0, 3, 6, 1], pts: SHAPE.peak, zones: [['fay', 1]] },
+  { id: 'battlefield', name: 'Battlefield', width: 22, elev: [14, 5, 2, 0, 2, 5, 1], pts: SHAPE.plat, zones: [['battle', 1]] },
+  { id: 'pokestadium', name: 'Pok\u00e9mon Stadium', width: 24, elev: [4, 1, 1, 0, 1, 2, 0], pts: SHAPE.oval, zones: [['stadium', 1]] },
+  { id: 'dreamland', name: 'Dream Land', width: 22, elev: [12, 4, 2, 0, 2, 5, 1], pts: SHAPE.dream, zones: [['dream', 1]] },
+  { id: 'smashville', name: 'Smashville', width: 22, elev: [14, 4, 2, 0, 2, 5, 1], pts: SHAPE.town, zones: [['smashv', 1]] },
   { id: 'battleisland', name: 'Battle Island', width: 22, elev: [16, 5, 3, 0, 3, 6, 1], pts: SHAPE.island, zones: [['storm', 1]] },
 ];
 export const ITEMS = [

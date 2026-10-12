@@ -227,6 +227,47 @@ export function buildThemes(THREE) {
   T.fay = { name: 'Mount Fay', sky: 0xc8d8ea, ground: 0xe8f0f8, road: 0x6a7a8a, roadStyle: 'ice', edge: 0xcfe6ff, line: '#cfe6ff', kerb: ['#cfe6ff', '#6a8aa8'], accent: '#bfe6ff', fog: [60, 380], hemi: .95, sun: .9, clouds: 1, mount: 0x8aa0b8, mountTop: 0xffffff, hill: 1.2,
     decor: [pineTree([M(0x2a5a4a), M(0x336a55)], true), pineTree([M(0x2a5a4a)], true), mfIcicles, mfBanner, mfShrine, bellOf(iceBell), mfDrift, mfDrift, rocks([M(0x8a96a6)], 1.6), mfBanner] };
 
+
+  // ===== batch 4: Smash Bros stages =====
+  const ruinM = [0xc9c3b0, 0xb5af9c, 0xd6d0bd].map(c => M(c, { roughness: .9 })), grassTop = M(0x5fb04a, { roughness: 1 }), slabM = M(0x6a6256, { roughness: .95 }), cloudM = M(0xffffff, { roughness: 1, emissive: 0xffffff, emissiveIntensity: .25 });
+  // Battlefield: ancient columns and arches, floating grass-topped platforms, drifting clouds
+  const bfColumn = () => { const h = R(7, 13), m = pick(ruinM); return grp(bk(m, 2.6, .8, 2.6, 0, .4, 0), pb('cyl', m, .95, h, .95, 0, h / 2 + .8, 0), bk(m, 2.8, .8, 2.8, 0, h + 1.2, 0)); };
+  const bfBroken = () => { const m = pick(ruinM), h = R(2, 4); return grp(bk(m, 2.6, .8, 2.6, 0, .4, 0), pb('cyl', m, .95, h, .95, 0, h / 2 + .8, 0, R(-.2, .2), 0, R(-.2, .2)), pb(geo.rock, m, 1, .7, 1, 2.2, .5, 1));  };
+  const bfArch = () => grp(pb('cyl', ruinM[0], 1, 12, 1, -5, 6, 0), pb('cyl', ruinM[0], 1, 12, 1, 5, 6, 0), bk(ruinM[1], 12.5, 1.6, 2.6, 0, 12.8, 0), bk(ruinM[2], 9, 1.2, 2.2, 0, 14.2, 0));
+  const bfFloat = () => { const w = R(9, 14), y = R(11, 18), g = grp(bk(slabM, w, 1.4, 6, 0, y, 0), bk(grassTop, w + .2, .5, 6.2, 0, y + .9, 0), pb(geo.blob, slabM, w * .35, 2.2, 2, 0, y - 1.8, 0)); g.add(pb(geo.blob, leaves[1], 1.6, 1.4, 1.6, w * .3, y + 2.3, 0), pb('cyl', trunkM, .3, 1.8, .3, w * .3, y + 1.6, 0)); return g; };
+  const bfCloud = () => grp(pb(geo.blob, cloudM, R(4, 7), R(1.6, 2.4), R(3, 5), R(22, 40)), pb(geo.blob, cloudM, R(2.5, 4), R(1.4, 2), R(2.5, 3.5), R(21, 40), R(2, 4), R(-1, 1)));
+  T.battle = { name: 'Battlefield', sky: 0x6ab0f0, ground: 0x6aa850, road: 0x8a8a96, roadStyle: 'stone', edge: 0xffd400, line: '#ffd400', kerb: ['#ffd400', '#2a2a36'], accent: '#ffd400', fog: [140, 620], hemi: 1, sun: 1.3, clouds: 1, mount: 0x7aa0c8, mountTop: 0xffffff, hill: .9,
+    decor: [bfColumn, bfColumn, bfBroken, bfArch, bfFloat, bfFloat, bfCloud, bfCloud, oakTree, smashBall, rocks(rockM)] };
+
+  // Pokemon Stadium: floodlights, crowd stands, big screens, giant Poke Balls, banners
+  const standM = M(0x2a3050, { roughness: .8 }), stadGlow = [E(0xff4a4a, 1.3), E(0x4ab0ff, 1.3), E(0xffe04a, 1.3)], floodM = E(0xfff6d8, 2);
+  const psFlood = () => grp(pb('cyl', iron, .3, 24, .3, 0, 12, 0), bk(iron, 7, 4.4, .6, 0, 25, 0), ...Array.from({ length: 6 }, (_, i) => bk(floodM, 1.7, 1.7, .2, -2.4 + (i % 3) * 2.4, 24 + (i < 3 ? 1.1 : -1.1), .4)));
+  const psStands = () => { const g = grp(bk(standM, 16, 7, 5, 0, 3.5, 0), bk(M(0x3a4268), 16.4, .5, 5.4, 0, 7.2, 0)); for (let i = 0; i < 26; i++) g.add(pb('sph', pick(stadGlow), .32, .32, .32, R(-7.4, 7.4), R(2, 6.6), 2.6, false)); return g; };
+  const psScreen = () => grp(pb('cyl', iron, .3, 10, .3, -4, 5, 0), pb('cyl', iron, .3, 10, .3, 4, 5, 0), bk(M(0x0b0f22), 11, 6, .6, 0, 11, 0), bk(E(0x4ab0ff, .9), 10, 5, .1, 0, 11, .35), pb('sph', M(0xe53935), 1.3, 1.3, .15, 0, 11, .45), pb('sph', M(0xffffff), 1.3, .65, .16, 0, 10.65, .46, 0, 0, 0));
+  const psBall = () => { const s = R(2.4, 4); return grp(pb('sph', M(0xe53935, { roughness: .3 }), s, s, s, 0, s, 0), pb(new THREE.SphereGeometry(1, 16, 10, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), M(0xffffff, { roughness: .3 }), s, s, s, 0, s, 0), pb('cyl', M(0x1a1a1a), s * 1.01, s * .12, s * 1.01, 0, s, 0), pb('sph', M(0xffffff), s * .28, s * .28, s * .16, 0, s, s * .95)); };
+  const psBanner = () => grp(pb('cyl', iron, .15, 10, .15, 0, 5, 0), bk(pick([M(0xe53935), M(0x1e88e5), M(0xffd400)]), .08, 5.5, 2.4, 0, 7, 1.2));
+  T.stadium = { name: 'Pokemon Stadium', sky: 0x0b1030, ground: 0x2f7a3a, road: 0xd8e0ea, roadStyle: 'tiles', edge: 0xe53935, line: '#e53935', line2: '#ffffff', kerb: ['#e53935', '#ffffff'], accent: '#ff5a5a', fog: [110, 520], hemi: .9, sun: .9, stars: .4, clouds: 0, mount: 0x1a2250, mountTop: 0x4a6ad8, hill: .5,
+    decor: [psFlood, psFlood, psStands, psStands, psScreen, psBall, psBall, psBanner, psBanner, pokeball] };
+
+  // Dream Land: Whispy Woods, Warp Stars, Waddle Dees, cloud puffs, round pastel hills
+  const whispy = () => grp(pb('cyl', M(0x6b4a2b), 3.2, 12, 3.2, 0, 6, 0), pb(geo.blob, leaves[1], 6.5, 4.6, 6.5, 0, 14, 0), pb('sph', M(0xffffff), 1, 1.3, .4, -1.1, 8.4, 2.9), pb('sph', M(0xffffff), 1, 1.3, .4, 1.1, 8.4, 2.9), pb('sph', M(0x000000), .38, .6, .2, -1.1, 8.4, 3.1), pb('sph', M(0x000000), .38, .6, .2, 1.1, 8.4, 3.1), pb('sph', M(0x2a1208), .9, 1.1, .4, 0, 6.2, 3), ...[[-3.5, 15.5], [3.8, 14.6], [0, 17.5]].map(([x, y]) => pb('sph', M(0xe53935), .55, .55, .55, x, y, 3.2)));
+  const warpStar = () => grp(pb('oct', E(0xffd400, 1), 1.8, 1.8, .7, 0, 2.6, 0, 0, 0, Math.PI / 4), pb('oct', E(0xffa800, .8), 1.2, 1.2, .8, 0, 2.6, 0, 0, 0, 0), pb('sph', E(0xff5ab0, 1), .45, .45, .3, 0, 2.6, .65));
+  const waddle = () => grp(pb('sph', M(0xe8892a), 1.7, 1.6, 1.7, 0, 1.7, 0), pb('sph', M(0xf6d9a8), 1, .8, .6, 0, 1.6, 1.15), pb('sph', M(0x000000), .16, .3, .1, -.35, 1.9, 1.5), pb('sph', M(0x000000), .16, .3, .1, .35, 1.9, 1.5), pb('sph', M(0xc9561a), .55, .35, .9, -.6, .25, .5), pb('sph', M(0xc9561a), .55, .35, .9, .6, .25, .5));
+  const dlCloud = () => grp(pb(geo.blob, cloudM, R(4, 7), R(1.8, 2.6), R(3, 5), R(14, 26)), pb(geo.blob, cloudM, R(2.5, 4), R(1.4, 2), R(2.5, 3.5), R(13, 26), R(2, 3.6), R(-1, 1)));
+  const dlTomato = () => grp(pb('sph', E(0xe53935, .4), 1.1, 1, 1.1, 0, 1.2, 0), pb('cone', leaves[1], .5, .5, .5, 0, 2.2, 0, Math.PI), pb('sph', M(0xffffff), .35, .45, .1, 0, 1.2, 1.05));
+  T.dream = { name: 'Dream Land', sky: 0x9ad4ff, ground: 0x7ad96a, road: 0xf0e6c4, roadStyle: 'candy', edge: 0xff7ac8, line: '#ff7ac8', line2: '#ffffff', kerb: ['#ff7ac8', '#ffffff'], accent: '#ff9ad8', fog: [150, 640], hemi: 1.1, sun: 1.2, clouds: 1, mount: 0x8ad0ff, mountTop: 0xffffff, hill: 1,
+    decor: [whispy, oakTree, oakTree, warpStar, waddle, waddle, dlCloud, dlCloud, bushy, flowers, flowers, dlTomato] };
+
+
+  // ===== batch 4: Smash Bros stages =====
+  const acFruit = () => { const h = R(5, 7); const g = grp(pb('cyl', trunkM, .7, h, .7, 0, h / 2, 0), pb(geo.blob, pick(leaves), 3.4, 2.8, 3.4, 0, h + 1.2, 0), pb(geo.blob, pick(leaves), 2.6, 2.2, 2.6, 1.8, h + .6, 1), pb(geo.blob, pick(leaves), 2.6, 2.2, 2.6, -1.6, h + .4, -1)); for (let i = 0; i < 5; i++) g.add(pb('sph', E(pick([0xff8a3d, 0xff4a4a, 0xffd23f]), .25), .35, .35, .35, R(-2.4, 2.4), h + R(.2, 2), R(-2.4, 2.4), 0, 0, 0, false)); return g; };
+  const acBalloon = () => { const c = pick([0xff5a7a, 0x5ad0ff, 0xffd23f, 0x7aff9f]), y = R(14, 24); return grp(pb('sph', M(c, { roughness: .25 }), 1.6, 2, 1.6, 0, y, 0), pb('cyl', white, .03, 5, .03, 0, y - 3.4, 0), bk(M(0xb5834a), 1.2, 1.2, 1.2, 0, y - 6, 0), bk(M(c), 1.3, .25, 1.3, 0, y - 6, 0)); };
+  const acBoard = () => grp(pb('cyl', M(0x8a5a2b), .2, 4, .2, -1.6, 2, 0), pb('cyl', M(0x8a5a2b), .2, 4, .2, 1.6, 2, 0), bk(M(0xb5834a), 4.2, 2.6, .3, 0, 3.4, 0), bk(M(0xfff6d6), 1, 1.2, .08, -1.1, 3.4, .2), bk(M(0xffd6e8), 1, 1.2, .08, 0, 3.6, .2), bk(M(0xd6f0ff), 1, 1.2, .08, 1.1, 3.3, .2), bk(M(0x6a4a2a), 4.6, .3, .6, 0, 4.9, 0));
+  const acFence = () => grp(...Array.from({ length: 6 }, (_, i) => bk(M(0xffffff, { roughness: .8 }), .4, 1.5, .2, -3.2 + i * 1.3, .75, 0)), bk(M(0xffffff), 7.4, .25, .2, 0, 1.2, 0), bk(M(0xffffff), 7.4, .25, .2, 0, .5, 0));
+  const acHouse = () => { const rc = pick([0xe86a5a, 0x5ab0e8, 0x7acb6a]); return grp(bk(M(0xfff1d0), 6, 4.2, 5.4, 0, 2.1, 0), pb('sqpyr', M(rc, { roughness: .6 }), 5.2, 3, 4.6, 0, 5.7, 0, 0, Math.PI / 4), bk(M(0x8a5a2b), 1.2, 2.4, .1, 0, 1.2, 2.75), bk(E(0xbfe6ff, .4), 1.2, 1.2, .1, -1.9, 2.6, 2.75), bk(E(0xbfe6ff, .4), 1.2, 1.2, .1, 1.9, 2.6, 2.75)); };
+  T.smashv = { name: 'Smashville', sky: 0x8fd0ff, ground: 0x7ac24a, road: 0xb08850, roadStyle: 'planks', edge: 0xffffff, line: '#ffffff', kerb: ['#ffffff', '#ffb3d1'], accent: '#ffb347', fog: [150, 600], hemi: 1.05, sun: 1.35, clouds: 1, mount: 0x6aaa6a, mountTop: 0xd8f0d8, hill: 1,
+    decor: [acFruit, acFruit, acFruit, acBalloon, acBalloon, acBoard, acFence, acFence, acHouse, acHouse, flowers, flowers, bushy] };
+
   T.flatMat = c => E(c, 0.2);
   return T;
 }
