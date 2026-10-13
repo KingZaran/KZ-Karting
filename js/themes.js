@@ -449,6 +449,126 @@ export function buildThemes(THREE) {
   const cdCone = () => grp(pb('cone', M(0xd8a85a), 1.2, 3.4, 1.2, 0, 1.7, 0, Math.PI), pb('sph', pick(candy), 1.4, 1.4, 1.4, 0, 3.9, 0), pb('sph', pick(candy), 1.1, 1.1, 1.1, 0, 5.2, 0), pb('sph', M(0xe53935), .3, .3, .3, 0, 6.2, 0));
   T.candy.decor.push(cdPop, cdPop, cdDrop, cdDrop, cdCane, cdCane, cdCup, cdDonut, cdCone);
 
+  // ===== detail pass 2: extra props for the newer maps =====
+  const K = (c, o) => M(c, Object.assign({ roughness: .9 }, o || {})), Z = (c, i = 1) => E(c, i);
+  const cobbleX = K(0x777777), logX = K(0x6b4a2b), plankX = K(0xb08a4f), leafX = K(0x3f8a2c);
+  // Minecraft Overworld
+  const mcCow = () => grp(bk(K(0x3a2a22), 1.6, 1.4, 2.6, 0, 1.6, 0), bk(K(0xf2f2f0), .9, .9, .15, .4, 1.8, 1.32), bk(K(0x3a2a22), 1.2, 1.2, 1.1, 0, 2.2, 1.8), bk(K(0xe8d8c8), .7, .5, .1, 0, 1.9, 2.4), ...[[-.5, -.9], [.5, -.9], [-.5, .9], [.5, .9]].map(([x, z]) => bk(K(0x2a1e18), .45, 1.1, .45, x, .55, z)));
+  const mcSkel = () => grp(bk(K(0xdcdcdc), .9, 1.9, .6, 0, 2.2, 0), bk(K(0xe8e8e8), 1, 1, 1, 0, 3.7, 0), bk(K(0x222222), .22, .22, .1, -.25, 3.8, .52), bk(K(0x222222), .22, .22, .1, .25, 3.8, .52), bk(K(0xdcdcdc), .3, 1.6, .3, -.7, 2.2, 0), bk(K(0xdcdcdc), .3, 1.6, .3, .7, 2.2, 0), bk(K(0xdcdcdc), .3, 1.7, .3, -.25, .85, 0), bk(K(0xdcdcdc), .3, 1.7, .3, .25, .85, 0));
+  const mcWater = () => grp(bk(Z(0x3a6ae8, .35), 5, .3, 5, 0, .12, 0), bk(K(0xe8d8a0), 6, .1, 6, 0, .03, 0));
+  const mcCrops = () => grp(bk(K(0x6a4a2a), 5, .5, 5, 0, .25, 0), ...Array.from({ length: 6 }, (_, i) => bk(K(i % 2 ? 0xe8a020 : 0x5aa83a), .5, R(.8, 1.4), 4.4, -2.1 + i * .84, 1, 0)));
+  const mcCave = () => grp(bk(K(0x6a6a6a), 6, 4, 4, 0, 2, 0), bk(K(0x050505), 2.4, 2.6, .5, 0, 1.3, 2.05), bk(K(0x5a5a5a), 6.4, .6, 4.4, 0, 4.2, 0), bk(K(0x3a3a3a), .8, .8, .8, 1.8, 3.2, 2.05), bk(Z(0xff8a20, 1.2), .3, .5, .3, -1.6, 2.1, 2.1));
+  T.blocky.decor.push(mcCow, mcCow, mcSkel, mcWater, mcCrops, mcCave);
+  // The Nether
+  const nrX = [K(0x8a2f2f), K(0x732626)];
+  const neFort = () => grp(bk(K(0x3a1418), 12, 8, 3, 0, 4, 0), ...[-5, -2.5, 0, 2.5, 5].map(x => bk(K(0x3a1418), 1.2, 1.4, 1.2, x, 8.7, 0)), bk(K(0x24090c), 3, 4, 3.2, 0, 2, 0));
+  const neSoul = () => grp(bk(K(0x5a4638), 5, .6, 5, 0, .3, 0), ...Array.from({ length: 4 }, () => bk(Z(0x4ad8e8, 1.2), .3, R(.8, 2), .3, R(-2, 2), 1.4, R(-2, 2))));
+  const neStrider = () => grp(bk(K(0xb23a2a), 1.8, 2, 1.6, 0, 3.2, 0), bk(K(0x8a2a1e), .5, 2.6, .5, -.6, 1.3, 0), bk(K(0x8a2a1e), .5, 2.6, .5, .6, 1.3, 0), bk(Z(0xff7a1a, .8), .4, .4, .1, -.4, 3.6, .83), bk(Z(0xff7a1a, .8), .4, .4, .1, .4, 3.6, .83));
+  const neFungus = () => grp(bk(K(0x2a8a8a), .5, 3, .5, 0, 1.5, 0), bk(K(0x1a6a8a), 3, .6, 3, 0, 3.2, 0), ...Array.from({ length: 4 }, () => bk(Z(0xffd27a, .8), .3, .3, .3, R(-1.2, 1.2), 2.9, R(-1.2, 1.2))));
+  const neGold = () => grp(bk(K(0x3a1418), 3, 3, 3, 0, 1.5, 0), bk(Z(0xffd23f, .6), 1.2, 1.2, .1, 0, 1.6, 1.55), bk(Z(0xffd23f, .6), .1, 1.2, 1.2, 1.55, 1.6, 0));
+  T.nether.decor.push(neFort, neSoul, neStrider, neStrider, neFungus, neGold);
+  // Baseplate (Roblox)
+  const rxSpawn = () => grp(bk(K(0x888888), 5, .4, 5, 0, .2, 0), bk(Z(0x00b2ff, .6), 4.2, .1, 4.2, 0, .44, 0));
+  const rxBloxy = () => grp(bk(Z(0x3a7aff, .3), 2, 2, 2, 0, 1, 0), bk(Z(0xff3a3a, .3), 2, 2, 2, 2.2, 1, 0), bk(Z(0xffd23f, .3), 2, 2, 2, 1.1, 3, 0));
+  const rxCar = () => grp(bk(Z(0xff8a2a, .4), 5, 1, 2.6, 0, 1.1, 0), bk(Z(0xffffff, .3), 2.2, .9, 2.4, -.3, 2, 0), ...[[-1.6, -1.3], [-1.6, 1.3], [1.6, -1.3], [1.6, 1.3]].map(([x, z]) => pb('cyl', iron, .6, .5, .6, x, .6, z, Math.PI / 2)));
+  const rxTree = () => grp(bk(K(0x6a4a2a), 1.4, 6, 1.4, 0, 3, 0), bk(K(0x3a9a3a), 5, 4, 5, 0, 7, 0), bk(K(0x4aaa44), 3, 3, 3, 0, 10, 0));
+  const rxFlag = () => grp(pb('cyl', iron, .12, 7, .12, 0, 3.5, 0), bk(Z(pick([0xff3a3a, 0x3a7aff]), .6), .1, 2, 3, 0, 6, 1.5));
+  T.brick.decor.push(rxSpawn, rxBloxy, rxCar, rxTree, rxTree, rxFlag);
+  // Battle Island
+  const bfTent = () => grp(bk(K(0xd8d0b8), 6, 3.4, 5, 0, 1.7, 0), pb('sqpyr', K(0xe8e0c8), 7, 2.4, 6, 0, 4.6, 0, 0, Math.PI / 4), bk(K(0x2a2a2a), 1.4, 2.4, .1, 0, 1.2, 2.55));
+  const bfCrate = () => grp(bk(K(0x6a8a3a), 2, 2, 2, 0, 1, 0), bk(K(0x3a4a1a), 2.1, .25, 2.1, 0, 1, 0), bk(K(0x6a8a3a), 1.6, 1.6, 1.6, 2, .8, .5));
+  const bfSnipe = () => grp(bk(K(0x6a5a3a), 4, .4, 4, 0, 8, 0), ...[[-1.8, -1.8], [1.8, -1.8], [-1.8, 1.8], [1.8, 1.8]].map(([x, z]) => pb('cyl', K(0x5a4a2a), .15, 8, .15, x, 4, z)), bk(K(0x6a5a3a), 4, 1.2, .2, 0, 8.8, -2));
+  const bfGlider = () => grp(pb('torus', Z(0xff3a7a, .6), 2.6, 2.6, 2.6, 0, 22, 0, Math.PI / 2 + .3), bk(Z(0x3a7aff, .6), 5, .2, 1.2, 0, 23.4, 0));
+  const bfShield = () => grp(pb('cyl', iron, .6, 1.4, .6, 0, .7, 0), pb('sph', Z(0x3ad0ff, 1.2), .5, .5, .5, 0, 1.8, 0, false));
+  T.storm.decor.push(bfTent, bfTent, bfCrate, bfCrate, bfSnipe, bfGlider, bfShield);
+  // Poolrooms
+  const prSlide = () => grp(pb(new THREE.TorusGeometry(3, .55, 8, 16, Math.PI * 1.3), Z(0x5ad0ff, .4), 1, 1, 1, 0, 3.4, 0, Math.PI / 2), pb('cyl', iron, .15, 6, .15, -2.6, 3, 0));
+  const prDuct = () => grp(bk(K(0xe8f4f4), 3, 2, 14, 0, 9, 0), pb('cyl', K(0xcfdfdf), .3, 2, .3, 0, 8, 0));
+  const prLife = () => grp(pb(geo.torus, K(0xe53935), 1.2, 1.2, 1.2, 0, 1.4, 0, 0, 0, 0), pb(geo.torus, white, 1.22, 1.22, .9, 0, 1.4, 0, 0, 0, 0), pb('cyl', K(0xc8d8d8), .1, 2.8, .1, 0, 1.4, -.5));
+  const prSign = () => grp(pb('cyl', chrome, .08, 3, .08, 0, 1.5, 0), bk(K(0xfff6a0), 1.8, 1.2, .1, 0, 3.2, 0), bk(K(0x1a5ad8), 1.2, .3, .12, 0, 3.2, 0));
+  T.pool.decor.push(prSlide, prDuct, prLife, prLife, prSign);
+  // The End
+  const enObelisk = () => { const h = R(14, 26); return grp(pb('cyl', K(0x1a1a22, { roughness: .5 }), 1.8, h, 1.8, 0, h / 2, 0), pb('sph', Z(0xd04aff, 1.2), .7, .7, .7, 0, h + 1.2, 0, false), pb(geo.torus, Z(0xff3a3a, .8), 1.4, 1.4, 1.4, 0, h + 1.2, 0, Math.PI / 2)); };
+  const enChorus = () => { const h = R(5, 10); return grp(bk(K(0x8a5a9a), 1.2, h, 1.2, 0, h / 2, 0), bk(K(0x9a6aaa), 3, 1.2, 1.2, 1.2, h * .7, 0), bk(K(0xc8a8d8), 1.4, 1.4, 1.4, 0, h + .7, 0), bk(K(0xc8a8d8), 1.2, 1.2, 1.2, 2.4, h * .7 + 1, 0)); };
+  const enPortal = () => grp(bk(K(0x2a3a2a), 6, 1, 6, 0, .5, 0), bk(Z(0x0a1a2a, .8), 4, .2, 4, 0, 1.05, 0), ...[-2, -1, 0, 1, 2].map(i => bk(Z(0x4aff8a, .9), .6, .5, .6, i * 1.1, 1.2, 2.8)));
+  const enEnder = () => grp(bk(K(0x14081c), .8, 5, .8, 0, 3.8, 0), bk(K(0x14081c), 1, 1, 1, 0, 6.8, 0), bk(Z(0xd04aff, 1.4), .6, .12, .1, 0, 6.9, .52), bk(K(0x14081c), .3, 3.4, .3, -.8, 2.2, 0), bk(K(0x14081c), .3, 3.4, .3, .8, 2.2, 0));
+  T.end.decor.push(enObelisk, enObelisk, enChorus, enChorus, enPortal, enEnder, enEnder);
+  // City of Tears
+  const ctLamp = () => grp(pb('cyl', iron, .14, 7, .14, 0, 3.5, 0), pb('sph', Z(0xbfe8ff, 1.4), .6, .8, .6, 0, 7.4, 0, false), pb('cone', iron, .7, .5, .7, 0, 8.2, 0));
+  const ctStatue = () => grp(bk(cityStone[0], 3, 1.4, 3, 0, .7, 0), bk(cityStone[1], 1.4, 4.2, 1.2, 0, 3.5, 0), pb('sph', cityStone[1], .8, .9, .8, 0, 6, 0), bk(cityStone[1], 3, .5, .6, 0, 5, 0));
+  const ctRain = () => grp(...Array.from({ length: 10 }, () => bk(Z(0xbfe8ff, .4), .04, 2, .04, R(-3, 3), R(8, 20), R(-3, 3))));
+  const ctBalc = () => grp(bk(cityStone[0], 7, .6, 3, 0, 10, 0), ...[-3, -1, 1, 3].map(x => bk(cityTrim, .3, 1.4, .3, x, 10.9, 1.3)), bk(cityTrim, 7, .2, .3, 0, 11.6, 1.3), bk(cityStone[2], 5, 9, 1, 0, 5, -1.2));
+  T.city.decor.push(ctLamp, ctLamp, ctStatue, ctRain, ctBalc);
+  // Bellhart
+  const bhStall = () => grp(bk(K(0x6a4a2a), 4, 1.2, 2, 0, .6, 0), pb('sqpyr', K(pick([0xc83a3a, 0xe8c040, 0x3a7ac8])), 4.6, 1.2, 2.8, 0, 4, 0, 0, Math.PI / 4), pb('cyl', K(0x5a3a22), .1, 3, .1, -1.9, 2.4, .9), pb('cyl', K(0x5a3a22), .1, 3, .1, 1.9, 2.4, .9));
+  const bhWell = () => grp(pb('cyl', stoneG, 1.3, 1.2, 1.3, 0, .6, 0), pb('cyl', Z(0x3a6a9a, .3), 1, .1, 1, 0, 1.15, 0), pb('cyl', K(0x6a4a2a), .1, 3, .1, -1.2, 2.2, 0), pb('cyl', K(0x6a4a2a), .1, 3, .1, 1.2, 2.2, 0), bk(K(0x6a4a2a), 3, .2, 1, 0, 3.6, 0));
+  const bhBanner2 = () => grp(pb('cyl', K(0x5a3a22), .12, 8, .12, 0, 4, 0), bk(K(0xb83a2a), .06, 4, 1.6, 0, 5.5, .8), bk(gold, .08, .6, 1.7, 0, 3.4, .8));
+  const bhCart = () => grp(bk(K(0x6a4a2a), 4, .6, 2.2, 0, 1.4, 0), pb('cyl', K(0x4a2a12), .9, .25, .9, -1.6, .9, 1.2, Math.PI / 2), pb('cyl', K(0x4a2a12), .9, .25, .9, -1.6, .9, -1.2, Math.PI / 2), pb('cyl', K(0x4a2a12), .06, 3, .06, 2.5, 1.1, 0, 0, 0, 1.3));
+  T.bellhart.decor.push(bhStall, bhStall, bhWell, bhBanner2, bhBanner2, bhCart);
+  // Moss Grotto
+  const mgGlowWorm = () => grp(...Array.from({ length: 7 }, () => pb('cyl', Z(0xb8ff9a, 1), .03, R(2, 5), .03, R(-2, 2), R(8, 12), R(-2, 2), 0, 0, 0, false)));
+  const mgLog = () => grp(pb('cyl', K(0x4a3a22), .9, 5, .9, 0, .9, 0, 0, 0, Math.PI / 2), pb(geo.blob, K(0x3a9a4a), 1, .5, 1, 0, 1.6, 0), pb('cyl', Z(0xb8ff9a, .9), .4, .15, .4, 1.4, 1.6, 0, false));
+  const mgPool = () => grp(pb(geo.blob, Z(0x4ae8b8, .5, { transparent: true, opacity: .8 }), 3.4, .2, 2.6, 0, .1, 0), pb(geo.blob, stoneG, .8, .5, .8, 3.2, .3, 0));
+  T.moss.decor.push(mgGlowWorm, mgLog, mgLog, mgPool);
+  // Mount Fay
+  const mfPeak = () => grp(pb('cone', K(0x8a96a8), 8, 22, 8, 0, 11, 0), pb('cone', snow, 4.4, 8, 4.4, 0, 18, 0));
+  const mfCairn = () => grp(pb(geo.rock, stoneG, 1.6, .7, 1.6, 0, .4, 0), pb(geo.rock, stoneG, 1.2, .6, 1.2, 0, 1.1, 0), pb(geo.rock, snow, .8, .5, .8, 0, 1.7, 0));
+  const mfCabin = () => grp(bk(K(0x6a4a2a), 6, 3.4, 5, 0, 1.7, 0), bk(snow, 7, .8, 6, 0, 4, 0), pb('sqpyr', K(0x5a3a22), 7, 2.4, 5.6, 0, 5.2, 0, 0, Math.PI / 4), bk(Z(0xffc860, 1), 1.1, 1.1, .1, -1.8, 2, 2.55));
+  T.fay.decor.push(mfPeak, mfPeak, mfCairn, mfCairn, mfCabin);
+  // Battlefield / Dream Land / Smashville / Stadium
+  const bfTorch = () => grp(pb('cyl', K(0x8a8478), .5, 2, .5, 0, 1, 0), pb('cone', Z(0xff8a2a, 1.4), .45, 1.2, .45, 0, 2.6, 0, 0, 0, 0, false));
+  const bfStatue = () => grp(bk(K(0xb9b3a4), 2.6, 1, 2.6, 0, .5, 0), bk(K(0xc7c1b2), 1.2, 4, 1, 0, 3, 0), pb('sph', K(0xc7c1b2), .7, .7, .7, 0, 5.4, 0));
+  T.battle.decor.push(bfTorch, bfTorch, bfStatue);
+  const dlStar = () => grp(pb('oct', Z(0xffe04a, 1.1), 1.4, 1.4, .5, 0, R(8, 20), 0, 0, 0, 0, false));
+  const dlRainbow = () => grp(pb(new THREE.TorusGeometry(10, .5, 6, 24, Math.PI), Z(0xff6ab0, .6), 1, 1, .6, 0, 0, 0), pb(new THREE.TorusGeometry(9, .5, 6, 24, Math.PI), Z(0xffe04a, .6), 1, 1, .6, 0, 0, 0), pb(new THREE.TorusGeometry(8, .5, 6, 24, Math.PI), Z(0x4ad0ff, .6), 1, 1, .6, 0, 0, 0));
+  T.dream.decor.push(dlStar, dlStar, dlRainbow);
+  const acPond = () => grp(pb(geo.blob, Z(0x4ab0e8, .3, { transparent: true, opacity: .85 }), 5, .2, 3.6, 0, .1, 0), pb('cyl', K(0x3a9a3a), .5, .08, .5, .8, .2, .4));
+  const acBench = () => grp(bk(wood2, 3, .3, 1, 0, .9, 0), bk(wood2, 3, .9, .2, 0, 1.5, -.5), bk(wood, .25, .9, .8, -1.3, .45, 0), bk(wood, .25, .9, .8, 1.3, .45, 0));
+  T.smashv.decor.push(acPond, acBench, acBench);
+  const psStat = () => grp(pb('cyl', K(0xdfe3ea), 1.4, 6, 1.4, 0, 3, 0), pb('sph', Z(0xff3a3a, .5), 1.4, 1.4, 1.4, 0, 6.8, 0), bk(white, 3, .3, 3, 0, .2, 0));
+  T.stadium.decor.push(psStat, psStat);
+  // Tilted Towers / Moray / Obby
+  const tiTruck = () => grp(bk(K(0x2a5aa8), 6, 2, 2.6, 0, 1.8, 0), bk(K(0x2a5aa8), 2, 1.8, 2.4, 3.3, 1.7, 0), ...[[-2, -1.3], [-2, 1.3], [2, -1.3], [2, 1.3]].map(([x, z]) => pb('cyl', iron, .6, .5, .6, x, .6, z, Math.PI / 2)));
+  const tiLamp = () => grp(pb('cyl', iron, .15, 9, .15, 0, 4.5, 0), bk(iron, 2.2, .2, .4, .8, 9.1, 0), bk(Z(0xfff2c0, 1), .6, .1, .3, 1.5, 9, 0));
+  const tiHydrant = () => grp(pb('cyl', K(0xc83a3a), .4, 1.3, .4, 0, .65, 0), pb('sph', K(0xc83a3a), .4, .3, .4, 0, 1.4, 0));
+  T.tilted.decor.push(tiTruck, tiLamp, tiLamp, tiHydrant, tiHydrant);
+  const mtRail = () => grp(bk(K(0x7a8090, { metalness: .5 }), 8, .2, .2, 0, 1.2, 0), bk(K(0x7a8090), 8, .2, .2, 0, .6, 0), ...[-3.6, 0, 3.6].map(x => bk(K(0x7a8090), .2, 1.3, .2, x, .65, 0)));
+  const mtRoller = () => grp(pb('cyl', Z(pick([0xff2d95, 0x2dffa5]), .7), 1.2, 6, 1.2, 0, 1.2, 0, 0, 0, Math.PI / 2), bk(iron, .4, .6, 1.6, -3, .5, 0), bk(iron, .4, .6, 1.6, 3, .5, 0));
+  T.moray.decor.push(mtRail, mtRail, mtRoller);
+  const obPad = () => grp(bk(Z(0x4aff7a, .8), 4, .4, 4, 0, .2, 0), pb('cone', Z(0xffffff, .8), .8, 1.2, .8, 0, 1, 0));
+  const obWall = () => grp(bk(Z(pick([0xff4a4a, 0x4ac8ff, 0xffd23f]), .5), 6, 4, .8, 0, 2, 0), ...[-2, 0, 2].map(x => bk(Z(0xffffff, .3), 1.4, 1.4, .1, x, 2, .45)));
+  T.obby.decor.push(obPad, obWall, obWall);
+  // Village / Greenpath / Deepnest / Inkopolis / Final Dest / Mushroom / Deep Docks / Loot Lake / Garage
+  const vlSmith = () => grp(bk(cobbleX, 6, 3.4, 5, 0, 1.7, 0), bk(plankX, 6.4, .4, 5.4, 0, 3.6, 0), bk(K(0x2a2a2a), 1.2, 1.6, 1.2, 2.4, 4.4, 1), bk(Z(0xff7a1a, 1), 1, .2, 1, 2.4, 3.3, 1, 0));
+  const vlBell = () => grp(bk(logX, .4, 5, .4, -1.2, 2.5, 0), bk(logX, .4, 5, .4, 1.2, 2.5, 0), bk(plankX, 3, .4, 1, 0, 5.2, 0), bk(Z(0xffd23f, .6), .8, .9, .8, 0, 4.3, 0));
+  T.village.decor.push(vlSmith, vlBell, vlBell);
+  const gpBridge = () => grp(bk(K(0x6a5a3a), 8, .3, 3, 0, 1.2, 0), ...[-3.6, 3.6].map(x => bk(K(0x5a4a2a), .3, 1.2, 3, x, .6, 0)), ...[-3, 3].map(z => bk(K(0x5a4a2a), 8, .15, .15, 0, 2, z)));
+  const gpFern = () => grp(...Array.from({ length: 7 }, (_, i) => pb('cone', gpM[1], .3, R(2, 3.4), .3, Math.cos(i) * .6, 1.2, Math.sin(i) * .6, Math.sin(i) * .7, 0, -Math.cos(i) * .7)));
+  T.greenpath.decor.push(gpBridge, gpFern, gpFern, gpFern);
+  const dnNest = () => grp(pb('sph', web, 2.2, 1.6, 2.2, 0, 1.2, 0), ...Array.from({ length: 4 }, () => pb('sph', bone, .35, .5, .35, R(-1, 1), .8, R(-1, 1))));
+  const dnStalac = () => grp(pb('cone', dnM[1], 1.2, R(6, 12), 1.2, 0, 40, 0, Math.PI));
+  T.deepnest.decor.push(dnNest, dnNest, dnStalac, dnStalac);
+  const ikVend = () => grp(bk(K(0x2a2a40), 2.2, 3.4, 1.6, 0, 1.7, 0), bk(Z(pick([0xff2d95, 0x2dffa5]), 1.2), 1.7, 2.2, .1, 0, 1.9, .82));
+  const ikBench = () => grp(bk(K(0x2a2a40), 3.4, .3, 1.2, 0, .9, 0), bk(Z(pick([0xff2d95, 0x2dffa5]), .8), 3.4, .15, .2, 0, 1.7, -.5), bk(K(0x2a2a40), .3, .9, 1, -1.5, .45, 0), bk(K(0x2a2a40), .3, .9, 1, 1.5, .45, 0));
+  T.inkopolis.decor.push(ikVend, ikBench, ikBench);
+  const fdRock = () => grp(pb('oct', K(0x3a2a5a, { roughness: .4 }), R(1.4, 3), R(1, 2), R(1.4, 3), 0, R(4, 18), 0, R(-.4, .4), R(0, 3), R(-.4, .4)));
+  const fdBeam = () => grp(pb('cyl', Z(0xb06aff, 1.2, { transparent: true, opacity: .25, depthWrite: false }), .5, 60, .5, 0, 30, 0));
+  T.finaldest.decor.push(fdRock, fdRock, fdBeam);
+  const msStem = () => grp(bk(mshS, 1.8, 6, 1.8, 0, 3, 0), bk(K(0xc8a878), 6, 1.2, 6, 0, 6.6, 0));
+  const msSpore = () => grp(...Array.from({ length: 8 }, () => pb('sph', Z(0xe8d8f8, .8), .12, .12, .12, R(-2, 2), R(1, 5), R(-2, 2), 0, 0, 0, false)));
+  T.mushroom.decor.push(msStem, msSpore, msSpore);
+  const ddRail = () => grp(bk(ddM[0], 10, .2, .6, 0, .3, 0), bk(ddM[0], 10, .2, .6, 0, .3, 1.6), ...Array.from({ length: 6 }, (_, i) => bk(ddM[1], .3, .2, 2.2, -4.5 + i * 1.8, .12, .8)));
+  const ddLamp = () => grp(pb('cyl', ddM[1], .1, 5, .1, 0, 2.5, 0), pb('sph', Z(0xff9a40, 1.5), .5, .5, .5, 0, 5.2, 0, false));
+  const ddDrum = () => grp(pb('cyl', K(0x8a3a1a), .9, 1.8, .9, 0, .9, 0), pb('cyl', ddBrass, .95, .15, .95, 0, 1.8, 0));
+  T.deepdocks.decor.push(ddRail, ddLamp, ddLamp, ddDrum, ddDrum);
+  const llBoat = () => grp(bk(K(0xe8e8e8), 5, .9, 2, 0, .6, 0), bk(K(0x3b82d8), 5.1, .25, 2.1, 0, .9, 0), pb('cyl', K(0xc8c8c8), .08, 3.4, .08, 0, 2.4, 0), bk(K(0xffffff), .06, 2.4, 1.6, 0, 2.6, .8));
+  const llTent = () => grp(pb('cone', K(0x3a7ac8), 2.6, 2.6, 2.6, 0, 1.3, 0, 0, Math.PI / 4), bk(K(0x1a2a3a), .9, 1.6, .1, 0, .8, 1.2));
+  T.lootlake.decor.push(llBoat, llTent, llTent, llDock);
+  const gaVend = () => grp(bk(K(0x3a3a3a), 1.8, 3, 1.2, 0, 1.5, 0), bk(Z(0xffc060, .9), 1.3, 1.8, .1, 0, 1.8, .62));
+  const gaCone = () => grp(pb('cone', K(0xff6a1a), .5, 1.1, .5, 0, .55, 0), bk(K(0x222222), 1, .12, 1, 0, .06, 0));
+  const gaPuddle = () => grp(pb(geo.blob, M(0x30302c, { roughness: .05, metalness: .5 }), 3, .05, 2, 0, .06, 0));
+  T.garage.decor.push(gaVend, gaCone, gaCone, gaCone, gaPuddle, gaPuddle);
+
   T.flatMat = c => E(c, 0.2);
   return T;
 }
