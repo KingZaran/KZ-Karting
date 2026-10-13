@@ -280,6 +280,7 @@ function startRace(o, noIntro) {
   karts.forEach(k => scene.remove(k.mesh)); karts = [];
   race = { laps: +o.laps, items: o.items, finishOrder: [], mirror: !!o.mirror, over: false }; $('menuBtn').textContent = '☰ Menu'; hudSig = '';
   MAX = 48 * +o.cls; const diff = +o.diff, usedChars = new Set([o.lo.char]), usedPaints = new Set([o.lo.paint]);
+  const dLvl = diff <= .85 ? { lvl: 0, skill: 1.07, rubber: .15, drift: .9 } : diff <= .95 ? { lvl: 1, skill: 1.15, rubber: .21, drift: 1 } : { lvl: 2, skill: 1.28, rubber: .3, drift: 1 };   // tougher CPUs: Easy~old Hard, Normal harder, Hard much harder
   const OL = o.online, total = OL ? OL.roster.length : Math.min(12, o.bots + 1);   // never more than 12 racers
   if (OL && OL.host) { /* host runs the CPU karts */ }
   for (let n = 0; n < total; n++) {
@@ -288,7 +289,7 @@ function startRace(o, noIntro) {
     const p = samples[idx].clone().addScaledVector(nrm, side*4);
     const lo = OL ? (OL.roster[n].lo || randomLoadout()) : n === 0 ? o.lo : randomLoadout(usedChars, usedPaints), st = computeStats(lo);
     karts.push({ lo, col: PAINT[lo.paint].hex, mesh: makeKart(PAINT[lo.paint].hex, lo), top: MAX * st.speedMul, acc: ACC * st.accMul, hand: st.hand, driftMul: st.driftMul, mass: st.mass, size: st.size, spinMul: st.spinMul, offMul: st.offMul, pos: p, heading: Math.atan2(t.x, t.z), speed: 0, idx, lap: -1, progress: -1 + idx/N, boost: 0, driftT: 0, item: null, spin: 0, star: 0, shrink: 0, rocket: 0, plantT: 0, invuln: 0, useCd: 0, inkT: 0, coins: 0, hopY: 0,
-      isBot: OL ? !!(OL.roster[n].bot && OL.host) : n !== 0, remote: OL ? (OL.roster[n].bot ? !OL.host : OL.roster[n].id !== OL.me) : false, pid: OL ? OL.roster[n].id : null, name: OL ? OL.roster[n].name : n === 0 ? 'YOU' : 'Bot ' + n, skill: diff - Math.random() * 0.12, lane: (Math.random()-.5) * (WIDTH * .5), finished: false , immune: 0, starT: 0, rocketT: 0, ink: 0, useAt: 0, gotAt: 0 });
+      isBot: OL ? !!(OL.roster[n].bot && OL.host) : n !== 0, remote: OL ? (OL.roster[n].bot ? !OL.host : OL.roster[n].id !== OL.me) : false, pid: OL ? OL.roster[n].id : null, name: OL ? OL.roster[n].name : n === 0 ? 'YOU' : 'Bot ' + n, skill: dLvl.skill - Math.random() * .05, rubber: dLvl.rubber, drifter: Math.random() < dLvl.drift, line: Math.random(), diffLvl: dLvl.lvl, lane: (Math.random()-.5) * (WIDTH * .5), finished: false , immune: 0, starT: 0, rocketT: 0, ink: 0, useAt: 0, gotAt: 0 });
   }
   karts.forEach(k => k.mesh.scale.setScalar(k.size)); lastTheme = null; player = karts.find(k => !k.isBot && !k.remote) || karts[0]; ranked = [...karts]; spawnBoxes(); clock.getDelta(); $('big').textContent = ''; $('shellAlert').style.display = 'none';
   if (noIntro) { $('hud').style.display = $('menuBtn').style.display = 'block'; state = 'grid'; gridPhase(); }
@@ -656,7 +657,7 @@ function updatePlayer(k, dt) {
   const grip = Math.min(1, Math.abs(k.speed)/20) * Math.sign(k.speed || 1);
   k.steer = (k.steer || 0) + (steer - (k.steer || 0)) * Math.min(1, 9 * dt);
   k.heading += k.steer * (drifting ? 2.4 : 1.6) * k.hand * (1 - .25 * Math.min(1, Math.abs(k.speed) / MAX)) * grip * dt;
-  if (drifting) k.driftT += dt * k.driftMul; else { if (k.driftT > 1.2) k.boost = Math.max(k.boost, 1.2); else if (k.driftT > .6) k.boost = Math.max(k.boost, .6); k.driftT = 0; }
+  if (drifting) k.driftT += dt * k.driftMul * (1 + (k.diffLvl || 0) * .25); else { if (k.driftT > 2) { k.boost = Math.max(k.boost, 1.8); k.speed += 5; } else if (k.driftT > 1.2) k.boost = Math.max(k.boost, 1.2); else if (k.driftT > .6) k.boost = Math.max(k.boost, .6); k.driftT = 0; }
   k.boost = Math.max(0, k.boost - dt); move(k, dt);
 }
 // ---------- online: mirror other players from their broadcast state ----------
@@ -679,20 +680,34 @@ online.handlers = {
 };
 function updateBot(k, dt) {
   const near = nearest(k.pos.x, k.pos.z, k.idx); k.idx = near.i; if (grounding(k, near, dt)) return;
-  if (k.spin > 0) { k.speed *= Math.pow(.2, dt); move(k, dt); return; }
+  if (k.spin > 0) { k.speed *= Math.pow(.2, dt); k.drifting = false; k.driftT = 0; move(k, dt); return; }
   if (k.isBot && state === 'racing') botItems(k);
-  const rk = k.rocketT > 0, target = samples[(k.idx + 12) % N], t = tangent((k.idx + 12) % N), nrm = V(-t.z, 0, t.x);
-  const aim = target.clone().addScaledVector(nrm, rk ? 0 : k.lane);
+  const rk = k.rocketT > 0, sp01 = Math.min(1, Math.abs(k.speed) / Math.max(1, k.top));
+  // look further ahead the faster we go, and read the corner shape (sign = which way it bends, size = how sharp)
+  const la = 8 + Math.round(sp01 * 12), target = samples[(k.idx + la) % N], t = tangent((k.idx + la) % N), nrm = V(-t.z, 0, t.x);
+  const tA = tangent((k.idx + 5) % N), tB = tangent((k.idx + 24) % N), bend = tA.x * tB.z - tA.z * tB.x, sharp = Math.abs(bend);
+  // racing line: hug the inside of the upcoming bend, otherwise keep the bot's own lane; swing wide of karts directly ahead
+  let lane = k.lane * (1 - Math.min(1, sharp * 2.2)) + Math.sign(bend) * Math.min(1, sharp * 1.6) * WIDTH * .36 * (.6 + .4 * k.line);
+  if (state === 'racing') for (const o of karts) { if (o === k || o.finished) continue; const dx = o.pos.x - k.pos.x, dz = o.pos.z - k.pos.z, fwd = dx * Math.sin(k.heading) + dz * Math.cos(k.heading); if (fwd > 1 && fwd < 16) { const side = dx * Math.cos(k.heading) - dz * Math.sin(k.heading); if (Math.abs(side) < 3.4) lane += (side > 0 ? -1 : 1) * 3.2 * (1 - fwd / 16); } }
+  lane = Math.max(-WIDTH * .42, Math.min(WIDTH * .42, lane));
+  const aim = target.clone().addScaledVector(nrm, rk ? 0 : lane);
   let diff = Math.atan2(aim.x - k.pos.x, aim.z - k.pos.z) - k.heading; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-  k.heading += Math.max(-2.2*k.hand*dt, Math.min(2.2*k.hand*dt, diff*9*dt));
-  k.steer = (k.steer || 0) + (Math.max(-1, Math.min(1, diff * 2.5)) - (k.steer || 0)) * Math.min(1, 8 * dt); k.off = near.d > WIDTH/2 + 1; k.drifting = false;
+  // drifting: commit into sharp bends at speed, charge mini-turbo, release on the exit for a boost (same thresholds as the player)
+  const want = state === 'racing' && !rk && k.drifter && Math.abs(k.speed) > 22 && (k.drifting ? sharp > .1 : sharp > .19) && Math.abs(diff) < 1.3;
+  if (want) { k.drifting = true; k.driftT += dt * k.driftMul; } else { if (k.drifting) { if (k.driftT > 1.2) k.boost = Math.max(k.boost, 1.2); else if (k.driftT > .6) k.boost = Math.max(k.boost, .6); } k.drifting = false; k.driftT = 0; }
+  const turn = (k.drifting ? 3.1 : 2.4) * k.hand;
+  k.heading += Math.max(-turn * dt, Math.min(turn * dt, diff * 9 * dt));
+  k.steer = (k.steer || 0) + (Math.max(-1, Math.min(1, diff * 2.5)) - (k.steer || 0)) * Math.min(1, 8 * dt); k.off = near.d > WIDTH / 2 + 1;
   k.boost = Math.max(0, k.boost - dt);
-  let ts = state === 'racing' ? k.top * k.skill * (1 - Math.min(.35, Math.abs(diff)*.5)) : 0;
+  // speed: only lift for genuinely sharp turns (less when drifting); rubber-band a little against the leader
+  let ts = state === 'racing' ? k.top * k.skill * (1 - Math.min(.3, Math.abs(diff) * (k.drifting ? .12 : .28)) - Math.max(0, sharp - .55) * (k.drifting ? .03 : .12)) : 0;
+  if (state === 'racing' && player && !player.finished) { const gap = player.progress - k.progress; if (gap > 0) ts *= 1 + Math.min(k.rubber, gap * 1.1); else if (gap < -.12 && k.diffLvl === 0) ts *= .96; }
   ts *= (k.shrink > 0 ? .7 : 1) * (1 + k.coins * .012); if (k.boost > 0 || k.starT > 0) ts *= 1.3; if (rk) ts = k.top * 1.6;
-  k.speed += Math.sign(ts - k.speed) * Math.min(Math.abs(ts - k.speed), k.acc * (rk ? 3 : 1) * dt); move(k, dt);
+  k.speed += Math.sign(ts - k.speed) * Math.min(Math.abs(ts - k.speed), k.acc * (rk ? 3 : 1.15) * dt); move(k, dt);
 }
 // Mario Kart 8 style rocket start: hold accelerate when the "2" appears (~2s before GO) for the best boost; later = weaker; before = spin out
 function rocketStart() {
+  for (const b of karts) if (b.isBot && !b.remote && Math.random() < [.6, .85, 1][b.diffLvl || 0]) { b.boost = Math.max(b.boost, .6 + Math.random() * .8); b.speed += 6 + Math.random() * 8; }
   const p = player; if (!p || p.remote) return;
   if (rsPress !== null && rsPress > 2.05) { p.spin = .9 * (p.spinMul || 1); p.speed = 0; p.immune = Math.max(p.immune || 0, 1); audio.sfx('hit'); $('big').textContent = 'TOO EARLY!'; }
   else if (rsPress !== null) { const q = rsPress >= 1.75 ? 1 : Math.max(0, (rsPress - .35) / 1.4); if (q > .05) { p.boost = Math.max(p.boost, .4 + 1.1 * q); p.speed += 6 + 9 * q; burst(p.pos, 0xffb040, 16, 10); audio.sfx('boost'); $('big').textContent = q >= 1 ? 'ROCKET START!' : 'GO!'; } }
@@ -799,5 +814,22 @@ const garage = createGarage(THREE, $('gcanvas')), garageUI = initGarageUI({ $, a
 const menus = initMenus({ $, show, audio, garageUI, startFlow: () => {}, onSingle: () => flow.startSingle(), onOnline: () => flow.startOnline(), onSettings: () => flow.startSettings(), onLeave: () => online.leave() });
 const flow = initFlow({ $, show, audio, garageUI, openControls: () => ctl.open(), TRACKS, THEMES, ITEMS, itemIcon, drawThumb, online, startGame: o => startRace(o), toMain: () => menus.go('main') });
 startShowcase();
-preloadModels(THREE).then(ok => { if (ok) { garageUI.refresh(); if (state === 'idle') startShowcase(); } });
+// ---------- loading screen: preload 3D models, audio and per-map materials, then zoom into the title ----------
+const LD = $('loader'), ldFill = $('ldfill'), ldTxt = $('ldtxt'), ldW = { m: [0, .5], a: [0, .25], w: [0, .25] }; let ldDone = false;
+const ldBlock = e => { if (!ldDone) { e.stopImmediatePropagation(); e.preventDefault(); } };
+for (const ev of ['keydown', 'pointerdown', 'touchstart', 'mousedown', 'click']) addEventListener(ev, ldBlock, true);
+const ldSet = (k, f, label) => { ldW[k][0] = Math.max(0, Math.min(1, f)); const t = Object.values(ldW).reduce((a, [v, w]) => a + v * w, 0); ldFill.style.width = Math.round(t * 100) + '%'; if (label) ldTxt.textContent = label; };
+const ldFinish = () => { if (ldDone) return; ldDone = true; ldFill.style.width = '100%'; ldTxt.textContent = 'READY'; setTimeout(() => { $('title').classList.add('zoomin'); LD.classList.add('done'); setTimeout(() => LD.remove(), 800); }, 250); };
+(async () => {
+  const cap = setTimeout(ldFinish, 40000);   // never trap anyone on the loading screen
+  let modelsOk = false;
+  const tM = preloadModels(THREE, (d, n) => ldSet('m', d / n, `LOADING MODELS ${d}/${n}`)).then(ok => { modelsOk = ok; ldSet('m', 1); if (ok) { garageUI.refresh(); if (state === 'idle') startShowcase(); } }).catch(() => ldSet('m', 1));
+  const tA = Promise.race([audio.prefetch((d, n) => ldSet('a', d / n, 'LOADING AUDIO')), new Promise(r => setTimeout(r, 12000))]).catch(() => {}).then(() => ldSet('a', 1));
+  await Promise.all([Promise.race([tM, new Promise(r => setTimeout(r, 25000))]), tA]);
+  // warm-up: build every zone's road / kerb / wall textures and compile shaders so the first race doesn't stutter
+  const ths = Object.entries(THEMES); let i = 0;
+  for (const [id, th] of ths) { try { SC.roadMaterial(id, th); SC.kerbMaterial(th); if (th.walls) { SC.wallMaterial(th); SC.ceilMaterial(th); } } catch (e) {} ldSet('w', ++i / (ths.length + 1), 'PREPARING MAPS'); await new Promise(r => setTimeout(r, 0)); }
+  try { renderer.compile(scene, camera); } catch (e) {} ldSet('w', 1);
+  clearTimeout(cap); ldFinish();
+})();
 loop();

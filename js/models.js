@@ -19,7 +19,7 @@ export function cloneModel(obj) {
   return c;
 }
 
-export async function preloadModels(THREE) {
+export async function preloadModels(THREE, onProgress) {
   let manifest;
   try { const r = await fetch('models/manifest.json', { cache: 'no-cache' }); if (!r.ok) return false; manifest = await r.json(); } catch (e) { return false; }
   const list = v => Object.entries(v || {});
@@ -42,7 +42,7 @@ export async function preloadModels(THREE) {
     }); });
     await Promise.all(jobs);
   }
-  const load = url => new Promise(res => loader.load(url, async g => { try { await fixLegacy(g); } catch (e) { console.warn('legacy material fix failed', e); } res(g.scene); },
+  let ldDone = 0; let load = url => new Promise(res => loader.load(url, async g => { try { await fixLegacy(g); } catch (e) { console.warn('legacy material fix failed', e); } res(g.scene); },
     undefined, err => { console.warn('Model failed to load:', url, err && err.message || err); res(null); }));
   const cfg = v => typeof v === 'string' ? { url: v } : v;
 
@@ -265,6 +265,7 @@ export async function preloadModels(THREE) {
     if (!posed) { const c = box.getCenter(V3()); placed.position.set(-c.x, -box.min.y, -c.z); }
     return holder;
   }
+  const load0 = load; load = url => load0(url).then(r => { ldDone++; if (onProgress) onProgress(ldDone, wanted); return r; });
   const jobs = [];
   for (const [id, v] of list(manifest.karts)) { const o = cfg(v); jobs.push(load(o.url).then(m => { if (m) { tame(m); MODELS.karts[id] = fit(m, 'z', o.length || getKart(id).l + .8); } })); }
   for (const [id, v] of list(manifest.chars)) { const o = cfg(v); jobs.push(load(o.url).then(m => { if (m) { try { MODELS.chars[id] = fitChar(m, { ...o, id }); } catch (e) { console.warn('Character failed to set up:', id, e); } } })); }

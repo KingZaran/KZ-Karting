@@ -100,5 +100,7 @@ export function createAudio() {
   let curSyn = null;
   function stopMus() { clearInterval(timer); timer = null; curSyn = null; if (musSrc) { try { musSrc.stop(); } catch (e) {} musSrc = null; } curMus = null; }
   function toggle() { muted = !muted; if (master) master.gain.value = muted ? 0 : .6; if (musG) musG.gain.value = muted ? 0 : .5; return muted; }
-  return { init, engine, silence, sfx, music, toggle, jingle, dur, stopJingles, musicVol };
+  // fetch every audio file into the browser cache up front (decoding still waits for the first tap, when the AudioContext is allowed)
+  function prefetch(onP) { const names = FILES.filter(n => !TRACKS.some(t => n === 'music-' + t.id)); let d = 0; const n = names.length; const one = async f => { for (const ext of ['mp3', 'wav']) { const ac = new AbortController(), to = setTimeout(() => ac.abort(), 6000); try { const r = await fetch(`audio/${f}.${ext}`, { signal: ac.signal }); if (r.ok) { await r.arrayBuffer(); clearTimeout(to); break; } } catch (e) {} clearTimeout(to); } d++; if (onP) onP(d, n); }; let q = 0; const worker = async () => { while (q < n) await one(names[q++]); }; return Promise.all([worker(), worker(), worker(), worker()]); }
+  return { init, prefetch, engine, silence, sfx, music, toggle, jingle, dur, stopJingles, musicVol };
 }
