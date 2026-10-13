@@ -377,6 +377,78 @@ export function buildThemes(THREE) {
   T.garage = { name: 'Level 1', sky: 0x1a1812, ground: 0x4a4a46, road: 0x5a5a56, roadStyle: 'stone', edge: 0xe8c020, line: '#e8c020', kerb: ['#e8c020', '#222222'], accent: '#e8c020', fog: [50, 300], hemi: .75, sun: .3, stars: 0, clouds: 0, mount: 0x2a2a26, mountTop: 0x6a6a60, hill: .1, lamp: 0xffc060,
     decor: [gaPillar, gaPillar, gaPillar, gaLight, gaLight, gaBarrier, gaBarrier, gaCar, gaCar, gaPipe, gaSign] };
 
+  // ===== detail pass 1: extra realistic props for the original zones =====
+  const wood = M(0x8a5a2b, { roughness: .9 }), wood2 = M(0xb5834a, { roughness: .9 }), stoneG = M(0x8a8a86, { roughness: 1 });
+  // Sunny Meadow: red barn, windmill, hay, fence, signpost, pond, sunflowers, grandstand, tyre stack
+  const mdBarn = () => grp(bk(M(0xb83a2a, { roughness: .85 }), 9, 5.5, 7, 0, 2.75, 0), pb('sqpyr', M(0x5a3a2a), 10.4, 3.4, 8.4, 0, 7.2, 0, 0, Math.PI / 4), bk(white, 3, 3.8, .15, 0, 1.9, 3.55), bk(wood, .25, 3.8, .2, 0, 1.9, 3.6, 0), bk(white, 3.2, .25, .2, 0, 3.9, 3.6), bk(M(0xe8e8e0), .5, 5.4, .2, -3.2, 2.7, 3.55), bk(M(0xe8e8e0), .5, 5.4, .2, 3.2, 2.7, 3.55));
+  const mdWindmill = () => { const g = grp(pb('cone', M(0xe8e0d0), 2.6, 12, 2.6, 0, 6, 0), pb('cone', M(0x7a3a2a), 3, 2.4, 3, 0, 13, 0)); for (let k = 0; k < 4; k++) { const bg = new THREE.BoxGeometry(.6, 4.6, .12); bg.translate(0, 2.4, 0); const b = new THREE.Mesh(bg, wood2); b.castShadow = true; b.position.set(0, 11.6, 1.7); b.rotation.z = k * Math.PI / 2 + .3; g.add(b); } return g; };
+  const mdHay = () => grp(pb('cyl', M(0xd8c060, { roughness: 1 }), 1.7, 1.7, 1.7, 0, 1.7, 0, Math.PI / 2), pb('cyl', M(0xb8a040), 1.72, .1, 1.72, 0, 1.7, .86, Math.PI / 2));
+  const mdFence = () => grp(...[-3, -1, 1, 3].map(x => bk(wood, .3, 1.6, .3, x, .8, 0)), bk(wood2, 7, .22, .12, 0, 1.3, 0), bk(wood2, 7, .22, .12, 0, .7, 0));
+  const mdSign = () => grp(pb('cyl', wood, .16, 3.2, .16, 0, 1.6, 0), bk(wood2, 3.2, 1, .2, 0, 3.2, 0), bk(white, 2.8, .12, .22, 0, 3.4, 0), bk(white, 2.8, .12, .22, 0, 3, 0));
+  const mdPond = () => grp(pb(geo.blob, E(0x3a9ad8, .25, { transparent: true, opacity: .85 }), R(5, 8), .2, R(4, 6), 0, .08, 0), pb(geo.blob, stoneG, 1, .6, 1, 4.6, .3, 1), pb(geo.blob, stoneG, .8, .5, .8, -4.4, .25, -1), pb('cyl', leaves[0], .6, .08, .6, 1, .2, .5), pb('cyl', leaves[1], .5, .08, .5, -1.4, .2, -1.2));
+  const mdSunflower = () => grp(...Array.from({ length: 5 }, () => { const x = R(-1.4, 1.4), z = R(-1.4, 1.4), h = R(2.4, 3.6); return grp(pb('cyl', leaves[2], .07, h, .07, x, h / 2, z), pb('cyl', M(0xffcc1a), .5, .08, .5, x, h, z, Math.PI / 2.4), pb('cyl', M(0x4a2a12), .22, .1, .22, x, h, z + .04, Math.PI / 2.4)); }));
+  const mdStand = () => { const g = grp(bk(M(0xcfcfd4), 12, .4, 1.6, 0, .2, 0)); for (let i = 0; i < 4; i++) { g.add(bk(M(0xe8e8ee), 12, .5, 1.6, 0, .6 + i * .8, -i * 1.4), bk(pick([M(0xe53935), M(0x1e88e5), M(0xffffff)]), 12, .12, .4, 0, 1 + i * .8, -i * 1.4 + .7)); for (let j = 0; j < 7; j++) g.add(pb('sph', E(pick([0xff5a5a, 0x5ab0ff, 0xffd23f, 0xffffff]), .3), .3, .3, .3, -5 + j * 1.6, 1.4 + i * .8, -i * 1.4, false)); } g.add(pb('cyl', iron, .08, 6, .08, -6, 3, 0), pb('cyl', iron, .08, 6, .08, 6, 3, 0), bk(M(0xe53935), 12, .25, .1, 0, 6, 0)); return g; };
+  const mdTyres = () => grp(...[0, 1, 2].map(i => pb(geo.torus, M(0x1a1a1e, { roughness: .9 }), .75, .75, .75, 0, .35 + i * .5, 0, Math.PI / 2)), pb(geo.torus, M(0xe53935, { roughness: .9 }), .75, .75, .75, 0, 1.85, 0, Math.PI / 2));
+  T.meadow.decor.push(mdBarn, mdWindmill, mdHay, mdHay, mdFence, mdFence, mdSign, mdPond, mdSunflower, mdSunflower, mdStand, mdTyres, mdTyres);
+
+  // Dunes: pyramid, palm, oasis, ruins, skull, tent
+  const dnSand = M(0xd8b86a, { roughness: 1 }), dnStone = M(0xc8a870, { roughness: 1 });
+  const duPyramid = () => grp(pb('sqpyr', dnStone, 22, 16, 22, 0, 8, 0, 0, Math.PI / 4), pb('sqpyr', M(0xe8c868), 3, 2, 3, 0, 15.5, 0, 0, Math.PI / 4));
+  const duPalm = () => { const h = R(7, 11), g = grp(pb('cyl', M(0x7a5a38), .45, h, .45, 0, h / 2, 0, 0, 0, R(-.12, .12))); for (let i = 0; i < 7; i++) { const a = i / 7 * 6.28, f = pb('cone', M(0x2f8a3a), .6, 4.4, .6, Math.cos(a) * 1.8, h + .2, Math.sin(a) * 1.8, Math.sin(a) * 1.1, 0, -Math.cos(a) * 1.1); g.add(f); } return g; };
+  const duOasis = () => grp(pb(geo.blob, E(0x2aa8d8, .3, { transparent: true, opacity: .88 }), 6, .2, 4.4, 0, .1, 0), pb(geo.blob, M(0x3a9a3a), 1.4, 1, 1.4, 5, .6, 0), pb(geo.blob, M(0x3a9a3a), 1, .8, 1, -4.6, .5, 1));
+  const duRuin = () => grp(...[-4, -1.3, 1.3, 4].map((x, i) => bk(dnStone, 1.3, i % 3 ? 5 : 3.2, 1.3, x, i % 3 ? 2.5 : 1.6, 0)), bk(dnStone, 5.4, .9, 1.4, -2.7, 5.4, 0));
+  const duSkull = () => grp(pb('sph', bone, 1, .9, 1.2, 0, .9, 0), pb('cyl', bone, .5, .9, .6, 0, .4, .8), pb('sph', iron, .24, .3, .1, -.35, 1, .95), pb('sph', iron, .24, .3, .1, .35, 1, .95), pb('cyl', bone, .18, 4, .18, -2.8, .3, 0, 0, 0, 1.4), pb('cyl', bone, .18, 3.4, .18, 2.8, .3, 0, 0, 0, 1.55));
+  const duTent = () => grp(pb('cone', M(0xb8382a), 3.4, 3.4, 3.4, 0, 1.7, 0, 0, Math.PI / 4), bk(M(0x2a1a14), 1.1, 1.8, .1, 0, .9, 1.55), pb('cyl', M(0x5a3a22), .06, 4.6, .06, 0, 2.3, 0), bk(M(0xe8d8b0), 5, .3, 3, 3.6, .15, 0));
+  T.dunes.decor.push(duPyramid, duPalm, duPalm, duPalm, duOasis, duRuin, duSkull, duTent);
+
+  // Frost Fields: snowman, igloo, cabin, drift, sled, frozen lantern
+  const snowM = M(0xf6fbff, { roughness: .9 });
+  const fsSnowman = () => grp(pb('sph', snowM, 1.5, 1.5, 1.5, 0, 1.5, 0), pb('sph', snowM, 1.1, 1.1, 1.1, 0, 3.4, 0), pb('sph', snowM, .8, .8, .8, 0, 4.9, 0), pb('cone', M(0xff7a1a), .14, .9, .14, 0, 4.9, .95, Math.PI / 2), pb('sph', iron, .1, .1, .1, -.25, 5.1, .7), pb('sph', iron, .1, .1, .1, .25, 5.1, .7), pb('cyl', M(0xc83a3a), 1.12, .25, 1.12, 0, 4.2, 0), pb('cyl', iron, .6, .8, .6, 0, 5.8, 0));
+  const fsIgloo = () => grp(pb(new THREE.SphereGeometry(1, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), snowM, 3.4, 3, 3.4, 0, 0, 0), bk(M(0x1a2a3a), 1.5, 1.4, 1.6, 0, .7, 3), pb('cyl', snowM, .9, 1.2, .9, 0, .6, 3, 0, 0, 0));
+  const fsCabin = () => grp(bk(wood, 7, 3.6, 5.6, 0, 1.8, 0), bk(snowM, 8, .9, 6.6, 0, 4.2, 0, 0), pb('sqpyr', M(0x6a3a22), 8, 2.8, 6.4, 0, 5.6, 0, 0, Math.PI / 4), bk(snowM, 7.6, .5, 6, 0, 5.8, 0), bk(M(0x4a2a14), 1.3, 2.4, .12, 0, 1.2, 2.85), bk(E(0xffc860, 1), 1.2, 1.2, .1, -2.3, 2.1, 2.85), bk(E(0xffc860, 1), 1.2, 1.2, .1, 2.3, 2.1, 2.85), pb('cyl', stoneG, .5, 2.6, .5, 2.4, 5.4, -1.4));
+  const fsDrift = () => grp(pb(geo.blob, snowM, R(4, 8), R(1.2, 2), R(3, 6), 0, .2, 0));
+  const fsSled = () => grp(bk(wood2, 3, .2, 1.2, 0, .5, 0), pb('cyl', iron, .06, 3.2, .06, 0, .22, .5, 0, 0, Math.PI / 2), pb('cyl', iron, .06, 3.2, .06, 0, .22, -.5, 0, 0, Math.PI / 2), bk(M(0xc83a3a), 1.4, .6, .8, .5, .9, 0));
+  const fsLantern = () => grp(pb('cyl', iron, .1, 5, .1, 0, 2.5, 0), bk(E(0xbfe8ff, 1.2), .8, 1, .8, 0, 5.4, 0), pb('cone', snowM, .7, .5, .7, 0, 6.2, 0, 0, Math.PI / 4));
+  T.frost.decor.push(fsSnowman, fsSnowman, fsIgloo, fsCabin, fsDrift, fsDrift, fsSled, fsLantern, fsLantern);
+
+  // Neon Night: arcade, billboard, hover car, vending machine, tubes
+  const nnArcade = () => { const c = pick(glowC); return grp(bk(neonBase[0], 7, 5, 6, 0, 2.5, 0), bk(c, 7.2, .5, 6.2, 0, 5.2, 0), bk(E(0x7a5cff, 1), 4, 1.4, .15, 0, 3.8, 3.05), bk(E(0xbfe8ff, .8), 2.4, 2.2, .15, 0, 1.4, 3.05)); };
+  const nnBoard = () => grp(pb('cyl', iron, .25, 14, .25, -4, 7, 0), pb('cyl', iron, .25, 14, .25, 4, 7, 0), bk(M(0x0a0a1a), 11, 6, .6, 0, 14, 0), bk(E(pick([0xff2bd6, 0x00e5ff, 0xffe600]), 1.3), 10, 5, .15, 0, 14, .35));
+  const nnCar = () => { const c = pick([0xff2bd6, 0x00e5ff, 0xffe600]); return grp(bk(M(0x1a1a2a, { metalness: .6, roughness: .3 }), 4.6, .9, 2.2, 0, 1.6, 0), bk(M(0x1a1a2a, { metalness: .6, roughness: .3 }), 2.4, .8, 1.9, -.3, 2.4, 0), bk(E(c, 1.4), 4.7, .12, 2.3, 0, 1.1, 0), bk(E(0xbfe8ff, .5), 2.2, .5, 1.95, -.3, 2.5, 0)); };
+  const nnVend = () => grp(bk(M(0x1a1a2a), 2, 3.4, 1.4, 0, 1.7, 0), bk(E(pick([0xff2bd6, 0x00e5ff]), 1.2), 1.5, 2.2, .1, 0, 1.9, .72), bk(E(0xffe600, 1.3), 1.5, .3, .1, 0, 3.1, .72));
+  const nnTube = () => { const c = pick(glowC); return grp(pb('cyl', c, .12, R(6, 12), .12, 0, 6, 0), pb('cyl', iron, .16, .5, .16, 0, .25, 0)); };
+  T.neon.decor.push(nnArcade, nnBoard, nnBoard, nnCar, nnCar, nnVend, nnTube, nnTube, nnTube);
+
+  // Hollow Depths: stag station, hanging lamps, bone remains, glowing flora, pillars with carvings
+  const hdStag = () => grp(bk(cave[0], 6, .8, 4, 0, .4, 0), pb('cyl', iron, .15, 5, .15, -2.4, 3, -1.6), pb('cyl', iron, .15, 5, .15, 2.4, 3, -1.6), bk(iron, 5.4, .3, .3, 0, 5.4, -1.6), pb('sph', soul, .35, .5, .35, 0, 4.8, -1.6, false));
+  const hdFlora = () => grp(...Array.from({ length: 6 }, () => { const h = R(1.4, 3); return grp(pb('cyl', shroomStem, .06, h, .06, R(-1.4, 1.4), h / 2, R(-1.4, 1.4)), pb('sph', pick(shroomCap), .35, .2, .35, 0, h, 0)); }));
+  const hdRibs = () => grp(...Array.from({ length: 5 }, (_, i) => pb(geo.torus, bone, 1.5 - Math.abs(i - 2) * .22, 1.5 - Math.abs(i - 2) * .22, .35, 0, 1.2, i * .9 - 1.8, 0, Math.PI / 2, 0)), pb('cyl', bone, .18, 4, .18, 0, .4, 0, Math.PI / 2));
+  const hdPillar = () => { const h = R(10, 18); return grp(pb('cyl', cave[1], 1.4, h, 1.4, 0, h / 2, 0), pb('cyl', cave[0], 1.9, 1, 1.9, 0, .5, 0), pb('cyl', cave[0], 1.9, 1, 1.9, 0, h, 0), pb('sph', E(0x7fe8ff, 1.2), .3, .8, .1, 0, h * .6, 1.45, false)); };
+  T.hollow.decor.push(hdStag, hdFlora, hdFlora, hdRibs, hdPillar, hdPillar);
+
+  // Thread Citadel: chandelier, spiral stair, grand arch, bell shrine, banners, golden urns
+  const tcChand = () => grp(pb('cyl', gold, .05, 8, .05, 0, 14, 0), pb(geo.torus, gold, 2, 2, 2, 0, 10, 0, Math.PI / 2), ...Array.from({ length: 8 }, (_, i) => pb('sph', E(0xffc94a, 1.4), .25, .35, .25, Math.cos(i / 8 * 6.28) * 2, 10.5, Math.sin(i / 8 * 6.28) * 2, false)));
+  const tcArch = () => grp(bk(silkRed, 2.2, 14, 2.2, -5, 7, 0), bk(silkRed, 2.2, 14, 2.2, 5, 7, 0), bk(gold, 12.4, 1.2, 2.6, 0, 14.4, 0), bk(silkRed, 10, 2, 2.2, 0, 13, 0), pb('cone', gold, 1.2, 2.4, 1.2, 0, 16, 0));
+  const tcStair = () => grp(...Array.from({ length: 14 }, (_, i) => bk(silkRed, 2.6, .35, 1, Math.cos(i * .5) * 1.7, .3 + i * .5, Math.sin(i * .5) * 1.7)), pb('cyl', gold, .25, 8, .25, 0, 4, 0));
+  const tcUrn = () => grp(pb('cyl', gold, .9, .4, .9, 0, .2, 0), pb(geo.blob, gold, 1, 1.4, 1, 0, 1.4, 0), pb('cyl', gold, .6, .5, .6, 0, 2.7, 0));
+  T.silk.decor.push(tcChand, tcArch, tcStair, tcUrn, tcUrn);
+
+  // Magma Run: lava fall, obsidian arch, vent, bones, rope bridge
+  const lvFall = () => grp(bk(obsid[0], 6, 12, 3, 0, 6, 0), bk(E(0xff6a00, 1.6, { transparent: true, opacity: .9 }), 2.2, 11, .5, 0, 5.8, 1.6), bk(E(0xff6a00, 1.6), 5, .5, 4, 0, .3, 2.5));
+  const lvArch = () => grp(pb('cone', obsid[0], 2, 12, 2, -5, 6, 0), pb('cone', obsid[1], 2, 12, 2, 5, 6, 0), pb(new THREE.TorusGeometry(5, 1.2, 6, 14, Math.PI), obsid[0], 1, 1, 1.6, 0, 11.5, 0));
+  const lvVent = () => grp(pb('cone', obsid[1], 2.4, 2.6, 2.4, 0, 1.3, 0), pb('sph', E(0xff7a1a, 1.8), .9, .4, .9, 0, 2.6, 0, false), ...Array.from({ length: 4 }, () => pb('sph', E(0xffb04a, 1.6), .15, .15, .15, R(-.7, .7), R(3, 6), R(-.7, .7), 0, 0, 0, false)));
+  const lvBones = () => grp(pb('cyl', bone, .22, 4, .22, 0, .3, 0, 0, 0, 1.4), pb('sph', bone, .9, .8, 1.1, 2.2, .9, 0), pb('cyl', bone, .15, 2.4, .15, -1, .25, 1.2, 0, .6, 1.3));
+  T.lava.decor.push(lvFall, lvArch, lvVent, lvVent, lvBones);
+
+  // Candy Cliffs: lollipops, gumdrops, candy canes, cupcake, donut, ice-cream
+  const cdPop = () => { const c = pick(candy), h = R(5, 8); return grp(pb('cyl', white, .18, h, .18, 0, h / 2, 0), pb('cyl', c, 1.7, .5, 1.7, 0, h + 1.1, 0, Math.PI / 2), pb('cyl', pick(candy), 1.1, .52, 1.1, 0, h + 1.1, 0, Math.PI / 2)); };
+  const cdDrop = () => { const c = pick(candy), r = R(1.4, 2.4); return grp(pb(geo.blob, c, r, r * 1.1, r, 0, r * .8, 0), pb('sph', white, r * .28, r * .12, r * .28, r * .3, r * 1.5, r * .4, false)); };
+  const cdCane = () => { const h = R(5, 8); return grp(pb('cyl', white, .35, h, .35, 0, h / 2, 0), ...Array.from({ length: 5 }, (_, i) => pb('cyl', M(0xe53935), .37, .5, .37, 0, .7 + i * h / 5.4, 0)), pb(new THREE.TorusGeometry(.9, .35, 8, 10, Math.PI), white, 1, 1, 1, .9, h, 0)); };
+  const cdCup = () => grp(pb('cone', M(0xd8a85a), 1.5, 2.2, 1.5, 0, 1.1, 0, Math.PI), pb(geo.blob, pick(candy), 1.7, 1.4, 1.7, 0, 3, 0), pb('sph', M(0xe53935), .35, .35, .35, 0, 4.4, 0));
+  const cdDonut = () => grp(pb(geo.torus, M(0xe8b878), 2.4, 2.4, 1.6, 0, 2.4, 0, Math.PI / 2 - .5), pb(geo.torus, pick(candy), 2.5, 2.5, 1.2, 0, 2.55, 0, Math.PI / 2 - .5));
+  const cdCone = () => grp(pb('cone', M(0xd8a85a), 1.2, 3.4, 1.2, 0, 1.7, 0, Math.PI), pb('sph', pick(candy), 1.4, 1.4, 1.4, 0, 3.9, 0), pb('sph', pick(candy), 1.1, 1.1, 1.1, 0, 5.2, 0), pb('sph', M(0xe53935), .3, .3, .3, 0, 6.2, 0));
+  T.candy.decor.push(cdPop, cdPop, cdDrop, cdDrop, cdCane, cdCane, cdCup, cdDonut, cdCone);
+
   T.flatMat = c => E(c, 0.2);
   return T;
 }
