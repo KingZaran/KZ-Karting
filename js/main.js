@@ -127,12 +127,14 @@ function loadTrack(def) {
     if (floorTex) floorTex.dispose(); floorTex = new THREE.CanvasTexture(cv); floorTex.colorSpace = THREE.SRGBColorSpace; floorTex.anisotropy = 4;
     const SEG = 170, pg = new THREE.PlaneGeometry(ext, ext, SEG, SEG); pg.rotateX(-Math.PI / 2); pg.translate(cx, 0, cz);
     const pp = pg.attributes.position; for (let i = 0; i < pp.count; i++) pp.setY(i, hillFn(pp.getX(i), pp.getZ(i))); pg.computeVertexNormals();
-    const fm = new THREE.MeshStandardMaterial({ map: floorTex, roughness: .96 });
+    const bumpT = SC.detailTex.clone(); bumpT.wrapS = bumpT.wrapT = THREE.RepeatWrapping; bumpT.repeat.set(90, 90); bumpT.needsUpdate = true;
+    const fm = new THREE.MeshStandardMaterial({ map: floorTex, roughness: .96, bumpMap: bumpT, bumpScale: 2.2 });
     fm.onBeforeCompile = sh => { sh.uniforms.uDetail = { value: SC.detailTex }; sh.fragmentShader = 'uniform sampler2D uDetail;\n' + sh.fragmentShader.replace('#include <map_fragment>', `
       #ifdef USE_MAP
         vec4 sampledDiffuseColor = texture2D( map, vMapUv );
         float dt = texture2D( uDetail, vMapUv * 120. ).r * .6 + texture2D( uDetail, vMapUv * 26. ).r * .4;
-        sampledDiffuseColor.rgb *= .55 + dt * .9;
+        float macro = texture2D( uDetail, vMapUv * 5. ).r * .5 + texture2D( uDetail, vMapUv * 1.7 + .3 ).r * .5;
+        sampledDiffuseColor.rgb *= (.55 + dt * .9) * (.78 + macro * .5);
         diffuseColor *= sampledDiffuseColor;
       #endif`); };
     groundMesh = new THREE.Mesh(pg, fm); groundMesh.receiveShadow = true; groundMesh.userData.ownMat = true; trackGroup.add(groundMesh); }

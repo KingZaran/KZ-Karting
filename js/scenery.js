@@ -51,13 +51,15 @@ export function createScenery(THREE, renderer) {
     }
     const t = tex(c); const m = new THREE.MeshStandardMaterial({ map: t, roughness: rough, metalness: style === 'metal' ? .25 : 0, side: THREE.DoubleSide });
     if (glow) { m.emissive = new THREE.Color(0xffffff); m.emissiveMap = t; m.emissiveIntensity = glow; }
+    // surface relief: grain, cracks, grout and tile edges read as real depth under the sun (lower on glossy / glowing styles)
+    m.bumpMap = t; m.bumpScale = ({ ice: .25, neon: .2, candy: .3, ink: .5, metal: .7, pooltile: .5, tiles: .8, stone: 1.6, planks: 1.2, blocks: 1.2, studs: .9, carpet: .8, lava: 1.2 })[style] ?? 1.3;
     return roadCache[id] = m;
   }
   const kerbCache = {};
   function kerbMaterial(th) {
     const [c1, c2] = th.kerb || ['#e53935', '#ffffff'], key = c1 + c2 + (th.kerbGlow ? 'g' : ''); if (kerbCache[key]) return kerbCache[key];
     const [c, g] = cvs(16, 64); g.fillStyle = c1; g.fillRect(0, 0, 16, 32); g.fillStyle = c2; g.fillRect(0, 32, 16, 32); grain(g, 16, 64, 120, .12, 1);
-    const t = tex(c), m = th.kerbGlow ? new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide }) : new THREE.MeshStandardMaterial({ map: t, roughness: .6, side: THREE.DoubleSide }); return kerbCache[key] = m;
+    const t = tex(c), m = th.kerbGlow ? new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide }) : new THREE.MeshStandardMaterial({ map: t, roughness: .6, bumpMap: t, bumpScale: .5, side: THREE.DoubleSide }); return kerbCache[key] = m;
   }
   let wallM = null, ceilM = null;
   let poolWallM = null, poolCeilM = null;
