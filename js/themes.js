@@ -347,6 +347,36 @@ export function buildThemes(THREE) {
   T.mushroom = { name: 'Mushroom Island', sky: 0xa8c8e8, ground: 0x6a4a8a, road: 0x9a8aaa, roadStyle: 'blocks', edge: 0xd8383a, line: '#ffffff', kerb: ['#d8383a', '#ffffff'], accent: '#d8383a', fog: [140, 560], hemi: 1.05, sun: 1.1, clouds: 1, mount: 0x8a7aaa, mountTop: 0xe8e0f8, hill: .7,
     decor: [msBig, msBig, msBig, msBrown, msBrown, msMooshroom, msMooshroom, msGrass, msGrass, mcTorch, mcPig] };
 
+  // ===== batch 8: Deep Docks, Loot Lake, Level 1 garage =====
+  // --- Silksong: Deep Docks - rusted industry, furnace glow, chains, cogs
+  const ddM = [0x3a2a24, 0x4a3328, 0x2a1e1a].map(c => M(c, { roughness: .8, metalness: .4 })), ddGlow = E(0xff7a2a, 1.4), ddBrass = M(0xb8863a, { roughness: .4, metalness: .7 });
+  const ddFurnace = () => grp(bk(ddM[0], 6, 7, 6, 0, 3.5, 0), bk(M(0x1a1210), 3, 3.2, .4, 0, 2.2, 3.05), bk(ddGlow, 2.6, 2.6, .2, 0, 2.2, 3.15), pb('cyl', ddM[1], 1, 11, 1, 1.6, 12, -1.6), pb('cyl', ddM[2], 1.3, .8, 1.3, 1.6, 17.7, -1.6));
+  const ddChain = () => grp(...Array.from({ length: 9 }, (_, i) => pb('torus', ddM[1], .28, .28, .28, 0, 20 - i * .9, 0, i % 2 ? 0 : Math.PI / 2)), bk(ddM[0], 2.4, 1.6, 2.4, 0, 11, 0));
+  const ddCog = () => { const g = grp(pb('cyl', ddBrass, 2.8, .6, 2.8, 0, 6, 0, Math.PI / 2)); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.28; g.add(bk(ddBrass, .8, .8, .6, Math.cos(a) * 3.1, 6 + Math.sin(a) * 3.1, 0)); } return g; };
+  const ddPipe = () => grp(pb('cyl', ddM[1], .8, 14, .8, -3, 7, 0), pb('cyl', ddM[1], .8, 6, .8, 0, 13.6, 0, 0, 0, Math.PI / 2), pb('cyl', ddM[0], .95, .5, .95, -3, 3, 0), pb('cyl', ddM[0], .95, .5, .95, -3, 10, 0));
+  const ddCrate = () => grp(bk(ddM[1], 3, 3, 3, 0, 1.5, 0), bk(ddBrass, 3.1, .3, 3.1, 0, 1.5, 0));
+  T.deepdocks = { name: 'Deep Docks', sky: 0x1a0e0a, ground: 0x2a1a14, road: 0x4a3a32, roadStyle: 'metal', edge: 0xff7a2a, line: '#ff7a2a', kerb: ['#ff7a2a', '#2a1a14'], kerbGlow: true, accent: '#ff7a2a', fog: [70, 380], hemi: 1, sun: .6, stars: 0, clouds: 0, mount: 0x2a1610, mountTop: 0x7a3a1a, hill: .4, lamp: 0xffa060,
+    decor: [ddFurnace, ddFurnace, ddChain, ddChain, ddCog, ddCog, ddPipe, ddPipe, ddCrate, ddCrate, ssBell, ssSpool] };
+
+  // --- Fortnite: Loot Lake - lake with the floating island house
+  const llHouse = () => grp(bk(fn.beige, 8, 5, 7, 0, 2.5, 0), bk(fn.roof, 9, .8, 8, 0, 5.4, 0), pb('sqpyr', fn.roof, 7, 3, 6, 0, 7.3, 0, 0, Math.PI / 4), bk(E(0xbfe8ff, .4), 1.6, 1.6, .15, -2, 3, 3.55), bk(E(0xbfe8ff, .4), 1.6, 1.6, .15, 2, 3, 3.55), bk(fn.wood, 1.6, 2.6, .15, 0, 1.3, 3.55));
+  const llLake = () => grp(pb(geo.blob, E(0x3aa8e8, .3, { transparent: true, opacity: .85 }), R(9, 14), .3, R(7, 11), 0, .12, 0), pb('cyl', M(0x6a8a3a), 2.2, .6, 2.2, R(-2, 2), .35, R(-2, 2)));
+  const llFloat = () => { const y = R(16, 28); return grp(pb(geo.blob, M(0x6a8a3a), 6, 1.4, 6, 0, y, 0), pb('cone', fn.stoneM, 5, 5, 5, 0, y - 3.4, 0, Math.PI), bk(fn.beige, 5, 3.4, 4.4, 0, y + 2.4, 0), bk(fn.roof, 5.6, .6, 5, 0, y + 4.4, 0)); };
+  const llDock = () => grp(bk(fn.wood, 3, .4, 10, 0, .6, 0), ...[-4, 0, 4].map(z => pb('cyl', fn.wood2, .22, 2, .22, 1.3, .2, z)), ...[-4, 0, 4].map(z => pb('cyl', fn.wood2, .22, 2, .22, -1.3, .2, z)));
+  T.lootlake = { name: 'Loot Lake', sky: 0x7ac0f0, ground: 0x6aa850, road: 0x6a6a72, roadStyle: 'asphalt', edge: 0xffffff, line: '#ffd23f', kerb: ['#3b82d8', '#ffffff'], accent: '#3b82d8', fog: [160, 620], hemi: 1.05, sun: 1.3, clouds: 1, mount: 0x5b8f6a, mountTop: 0xeaf4ff, hill: .6,
+    decor: [llHouse, llHouse, llLake, llLake, llFloat, llDock, pineTree(pines), pineTree(pines), fnDrop, fnLlama, fnChest, bushy] };
+
+  // --- Backrooms: Level 1 - concrete parking garage, sodium lights, pipes
+  const gcM = M(0x7a7a78, { roughness: 1 }), gcDark = M(0x55554f, { roughness: 1 }), sodium = E(0xffc060, 1.6);
+  const gaPillar = () => { const h = R(9, 12); return grp(bk(gcM, 2.6, h, 2.6, 0, h / 2, 0), bk(M(0xe8c020), 2.7, .8, 2.7, 0, 1, 0), bk(M(0x111111), 2.71, .3, 2.71, 0, 1.6, 0)); };
+  const gaLight = () => grp(bk(M(0x333330), 4.4, .3, .8, 0, 11.5, 0), bk(sodium, 4, .15, .5, 0, 11.3, 0), pb('cyl', M(0x333330), .05, 2, .05, -1.8, 12.5, 0), pb('cyl', M(0x333330), .05, 2, .05, 1.8, 12.5, 0));
+  const gaBarrier = () => grp(bk(gcM, 6, 1.2, 1.4, 0, .6, 0), bk(M(0xe8c020), 6.1, .25, 1.45, 0, 1, 0));
+  const gaCar = () => { const c = pick([0x4a4a50, 0x3a3a40, 0x5a5a58]); return grp(bk(M(c, { roughness: .6 }), 4.4, 1.2, 2.2, 0, 1, 0), bk(M(c, { roughness: .6 }), 2.4, 1, 2, -.2, 2, 0), ...[[-1.4, -1.1], [-1.4, 1.1], [1.4, -1.1], [1.4, 1.1]].map(([x, z]) => pb('cyl', iron, .45, .4, .45, x, .5, z, Math.PI / 2))); };
+  const gaPipe = () => grp(pb('cyl', M(0x6a6a70, { metalness: .4 }), .5, 10, .5, 0, 10.5, 0, 0, 0, Math.PI / 2), pb('cyl', M(0xa84a2a), .35, 10, .35, 0, 9.5, .7, 0, 0, Math.PI / 2));
+  const gaSign = () => grp(pb('cyl', iron, .1, 5, .1, 0, 2.5, 0), bk(M(0x1a5aa8), 2.4, 1.6, .15, 0, 5.4, 0), bk(M(0xffffff), 1.2, .35, .16, 0, 5.4, 0));
+  T.garage = { name: 'Level 1', sky: 0x1a1812, ground: 0x4a4a46, road: 0x5a5a56, roadStyle: 'stone', edge: 0xe8c020, line: '#e8c020', kerb: ['#e8c020', '#222222'], accent: '#e8c020', fog: [50, 300], hemi: .75, sun: .3, stars: 0, clouds: 0, mount: 0x2a2a26, mountTop: 0x6a6a60, hill: .1, lamp: 0xffc060,
+    decor: [gaPillar, gaPillar, gaPillar, gaLight, gaLight, gaBarrier, gaBarrier, gaCar, gaCar, gaPipe, gaSign] };
+
   T.flatMat = c => E(c, 0.2);
   return T;
 }
