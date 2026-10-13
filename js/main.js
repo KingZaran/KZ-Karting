@@ -79,6 +79,7 @@ sun.position.set(100, 200, 60); sun.castShadow = true;
 sun.shadow.camera.left = -42; sun.shadow.camera.right = 42; sun.shadow.camera.top = 42; sun.shadow.camera.bottom = -42; sun.shadow.camera.far = 600; sun.shadow.radius = 3; sun.color.set(0xfff1dc);
 sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.0003; sun.shadow.normalBias = .3;
 scene.add(sun, sun.target);
+const fill = new THREE.DirectionalLight(0x9db8ff, .28); fill.position.set(-120, 90, -80); scene.add(fill);   // cool fill opposite the warm sun for more natural shading
 
 // ---------- track ----------
 const THEMES = buildThemes(THREE);
@@ -93,9 +94,10 @@ function applyEnv(th, k = 1) {
   env.sky.lerp(_c.set(th.sky), k); env.near += (th.fog[0] - env.near) * k; env.far += (th.fog[1] - env.far) * k;
   env.hemi += (th.hemi - env.hemi) * k; env.sun += (th.sun - env.sun) * k;
   scene.background.copy(env.sky); scene.fog.color.copy(env.sky); scene.fog.near = env.near; scene.fog.far = env.far;
-  hemi.intensity = env.hemi; sun.intensity = env.sun; SC.setSky(th, k, env);
+  hemi.intensity = env.hemi; sun.intensity = env.sun; hemi.groundColor.lerp(_c.set(th.ground).multiplyScalar(.7), k); fill.intensity = .12 + .2 * Math.min(1, env.sun); SC.setSky(th, k, env);
 }
 const R = (a, b) => a + Math.random() * (b - a);
+function mergeGeoms(gs) { let n = 0; for (const g of gs) n += g.attributes.position.count; const P = new Float32Array(n * 3), N3 = new Float32Array(n * 3); let o = 0; for (const g of gs) { P.set(g.attributes.position.array, o * 3); N3.set(g.attributes.normal.array, o * 3); o += g.attributes.position.count; } const m = new THREE.BufferGeometry(); m.setAttribute('position', new THREE.BufferAttribute(P, 3)); m.setAttribute('normal', new THREE.BufferAttribute(N3, 3)); m.userData = { shared: true }; return m; }
 
 let groundMesh = null, ceilGroup = null, hillFn = () => 0, cum = new Float32Array(2);
 function loadTrack(def) {
@@ -185,8 +187,8 @@ function loadTrack(def) {
   const decorGroup = new THREE.Group(), byTheme = {}; zoneIds.forEach((id, i) => (byTheme[id] ||= []).push(i));
   for (const [id, list] of Object.entries(byTheme)) {
     const th = THEMES[id], share = list.length / N;
-    for (let k = 0, placed = 0, want = Math.round(430 * share); th.decor.length && placed < want && k < want * 8; k++) {
-      const i = list[Math.floor(Math.random() * list.length)], n = normal(i), off = (Math.random() < .5 ? -1 : 1) * (WIDTH / 2 + 7 + Math.pow(Math.random(), 1.6) * 115);
+    for (let k = 0, placed = 0, want = Math.round(720 * share); th.decor.length && placed < want && k < want * 8; k++) {
+      const i = list[Math.floor(Math.random() * list.length)], n = normal(i), off = (Math.random() < .5 ? -1 : 1) * (WIDTH / 2 + 6 + Math.pow(Math.random(), 2) * 120);
       const p = samples[i].clone().addScaledVector(n, off), nr = nearest(p.x, p.z, 0, true);
       if (nr.d < WIDTH / 2 + 6) continue; placed++;
       const pr = MODELS.props[id], isProp = pr && pr.length && Math.random() < .6, o = isProp ? cloneModel(pr[Math.floor(Math.random() * pr.length)]) : th.decor[Math.floor(Math.random() * th.decor.length)]();
@@ -200,6 +202,15 @@ function loadTrack(def) {
       d.rotation.x = -Math.PI / 2; d.position.set(p.x, (th.flat.onRoad ? p.y + .09 : hillFn(p.x, p.z)) + .04 + Math.random() * .03, p.z); d.scale.set(R(1.2, 4.5), R(1.2, 4.5), 1); decorGroup.add(d);
     }
   }
+  // ---- ground cover: grass tufts, pebbles and small rock clusters tinted from each zone's ground colour (realistic detail up close)
+  { const tuftGeo = [0, 1, 2].map(() => { const parts = []; for (let q = 0; q < 4; q++) { const h = R(.5, 1.3), c = new THREE.ConeGeometry(R(.07, .14), h, 4); c.translate(0, h / 2, 0); c.rotateZ(R(-.35, .35)); c.rotateY(R(0, 6.28)); c.translate(R(-.25, .25), 0, R(-.25, .25)); parts.push(c.toNonIndexed()); } return mergeGeoms(parts); });
+    const pebGeo = new THREE.DodecahedronGeometry(1, 0), shade = (hex, k) => new THREE.Color(hex).multiplyScalar(k).getHex();
+    for (const [id, list] of Object.entries(byTheme)) { const th = THEMES[id]; if (th.walls || th.flat && th.flat.onRoad) continue; const share = list.length / N, base = th.ground;
+      const tuftCount = Math.round(2600 * share), pebCount = Math.round(500 * share);
+      for (let k = 0; k < tuftCount; k++) { const i = list[Math.floor(Math.random() * list.length)], n = normal(i), off = (Math.random() < .5 ? -1 : 1) * (WIDTH / 2 + 2.6 + Math.pow(Math.random(), 1.5) * 55), p = samples[i].clone().addScaledVector(n, off), nr = nearest(p.x, p.z, 0, true); if (nr.d < WIDTH / 2 + 2.2) continue;
+        const m = new THREE.Mesh(tuftGeo[k % 3], mat(shade(base, [.75, 1.05, 1.3][k % 3]), 0)); m.position.set(p.x, hillFn(p.x, p.z, nr) - .05, p.z); m.rotation.y = R(0, 6.28); m.scale.setScalar(R(.8, 1.9)); decorGroup.add(m); }
+      for (let k = 0; k < pebCount; k++) { const i = list[Math.floor(Math.random() * list.length)], n = normal(i), off = (Math.random() < .5 ? -1 : 1) * (WIDTH / 2 + 1.6 + Math.pow(Math.random(), 1.4) * 40), p = samples[i].clone().addScaledVector(n, off), nr = nearest(p.x, p.z, 0, true); if (nr.d < WIDTH / 2 + 1.5) continue;
+        const sz = R(.15, .6), m = new THREE.Mesh(pebGeo, mat(shade(0x8a8a86, R(.6, 1.1)), 0)); m.position.set(p.x, hillFn(p.x, p.z, nr) + sz * .2, p.z); m.scale.set(sz * R(1, 1.8), sz * .6, sz * R(1, 1.6)); m.rotation.y = R(0, 6.28); m.castShadow = false; decorGroup.add(m); } } }
   for (const [a, b, id] of runs) { const th = THEMES[id]; if (!th.lamp) continue;
     for (let i = a; i < Math.min(b, N); i += 26) { const side = (Math.floor(i / 26) % 2) ? 1 : -1, n = normal(i), p = samples[i], l = SC.lamp(th.lamp), d = n.clone().multiplyScalar(-side);
       l.position.set(p.x + n.x * side * (WIDTH / 2 + 1.2), p.y, p.z + n.z * side * (WIDTH / 2 + 1.2)); l.rotation.y = Math.atan2(-d.z, d.x); decorGroup.add(l); } }
