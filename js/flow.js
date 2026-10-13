@@ -211,7 +211,7 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
       ok() { const t = mc < TRACKS.length ? TRACKS[mc].id : 'random'; if (online_()) { vote(t); return; } S.track = t; save(); go('start'); },
     },
     settings: {
-      rows() { return [{ label: 'Graphics', val: () => S.gfx === 'high' ? 'High' : 'Low (faster)', chg: () => { S.gfx = S.gfx === 'high' ? 'low' : 'high'; save(); } }, { label: 'Controls', val: () => 'Change keys ▶', chg: () => openControls() }]; },
+      rows() { return [{ label: 'Graphics', val: () => ({ high: 'High', ultra: 'Ultra (AO)', low: 'Low (faster)' })[S.gfx] || 'High', chg: () => { S.gfx = ({ high: 'ultra', ultra: 'low', low: 'high' })[S.gfx] || 'high'; save(); } }, { label: 'Controls', val: () => 'Change keys ▶', chg: () => openControls() }]; },
       draw() {
         const R = this.rows();
         frame('Settings', R.map((r, i) => `<div class="srow${i === sr2 ? ' cur' : ''}" data-i="${i}"><span>${r.label}</span><span class="v"><b class="ar" data-d="-1">◀</b><em>${r.val()}</em><b class="ar" data-d="1">▶</b></span></div>`).join(''), '', { one: true, ok: '' });

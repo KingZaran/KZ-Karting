@@ -52,7 +52,7 @@ scene.fog = new THREE.Fog(0x87ceeb, 120, 500);
 const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 1, 1000);
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight); if (gradePass) gradePass.uniforms.aspect.value = innerWidth / innerHeight; } pfx.setScale(innerHeight * renderer.getPixelRatio() * .9); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); });
 // post-processing (optional, loaded lazily so the game still runs if it fails)
-let composer = null, useBloom = true, gradePass = null;
+let composer = null, useBloom = true, gradePass = null, aoPass = null;
 // cinematic grade (linear space, before tone-mapping): radial speed blur on boost, chromatic fringe, contrast/saturation, vignette
 const GRADE = { uniforms: { tDiffuse: { value: null }, blur: { value: 0 }, vig: { value: .32 }, sat: { value: 1.12 }, con: { value: 1.06 }, aspect: { value: 1 } },
   vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }',
@@ -63,15 +63,15 @@ const GRADE = { uniforms: { tDiffuse: { value: null }, blur: { value: 0 }, vig: 
         c += vec3(texture2D(tDiffuse, .5 + o * (1. + ca)).r, texture2D(tDiffuse, .5 + o).g, texture2D(tDiffuse, .5 + o * (1. - ca)).b); w += 1.; }
       c /= w; float l = dot(c, vec3(.2126, .7152, .0722)); c = mix(vec3(l), c, sat); c = (c - .18) * con + .18; c = max(c, 0.);
       c *= 1. - vig * smoothstep(.35, .95, r); gl_FragColor = vec4(c, 1.); }` };
-let blurNow = 0;
+let blurNow = 0, ultraOn = false;
 (async () => { try {
-  const [{ EffectComposer }, { RenderPass }, { UnrealBloomPass }, { OutputPass }, { ShaderPass }] = await Promise.all(['EffectComposer', 'RenderPass', 'UnrealBloomPass', 'OutputPass', 'ShaderPass'].map(n => import(`three/addons/postprocessing/${n}.js`)));
+  const [{ EffectComposer }, { RenderPass }, { UnrealBloomPass }, { OutputPass }, { ShaderPass }, { GTAOPass }] = await Promise.all(['EffectComposer', 'RenderPass', 'UnrealBloomPass', 'OutputPass', 'ShaderPass', 'GTAOPass'].map(n => import(`three/addons/postprocessing/${n}.js`)));
   const pr = renderer.getPixelRatio(), rt = new THREE.WebGLRenderTarget(innerWidth * pr, innerHeight * pr, { type: THREE.HalfFloatType, samples: 4 });
-  const c = new EffectComposer(renderer, rt); c.setPixelRatio(pr); c.addPass(new RenderPass(scene, camera)); c.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .3, .5, 1.0)); c.addPass(gradePass = new ShaderPass(GRADE)); c.addPass(new OutputPass());
+  const c = new EffectComposer(renderer, rt); c.setPixelRatio(pr); c.addPass(new RenderPass(scene, camera)); try { aoPass = new GTAOPass(scene, camera, innerWidth, innerHeight); aoPass.updateGtaoMaterial({ radius: 1.6, distanceExponent: 1.4, thickness: 2, scale: 1.1, samples: 12 }); aoPass.enabled = ultraOn; c.addPass(aoPass); } catch (e) { console.warn('AO unavailable:', e); } c.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), .3, .5, 1.0)); c.addPass(gradePass = new ShaderPass(GRADE)); c.addPass(new OutputPass());
   c.setSize(innerWidth, innerHeight); composer = c; gradePass.uniforms.aspect.value = innerWidth / innerHeight;
 } catch (e) { console.warn('Bloom unavailable:', e); } })();
 const pfx = createFx(THREE, scene), audio = createAudio(), SC = createScenery(THREE, renderer), mainEnv = makeEnv(THREE, renderer);
-function applyGfx(g) { useBloom = g !== 'low'; renderer.setPixelRatio(useBloom ? Math.min(devicePixelRatio, 1.5) : 1); renderer.setSize(innerWidth, innerHeight); if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight); } sun.castShadow = useBloom; if (gradePass) gradePass.enabled = useBloom; pfx.setScale(innerHeight * renderer.getPixelRatio() * .9); }
+function applyGfx(g) { useBloom = g !== 'low'; ultraOn = g === 'ultra'; if (aoPass) aoPass.enabled = ultraOn; renderer.setPixelRatio(ultraOn ? Math.min(devicePixelRatio, 1.25) : useBloom ? Math.min(devicePixelRatio, 1.5) : 1); renderer.setSize(innerWidth, innerHeight); if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(innerWidth, innerHeight); } sun.castShadow = useBloom; if (gradePass) gradePass.enabled = useBloom; pfx.setScale(innerHeight * renderer.getPixelRatio() * .9); }
 scene.add(SC.sky);
 scene.add(new THREE.HemisphereLight(0xffffff, 0x446644, 0.9));
 const sun = new THREE.DirectionalLight(0xffffff, 1.2);
