@@ -322,6 +322,31 @@ export function buildThemes(THREE) {
   T.deepnest = { name: 'Deepnest', sky: 0x040408, ground: 0x0c0c12, road: 0x2a2a34, roadStyle: 'stone', edge: 0xc8c8e0, line: '#c8c8e0', kerb: ['#101018', '#7a7a90'], accent: '#c8c8e0', fog: [35, 230], hemi: .6, sun: .25, stars: 0, clouds: 0, mount: 0x08080e, mountTop: 0x2a2a3a, hill: .7, lamp: 0xd8d8ff,
     decor: [dnSpire, dnSpire, dnSpire, dnWeb, dnWeb, dnCocoon, dnCocoon, dnCrawler, dnBone, dnBone, hkBench, hkLantern, hkTotem] };
 
+  // ===== batch 7: Inkopolis Square, Final Destination, Mushroom Island =====
+  // --- Splatoon: Inkopolis Square plaza
+  const ikShop = () => { const c = pick([0xff2d95, 0x2dffa5, 0xffd42d, 0x00c8ff]); return grp(bk(M(0xe8e8f0), 7, 4, 5, 0, 2, 0), bk(E(c, .7), 7.4, 1, 5.4, 0, 4.4, 0), bk(E(0xbfe8ff, .5), 5, 2, .15, 0, 2, 2.55), bk(E(c, 1), 2.4, .8, .2, 0, 3.6, 2.7)); };
+  const ikScreen = () => grp(pb('cyl', iron, .3, 14, .3, 0, 7, 0), bk(iron, 10, 5.6, .8, 0, 15, 0), bk(E(pick([0xff2d95, 0x2dffa5, 0x7a2dff]), 1.1), 9.2, 4.8, .1, 0, 15, .45));
+  const ikStatue = () => { const c = pick([0xff2d95, 0x2dffa5]); return grp(bk(concrete, 4, 1.2, 4, 0, .6, 0), pb('sph', E(c, .6), 1.4, 1.8, 1.4, 0, 3, 0), pb('cone', E(c, .6), .5, 3, .5, -1, 2.4, 0, 0, 0, .9), pb('cone', E(c, .6), .5, 3, .5, 1, 2.4, 0, 0, 0, -.9), pb('cone', E(c, .6), .5, 3.2, .5, 0, 2, -1.1, -.9)); };
+  const ikLamp = () => grp(pb('cyl', iron, .15, 8, .15, 0, 4, 0), pb('sph', E(pick([0xff2d95, 0x2dffa5, 0xffd42d]), 1.6), .7, .7, .7, 0, 8.3, 0));
+  T.inkopolis = { name: 'Inkopolis Square', sky: 0x1a1a4a, ground: 0x2a2a52, road: 0x3a3a5a, roadStyle: 'ink', edge: 0x2dffa5, line: '#ff2d95', kerb: ['#ff2d95', '#2dffa5'], accent: '#2dffa5', fog: [120, 520], hemi: .9, sun: .8, stars: 1, clouds: .2, mount: 0x2a2a6a, mountTop: 0xff2d95, hill: .3, lamp: 0xffb0e0,
+    decor: [ikShop, ikShop, ikScreen, ikScreen, ikStatue, ikLamp, ikLamp, ikLamp, spCan, spSquid, spCrates, spDrip] };
+
+  // --- Smash: Final Destination
+  const fdRing = () => { const r = R(5, 9), y = R(8, 22); return grp(pb(geo.torus, E(0xb06aff, .9), r, r, r, 0, y, 0, Math.PI / 2 + R(-.4, .4), 0, R(-.4, .4))); };
+  const fdShard = () => { const h = R(4, 11); return grp(pb('oct', E(pick([0x7a4aff, 0xff6ab0, 0x4ad0ff]), .8), R(1, 2), h, R(1, 2), 0, R(8, 24), 0, R(-.3, .3), R(0, 3), R(-.3, .3))); };
+  const fdPillar = () => { const h = R(6, 12); return grp(bk(M(0x2a2a3a), 2.2, h, 2.2, 0, h / 2, 0), bk(E(0xb06aff, 1), 2.4, .3, 2.4, 0, h, 0)); };
+  T.finaldest = { name: 'Final Destination', sky: 0x12062a, ground: 0x1a0a30, road: 0x2a2a3a, roadStyle: 'neon', edge: 0xb06aff, line: '#b06aff', kerb: ['#b06aff', '#1a0a30'], accent: '#b06aff', fog: [100, 500], hemi: .8, sun: .6, stars: 1, clouds: 0, mount: 0x2a0a5a, mountTop: 0xb06aff, hill: .2, lamp: 0xd8b0ff,
+    decor: [fdRing, fdRing, fdShard, fdShard, fdShard, fdPillar, fdPillar, smashBall, podium] };
+
+  // --- Minecraft: Mushroom Island
+  const mshR = M(0xd8383a, { roughness: 1 }), mshB = M(0xc8a878, { roughness: 1 }), mshS = M(0xf2f2ea, { roughness: 1 });
+  const msBig = () => { const h = Math.round(R(4, 7)), u = 1.6, w = R(5, 8); return grp(bk(mshS, u * 1.2, h * u, u * 1.2, 0, h * u / 2, 0), bk(mshR, w * u / 2, u, w * u / 2, 0, h * u + .5, 0), bk(mshR, w * u / 2 - 2, u, w * u / 2 - 2, 0, h * u + 1.5, 0), bk(M(0xffffff, { roughness: 1 }), 1.2, .15, 1.2, 1.5, h * u + 2.1, 1)); };
+  const msBrown = () => { const h = Math.round(R(3, 5)), u = 1.6; return grp(bk(mshS, u, h * u, u, 0, h * u / 2, 0), bk(mshB, 7 * u / 2, u, 7 * u / 2, 0, h * u + .5, 0)); };
+  const msMooshroom = () => grp(bk(mshR, 1.6, 1.4, 2.6, 0, 1.6, 0), bk(mshR, 1.2, 1.2, 1.2, 0, 2.2, 1.8), bk(M(0xe8e8e0), .5, .4, .5, 0, 3.1, 1.6), bk(mshR, .5, .5, .5, .3, 3, -.4), ...[[-.5, -.9], [.5, -.9], [-.5, .9], [.5, .9]].map(([x, z]) => bk(M(0xcfcfc8), .45, 1.1, .45, x, .55, z)));
+  const msGrass = () => grp(bk(M(0x6a4a8a, { roughness: 1 }), 3, .9, 3, 0, .45, 0), bk(M(0x6a4a8a, { roughness: 1 }), 1.6, .9, 1.6, 0, 1.3, 0));
+  T.mushroom = { name: 'Mushroom Island', sky: 0xa8c8e8, ground: 0x6a4a8a, road: 0x9a8aaa, roadStyle: 'blocks', edge: 0xd8383a, line: '#ffffff', kerb: ['#d8383a', '#ffffff'], accent: '#d8383a', fog: [140, 560], hemi: 1.05, sun: 1.1, clouds: 1, mount: 0x8a7aaa, mountTop: 0xe8e0f8, hill: .7,
+    decor: [msBig, msBig, msBig, msBrown, msBrown, msMooshroom, msMooshroom, msGrass, msGrass, mcTorch, mcPig] };
+
   T.flatMat = c => E(c, 0.2);
   return T;
 }

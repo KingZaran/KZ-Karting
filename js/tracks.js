@@ -48,6 +48,9 @@ export const TRACKS = [
   { id: 'village', name: 'Village', width: 22, elev: [8, 2, 1, 0, 1, 3, 0], pts: SHAPE.town, zones: [['village', 1]] },
   { id: 'greenpath', name: 'Greenpath', width: 20, elev: [14, 4, 2, .5, 2, 5, 1], pts: SHAPE.grotto, zones: [['greenpath', 1]] },
   { id: 'deepnest', name: 'Deepnest', width: 18, elev: [12, 4, 2, 0, 2, 5, 1], pts: SHAPE.void, zones: [['deepnest', 1]] },
+  { id: 'inkopolis', name: 'Inkopolis Square', width: 22, elev: [6, 2, 1, 0, 1, 3, 0], pts: SHAPE.clover, zones: [['inkopolis', 1]] },
+  { id: 'finaldest', name: 'Final Destination', width: 22, elev: [10, 3, 2, 0, 2, 4, 0], pts: SHAPE.void, zones: [['finaldest', 1]] },
+  { id: 'mushroom', name: 'Mushroom Island', width: 22, elev: [12, 4, 2, 0, 2, 5, 1], pts: SHAPE.dream, zones: [['mushroom', 1]] },
   { id: 'battleisland', name: 'Battle Island', width: 22, elev: [16, 5, 3, 0, 3, 6, 1], pts: SHAPE.island, zones: [['storm', 1]] },
 ];
 export const ITEMS = [
