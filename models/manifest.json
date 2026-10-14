@@ -32,7 +32,10 @@
       }
     },
     "hazmat-main": "models/chars/hazmat.glb",
-    "skinwalker": "models/chars/skinwalker.glb"
+    "skinwalker": {
+      "url": "models/chars/skinwalker.glb",
+      "yaw": 180
+    }
   },
   "props": {}
 }

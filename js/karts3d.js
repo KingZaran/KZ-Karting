@@ -2,6 +2,22 @@
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { getChar, getKart, getWheel } from './roster.js';
 import { MODELS, cloneModel } from './models.js';
+// Skirts, capes and tails that hang through the tub / out of the kart body: discard everything below the seat plane (in the driver's frame).
+function clipBelowSeat(THREE, root, cg) {
+  const inv = new THREE.Matrix4();
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    (Array.isArray(o.material) ? o.material : [o.material]).forEach(mat => {
+      mat.onBeforeCompile = sh => {
+        sh.uniforms.kInv = { value: inv };
+        sh.vertexShader = 'varying vec3 vKW;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\nvKW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+        sh.fragmentShader = 'varying vec3 vKW; uniform mat4 kInv;\n' + sh.fragmentShader.replace('void main() {', 'void main() {\n vec3 kp = (kInv * vec4(vKW, 1.0)).xyz; if (kp.y < -0.02 || (kp.y < 0.55 && kp.z < -0.78)) discard;');
+      };
+      mat.customProgramCacheKey = () => 'kzclip'; mat.needsUpdate = true;
+    });
+    o.onBeforeRender = () => { cg.updateWorldMatrix(true, false); inv.copy(cg.matrixWorld).invert(); };
+  });
+}
 export function buildKart(THREE, lo, paint, env = null) {
   const C = getChar(lo.char), K = getKart(lo.kart), Wh = getWheel(lo.wheel), g = new THREE.Group();
   const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .6, metalness: .1, envMap: env, envMapIntensity: .7, ...o });
@@ -57,7 +73,7 @@ export function buildKart(THREE, lo, paint, env = null) {
   const seatY = top, cg = new THREE.Group(); cg.position.set(0, seatY, -K.l * .14); cg.scale.setScalar(C.scale || 1); g.add(cg);
   if (gk) { put(g, G.tor(.32, .06), dark, 0, top + .6, L * .35, -.75); put(g, G.box(K.w * .55, 1.0, .35), seatM, 0, top + .55, -K.l * .14 - .7); }
   const gc = MODELS.chars[C.id];
-  if (gc) { const m = cloneModel(gc); m.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.material && !o.material.userData.own) { o.material = o.material.clone(); o.material.userData.own = true; if (env) { o.material.envMap = env; o.material.envMapIntensity = .5; } } } }); cg.add(m); } else buildChar(THREE, C, cg, M, E, G, put);
+  if (gc) { const m = cloneModel(gc); m.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.material && !o.material.userData.own) { o.material = o.material.clone(); o.material.userData.own = true; if (env) { o.material.envMap = env; o.material.envMapIntensity = .5; } } } }); cg.add(m); clipBelowSeat(THREE, m, cg); } else buildChar(THREE, C, cg, M, E, G, put);
   return g;
 }
 function buildChar(THREE, C, cg, M, E, G, put) {

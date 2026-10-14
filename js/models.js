@@ -107,7 +107,7 @@ export async function preloadModels(THREE, onProgress) {
     }
     const chainFrom = (root, next) => { const ch = [root]; let cur = root, guard = 0; while (next.has(cur) && guard++ < 12) { cur = next.get(cur); ch.push(cur); } return ch; };
     const bestChain = (next, side, sideOf) => { let best = null; for (const r of next.keys()) { if (next.has(r.parent) || sideOf(r) !== side) continue; const ch = chainFrom(r, next); if (!best || ch.length > best.length) best = ch; } return best; };
-    let arms = 0, legs = 0; const detail = [];
+    let arms = 0, legs = 0, gap = 0; const detail = [];
     for (const s of [-1, 1]) {
       const arm = bestChain(armNext[s], s, () => s);
       detail.push(`${s > 0 ? '+x' : '-x'} arm: ${arm ? arm.map(b => b.name).join('>') : 'none'}`);
@@ -115,14 +115,14 @@ export async function preloadModels(THREE, onProgress) {
         let u = 0; while (u < arm.length - 3 && (P.get(arm[u + 1]).distanceTo(P.get(arm[u])) < .075 * H || Math.abs(P.get(arm[u]).x - cx) < .05 * H)) u++; // skip spine/clavicle stubs: the upper arm is the first long bone
         if (arm[u + 2]) { ik2(arm[u], arm[u + 1], arm[u + 2], V3(s * HAND.x, HAND.y, HAND.z), s);
           const hb = arm[u + 2], pq = hb.parent ? wq(hb.parent) : new THREE.Quaternion(), roll = new THREE.Quaternion().setFromAxisAngle(V3(0, 0, 1), -s * Math.PI / 2 * (rollK[hb.name] ?? 1));
-          hb.quaternion.copy(pq.invert().multiply(roll).multiply(wq(hb))); hb.updateWorldMatrix(true, true); }
+          hb.quaternion.copy(pq.invert().multiply(roll).multiply(wq(hb))); hb.updateWorldMatrix(true, true); gap = Math.max(gap, V3(s * HAND.x, HAND.y, HAND.z).z - wp(hb).z); }
         else aim(arm[u], arm[u + 1], V3(s * .22, -.62, .6));
         arms++;
       }
       const leg = bestChain(legNext, s, j => Math.sign(P.get(j).x - cx));
       if (leg && leg.length >= 3) { aim(leg[0], leg[1], V3(s * .06, -.04, 1)); aim(leg[1], leg[2], V3(0, -1, .12)); legs++; }
     }
-    return { arms, legs, bones: J.length, why: detail.join(' | ') };
+    return { arms, legs, gap, bones: J.length, why: detail.join(' | ') };
   }
   // pelvis: a joint near the middle of the body, on the centre line, that owns the most of the skeleton
   function hipsOf(holder) {
@@ -239,6 +239,7 @@ export async function preloadModels(THREE, onProgress) {
         if (hasBones(holder)) {
           const hp = wp(hipsOf(holder)); obj.position.set(SEAT.x - hp.x, SEAT.y - hp.y, SEAT.z - hp.z); upd(holder);   // seat first, so the hands can reach the wheel
           info = poseDriver(holder); mode = 'skeleton';
+          if (info.gap > .04) { obj.position.z += Math.min(.5, info.gap); upd(holder); }   // short arms: lean the driver toward the wheel
         } else {
           const r = bendStatic(holder, SEAT, o.arm);
           if (r) { placed = r.node; placed.position.set(SEAT.x - r.pivot.x, SEAT.y - r.pivot.y, SEAT.z - r.pivot.z); info = { arms: 2, legs: 2, why: `static mesh bent (shoulder ${r.arm.Sx.toFixed(2)}, waist ${r.wt.toFixed(2)})` }; mode = 'static'; }
