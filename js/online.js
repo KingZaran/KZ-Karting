@@ -9,7 +9,7 @@ const MAX_PLAYERS = 12;
 
 export function createOnline({ TRACKS, getLoadout, onStart, onRoom, onRoomUpdate, onError }) {
   const myId = Math.random().toString(36).slice(2, 10), joinedAt = Date.now();
-  let entered = false, sb = null, ch = null, code = '', name = 'Player', players = [], active = false, inRace = false, handlers = {}, lastSend = 0, lastLo = '';
+  let entered = false, sb = null, ch = null, code = '', name = 'Player', players = [], active = false, inRace = false, handlers = {}, lastSend = 0, lastLo = '', seriesBots = null;
 
   const sorted = () => [...players].sort((a, b) => (a.t - b.t) || (a.id < b.id ? -1 : 1)).slice(0, MAX_PLAYERS);
   const isHost = () => { const s = sorted(); return s.length > 0 && s[0].id === myId; };
@@ -20,15 +20,15 @@ export function createOnline({ TRACKS, getLoadout, onStart, onRoom, onRoomUpdate
     const roster = msg.order.filter(id => byId[id]).map(id => ({ id, name: byId[id].name, lo: byId[id].lo }));
     (msg.bots || []).forEach((b, i) => roster.push({ id: 'bot' + i, name: 'CPU ' + (i + 1), lo: b.lo, bot: true }));
     inRace = true;
-    onStart({ track, laps: msg.laps, cls: msg.cls || '1', diff: msg.diff || '0.9', mirror: !!msg.mirror, bots: 0, items: msg.items, gfx: msg.gfx || 'high', lo: getLoadout(), online: { me: myId, host, roster } });
+    onStart({ track, races: msg.races || 1, rno: msg.rno || 1, laps: msg.laps, cls: msg.cls || '1', diff: msg.diff || '0.9', mirror: !!msg.mirror, bots: 0, items: msg.items, gfx: msg.gfx || 'high', lo: getLoadout(), online: { me: myId, host, roster } });
   }
   // host only: o = { trackId, laps, cls, items, bots, diff, mirror }
   function hostStart(o) {
     if (!active || !isHost() || sorted().length < 2) return false; pushLoadout();
     const track = o.trackId === 'random' ? TRACKS[Math.floor(Math.random() * TRACKS.length)] : TRACKS.find(t => t.id === o.trackId) || TRACKS[0];
     const room = Math.max(0, 12 - sorted().length), nb = Math.min(o.bots | 0, room), used = new Set(sorted().map(p => p.lo && p.lo.char)), usedP = new Set(sorted().map(p => p.lo && p.lo.paint));
-    const bots = Array.from({ length: nb }, () => ({ lo: randomLoadout(used, usedP) }));
-    const msg = { track: track.id, laps: o.laps, cls: o.cls, items: o.items, diff: o.diff, mirror: !!o.mirror, gfx: o.gfx, order: sorted().map(p => p.id), bots };
+    const bots = (o.rno > 1 && seriesBots && seriesBots.length === nb) ? seriesBots : Array.from({ length: nb }, () => ({ lo: randomLoadout(used, usedP) })); seriesBots = bots;   // same CPU racers for every race of a series
+    const msg = { track: track.id, races: o.races || 1, rno: o.rno || 1, laps: o.laps, cls: o.cls, items: o.items, diff: o.diff, mirror: !!o.mirror, gfx: o.gfx, order: sorted().map(p => p.id), bots };
     ch.send({ type: 'broadcast', event: 'start', payload: msg }); setTimeout(() => begin(msg), 0); return true;
   }
   function pushLoadout() { if (!ch || !active) return; const lo = getLoadout(), j = JSON.stringify(lo); if (j === lastLo) return; lastLo = j; ch.track({ name, lo, t: joinedAt }); }

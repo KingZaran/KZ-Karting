@@ -77,9 +77,31 @@ const CSS = `
 #flow .sb .n{font-size:34px;text-align:center}#flow .sb .ic{width:56px;height:56px;border-radius:50%;overflow:hidden;position:relative;border:3px solid #fff;font-size:20px;display:flex;align-items:center;justify-content:center}#flow .sb .ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #flow .sb .p{text-align:right;color:#ffd400}#flow .sb.me{background:linear-gradient(90deg,#e60012,#ff5a5a);border-color:#fff}
 #roomTag{position:fixed;top:14px;right:18px;z-index:70;display:none;background:#0a1236e6;border:3px solid #ffd400;border-radius:14px;padding:6px 16px;font-size:20px;font-weight:900;font-style:italic;letter-spacing:5px;color:#ffd400}
-#roomTag small{display:block;font-size:9px;letter-spacing:3px;color:#fff;font-style:normal;opacity:.8}`;
+#roomTag small{display:block;font-size:9px;letter-spacing:3px;color:#fff;font-style:normal;opacity:.8}
+#flow .mode2{display:flex;gap:30px;justify-content:center;align-items:center;flex-wrap:wrap}
+#flow .mbig{width:min(300px,42vw);padding:34px 20px;border-radius:30px;text-align:center;font-size:min(34px,5vh);font-weight:900;font-style:italic;background:#ffffff1c;border:5px solid #ffffff40;cursor:pointer;text-transform:uppercase;transition:transform .12s}
+#flow .mbig small{display:block;font-size:14px;font-weight:600;letter-spacing:1px;opacity:.8;margin-top:10px;text-transform:none;font-style:normal}
+#flow .mbig.cur{background:linear-gradient(180deg,#ff5a5a,#e60012);border-color:#fff;transform:scale(1.08);box-shadow:0 0 34px #e6001299}
+#flow .cups{display:flex;flex-wrap:nowrap;gap:min(12px,1.1vw);justify-content:center;padding:14px 4px 4px}
+#flow .coin{position:relative;width:min(11vh,7.4vw,92px);flex:none;aspect-ratio:1;border-radius:50%;border:5px solid #ffd54a;display:flex;align-items:center;justify-content:center;font-size:min(5.2vh,3.6vw,44px);cursor:pointer;box-shadow:0 6px 0 #0009,inset 0 0 0 5px #ffffff38,inset 0 -10px 18px #0005;transition:transform .12s;text-shadow:0 3px 4px #0008;user-select:none}
+#flow .coin::after{content:'';position:absolute;inset:7px;border-radius:50%;border:2px dashed #ffffff66;pointer-events:none}
+#flow .coin.cur{transform:scale(1.2) translateY(-4px);border-color:#fff;box-shadow:0 0 0 4px #ffd400,0 0 30px #ffd400cc,0 8px 0 #0009}
+#flow .cupname{text-align:center;font-size:min(30px,4.4vh);font-weight:900;font-style:italic;margin:8px 0 6px;text-shadow:0 3px 0 #0008}
+#flow .mrow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:6px}
+#flow .mrow .mt{padding:8px;border-radius:16px}
+#flow .mrow .mt .mti{width:100%;aspect-ratio:16/10;border-radius:10px;overflow:hidden;background:#0006;margin-bottom:6px}
+#flow .mrow .mt .mti>*{width:100%;height:100%;object-fit:cover;display:block}
+#flow .mrow .mt .no{position:absolute;top:6px;left:8px;background:#000a;border-radius:10px;padding:0 9px;font-size:14px;font-weight:900}
+#flow .gpl{position:relative;width:min(860px,96%);margin:6px auto}
+#flow .gpr{position:absolute;left:0;right:0;display:grid;grid-template-columns:48px 34px 52px 1fr 78px 92px;align-items:center;gap:10px;padding:0 20px;border-radius:40px;background:#0a1236d9;border:3px solid #ffffff30;font-size:min(24px,3.3vh);font-weight:800;font-style:italic;transition:transform .9s cubic-bezier(.5,0,.2,1),background .4s}
+#flow .gpr.me{background:linear-gradient(90deg,#e60012,#ff5a5a);border-color:#fff}
+#flow .gpr .n{font-size:1.25em;text-align:center}#flow .gpr .rp{text-align:right;color:#7aff9a;transition:opacity .5s}#flow .gpr .tp{text-align:right;color:#ffd400;font-size:1.15em}
+#flow .gpr .ar2{text-align:center;font-style:normal;font-weight:900;transition:opacity .4s;opacity:0}
+#flow .gpr .ic{width:min(44px,5.4vh);height:min(44px,5.4vh);border-radius:50%;overflow:hidden;position:relative;border:3px solid #fff;font-size:18px;display:flex;align-items:center;justify-content:center}#flow .gpr .ic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#flow .gpr.pulse .tp{animation:tpulse .25s}@keyframes tpulse{50%{transform:scale(1.3)}}
+`;
 
-export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEMES, ITEMS, itemIcon, drawThumb, online, startGame, toMain }) {
+export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEMES, ITEMS, itemIcon, drawThumb, online, startGame, toMain, CUPS }) {
   const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
   const root = document.createElement('div'); root.id = 'flow'; root.className = 'screen'; document.body.appendChild(root);
   const tag = document.createElement('div'); tag.id = 'roomTag'; document.body.appendChild(tag);
@@ -87,7 +109,7 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
 
   // ---------- persistent settings ----------
   const ALL = ITEMS.map(i => i[0]);
-  let S = { speed: 1, diff: 1, bots: 5, laps: 3, gfx: 'high', cpuOn: true, items: ALL, track: 'random', name: '' };
+  let S = { speed: 1, diff: 1, bots: 5, laps: 3, gfx: 'high', cpuOn: true, items: ALL, track: 'random', name: '', races: 1, cup: 0 };
   try { Object.assign(S, JSON.parse(localStorage.getItem('kz-flow') || '{}')); S.name = localStorage.getItem('kz-name') || S.name; } catch (e) {}
   if (!Array.isArray(S.items) || S.items.some(id => !ALL.includes(id))) S.items = [...ALL];   // item ids were renamed: reset old saved choices
   const save = () => { try { localStorage.setItem('kz-flow', JSON.stringify(S)); localStorage.setItem('kz-name', S.name); } catch (e) {} };
@@ -102,7 +124,7 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
   const preview = () => { const C = getChar(lo.char); return `<div class="pv" id="pv"><div class="pvn">${esc(C.name)}<small>${C.cls.toUpperCase()}</small></div></div>`; };
   const attachPv = () => { const pv = $('pv'); if (pv) pv.appendChild(canvas); };
   const frame = (title, left, right, { back = true, ok = 'OK', okDisabled = false, sub = '', one = false } = {}) => {
-    if (cur !== 'score') audio.music(cur === 'settings' && settingsFrom === 'main' ? 'menu' : mode === 'online' ? 'online-multiplayer' : 'single-player');
+    if (cur !== 'score' && cur !== 'gp') audio.music(cur === 'settings' && settingsFrom === 'main' ? 'menu' : mode === 'online' ? 'online-multiplayer' : 'single-player');
     const prevFl = $('fl'), sc0 = prevFl && lastDrawn === cur ? prevFl.scrollTop : 0; lastDrawn = cur;
     root.innerHTML = `<div class="fhead"><div class="ftitle">${title}</div><div class="fsub">${sub}</div></div>
       <div class="fbody${one ? ' one' : ''}"><div class="fl" id="fl">${left}</div>${one ? '' : `<div class="fr">${right}</div>`}</div>
@@ -117,7 +139,17 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
 
   // ---------- screens ----------
   let ci = Math.max(0, CHARS.findIndex(c => c.id === lo.char)), kc = 0, sr = 0, ic = 0, mc = 0, wc = 1;
+  let gpMode = false, mi = 0, cupI = 0, mapJ = 0, mapFocus = 'cup', gp = null, seriesOn = false, nextRno = 1, cancelTo = null, pendingResult = null, gpState = null, gpTimers = [], serTot = {}, serRank = {};
+  const trackById = id => TRACKS.find(t => t.id === id) || TRACKS[0], clearGp = () => { gpTimers.forEach(clearTimeout); gpTimers = []; };
   const SCR = {
+    mode: {
+      draw() {
+        frame('Single Player', `<div class="center" style="margin-top:6vh"><div class="mode2">${[['Versus', 'Pick any map and race it once'], ['Grand Prix', 'Race all 4 maps in a cup for points']].map(([t, d], i) => `<div class="mbig${mi === i ? ' cur' : ''}" data-i="${i}">${t}<small>${d}</small></div>`).join('')}</div></div>`, '', { one: true });
+        root.querySelectorAll('.mbig').forEach(b => b.onclick = () => { mi = +b.dataset.i; audio.sfx('small-decide'); SCR.mode.ok(); });
+      },
+      key(c) { if (c === 'ArrowLeft' || c === 'ArrowRight' || c === 'ArrowUp' || c === 'ArrowDown') { mi = 1 - mi; alt(); this.draw(); return true; } return false; },
+      back() { toMain(); }, ok() { gpMode = mi === 1; ci = Math.max(0, CHARS.findIndex(c => c.id === lo.char)); go('char'); },
+    },
     entry: {
       draw() {
         frame('Online Multiplayer', `<div class="center"><div class="msg" id="emsg">${esc(msg)}</div><input id="eName" maxlength="14" placeholder="Your name" value="${esc(S.name)}">
@@ -138,7 +170,7 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
         const c = root.querySelector('.ct.cur'); c && c.scrollIntoView({ block: 'nearest' });
       },
       key(c) { const d = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -6, ArrowDown: 6 }[c]; if (!d) return false; ci = Math.max(0, Math.min(CHARS.length - 1, ci + d)); pickChar(); alt(); return true; },
-      back() { if (mode === 'online' && room && wcFromWait) return go('wait'); if (mode === 'online') { online.leave(); room = null; mode = 'single'; go('entry'); } else toMain(); },
+      back() { if (mode === 'online' && room && wcFromWait) return go('wait'); if (mode === 'online') { online.leave(); room = null; mode = 'single'; go('entry'); } else go('mode'); },
       ok() { go('kart'); },
     },
     kart: {
@@ -177,6 +209,7 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
         R.push({ label: 'CPU Difficulty', off, val: () => DIFFS[S.diff], chg: d => { if (!off) S.diff = wrap(S.diff, d, 3); } });
         R.push({ label: 'Number of CPUs', off, val: () => S.bots, chg: d => { if (!off) S.bots = wrap(S.bots, d, mode === 'online' ? 12 - Math.max(2, room ? room.count : 2) + 1 : 12); } });
         R.push({ label: 'Laps', val: () => S.laps, chg: d => { const L = [1, 2, 3, 5, 7]; S.laps = L[wrap(L.indexOf(S.laps), d, L.length)]; } });
+        if (mode === 'online') R.push({ label: 'Number of Races', val: () => S.races || 1, chg: d => { const L = [1, 2, 3, 4, 5, 6, 7, 8]; S.races = L[wrap(Math.max(0, L.indexOf(S.races || 1)), d, L.length)]; } });
         return R;
       },
       key(c) { const R = this.rows(); if (c === 'ArrowUp') sr = (sr + R.length - 1) % R.length; else if (c === 'ArrowDown') sr = (sr + 1) % R.length; else if (c === 'ArrowLeft' || c === 'ArrowRight') { if (sr >= R.length) sr = 0; R[sr].chg(c === 'ArrowRight' ? 1 : -1); save(); } else return false; (c === 'ArrowLeft' || c === 'ArrowRight') ? side() : tick(); this.draw(); return true; },
@@ -196,19 +229,37 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
         else if (c === 'ArrowDown' && ic + 7 >= n) ic = n; else ic = Math.max(0, Math.min(n - 1, ic + d));
         alt(); this.draw(); return true;
       },
-      back() { go('setup'); }, ok() { if (online_()) { votes = {}; online.ui({ k: 'phase', s: 'map' }); go('map'); } else go('map'); },
+      back() { go('setup'); }, ok() { if (online_()) { votes = {}; online.ui({ k: 'phase', s: 'map' }); go('map'); } else { if (gpMode) cupI = Math.min(S.cup || 0, CUPS.length - 1); go('map'); } },
     },
     map: {
       draw() {
-        const n = TRACKS.length;
-        frame(online_() ? `Vote for a Map` : 'Select Map', `<div class="mgrid">${TRACKS.map((t, i) => `<div class="mt${mc === i ? ' cur' : ''}" data-i="${i}"><span class="th"></span>${esc(t.name)}<small>${t.zones.map(([id]) => THEMES[id].name).join(' · ')}</small></div>`).join('')}</div>
-          <div class="mt mrand${mc === n ? ' cur' : ''}" data-i="${n}">🎲 RANDOM</div>`, '', { one: true, sub: online_() ? `${Object.keys(votes).length} / ${room.count} VOTED` + (room.host ? ' · TAB = PICK WINNER' : '') : '', ok: online_() ? '' : 'OK' });
-        root.querySelectorAll('.mt').forEach(t => { const i = +t.dataset.i; if (i < n) { const th = drawThumb(TRACKS[i]); t.querySelector('.th').replaceWith(th); const im = new Image(); im.onload = () => { im.style.cssText = 'width:100%;max-height:104px;object-fit:cover;border-radius:10px;display:block;margin-bottom:4px'; th.replaceWith(im); }; im.src = `icons/maps/${TRACKS[i].id}.png`; } t.onclick = () => { mc = i; audio.sfx('small-decide'); SCR.map.ok(); }; const cnt = Object.values(votes).filter(v => v === (i < n ? TRACKS[i].id : 'random')).length; if (online_() && cnt) t.insertAdjacentHTML('beforeend', `<b style="position:absolute;top:6px;right:8px;background:#ffd400;color:#000;border-radius:12px;padding:1px 9px;font-size:15px">${cnt}</b>`); t.style.position = 'relative'; });
+        const gpSel = !online_() && gpMode, nC = CUPS.length, rnd = cupI === nC, cup = CUPS[cupI];
+        const coins = `<div class="cups">${CUPS.map((c, i) => `<div class="coin${cupI === i ? ' cur' : ''}" data-c="${i}" title="${esc(c.name)}" style="background:radial-gradient(circle at 34% 28%,${c.c2},${c.c1} 70%)">${c.icon}</div>`).join('')}<div class="coin${rnd ? ' cur' : ''}" data-c="${nC}" title="Random" style="background:radial-gradient(circle at 34% 28%,#fff,#7a8ab8 70%);color:#1a1f33;font-weight:900">?</div></div>`;
+        const label = rnd ? (gpSel ? 'Random Cup' : '🎲 Random Map') : cup.name;
+        const cards = rnd ? `<div class="msg" style="text-align:center;padding:22px;font-size:20px">${gpSel ? 'A random cup will be chosen for you' : 'A random map will be chosen for you'}</div>` : `<div class="mrow">${cup.tracks.map((id, j) => { const t = trackById(id); return `<div class="mt${mapFocus === 'map' && mapJ === j ? ' cur' : ''}" data-j="${j}" data-id="${id}" style="position:relative">${gpSel ? `<span class="no">${j + 1}</span>` : ''}<div class="mti"><span class="th"></span></div>${esc(t.name)}<small>${t.zones.map(([z]) => THEMES[z].name).join(' · ')}</small></div>`; }).join('')}</div>`;
+        frame(online_() ? 'Vote for a Map' : gpSel ? 'Select Cup' : 'Select Map', coins + `<div class="cupname">${esc(label)}</div>` + cards, '', { one: true, sub: online_() ? `${Object.keys(votes).length} / ${room.count} VOTED${nextRno > 1 ? ` · RACE ${nextRno} OF ${S.races}` : ''}` + (room.host ? ' · TAB = PICK WINNER' : '') : gpSel ? '4 RACES · POINTS COUNT' : '', ok: online_() ? (mapFocus === 'map' || rnd ? 'Vote' : 'OK') : 'OK' });
+        root.querySelectorAll('.coin').forEach(cn => cn.onclick = () => { const i = +cn.dataset.c; if (cupI === i && !gpSel && i < nC) { mapFocus = 'map'; mapJ = 0; } else { cupI = i; mapFocus = 'cup'; } audio.sfx(i === nC && !gpSel ? 'small-decide' : 'alt-cursor'); if (i === nC && !gpSel) { SCR.map.ok(); return; } SCR.map.draw(); });
+        root.querySelectorAll('.mrow .mt').forEach(t => { const id = t.dataset.id, th = drawThumb(trackById(id)); t.querySelector('.th').replaceWith(th); const im = new Image(); im.onload = () => { th.replaceWith(im); }; im.src = `icons/maps/${id}.png`;
+          t.onclick = () => { mapJ = +t.dataset.j; mapFocus = 'map'; if (gpSel) { SCR.map.draw(); return; } audio.sfx('small-decide'); SCR.map.ok(); };
+          const cnt = Object.values(votes).filter(v => v === id).length; if (online_() && cnt) t.insertAdjacentHTML('beforeend', `<b style="position:absolute;top:6px;right:8px;background:#ffd400;color:#000;border-radius:12px;padding:1px 9px;font-size:15px">${cnt}</b>`); });
         if (online_()) { const ff = root.querySelector('.ffoot'); if (room.host) { ff.lastElementChild.outerHTML = '<button class="fb ok" id="mDone"><i>★</i>Pick winner ▶</button>'; $('mDone').onclick = () => { audio.sfx('small-decide'); resolveVotes(); }; } }
       },
-      key(c) { if (c === 'Tab' && online_() && room.host) { resolveVotes(); return true; } const n = TRACKS.length; let d = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -3, ArrowDown: 3 }[c]; if (!d) return false; if (c === 'ArrowDown' && mc + 3 >= n && mc < n) mc = n; else if (c === 'ArrowUp' && mc === n) mc = Math.max(0, n - 3); else if (mc < n || c === 'ArrowUp') mc = Math.max(0, Math.min(n - 1, mc + d)); alt(); this.draw(); return true; },
-      back() { go(online_() && !room.host ? 'wait' : online_() ? 'items' : 'items'); },
-      ok() { const t = mc < TRACKS.length ? TRACKS[mc].id : 'random'; if (online_()) { vote(t); return; } S.track = t; save(); go('start'); },
+      key(c) {
+        if (c === 'Tab' && online_() && room.host) { resolveVotes(); return true; }
+        const nC = CUPS.length, gpSel = !online_() && gpMode;
+        if (mapFocus === 'cup') {
+          if (c === 'ArrowLeft') cupI = (cupI + nC) % (nC + 1); else if (c === 'ArrowRight') cupI = (cupI + 1) % (nC + 1);
+          else if (c === 'ArrowDown' && cupI < nC && !gpSel) { mapFocus = 'map'; mapJ = Math.min(mapJ, 3); } else return false;
+        } else { if (c === 'ArrowLeft') mapJ = Math.max(0, mapJ - 1); else if (c === 'ArrowRight') mapJ = Math.min(3, mapJ + 1); else if (c === 'ArrowUp') mapFocus = 'cup'; else return false; }
+        alt(); this.draw(); return true;
+      },
+      back() { if (online_() && seriesOn) { online.leave(); room = null; mode = 'single'; seriesOn = false; nextRno = 1; go('entry'); return; } go(online_() && !room.host ? 'wait' : 'items'); },
+      ok() {
+        const nC = CUPS.length, gpSel = !online_() && gpMode, rnd = cupI === nC;
+        if (gpSel) { S.cup = rnd ? Math.floor(Math.random() * nC) : cupI; if (rnd) cupI = S.cup; save(); go('start'); return; }
+        if (!rnd && mapFocus === 'cup') { mapFocus = 'map'; mapJ = 0; this.draw(); return; }
+        const t = rnd ? 'random' : CUPS[cupI].tracks[mapJ]; if (online_()) { vote(t); return; } S.track = t; save(); go('start');
+      },
     },
     settings: {
       rows() { return [{ label: 'Graphics', val: () => ({ high: 'High', ultra: 'Ultra (AO)', low: 'Low (faster)' })[S.gfx] || 'High', chg: () => { S.gfx = ({ high: 'ultra', ultra: 'low', low: 'high' })[S.gfx] || 'high'; save(); } }, { label: 'Controls', val: () => 'Change keys ▶', chg: () => openControls() }]; },
@@ -222,16 +273,18 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
     },
     start: {
       draw() {
-        const o = opts(), t = S.track === 'random' ? null : TRACKS.find(x => x.id === S.track), many = mode === 'online' && room && room.count < 2, guest = mode === 'online' && room && !room.host;
-        frame('Ready?', `<div class="card"><div><span>Map</span>${t ? esc(t.name) : '🎲 Random'}</div><div><span>Speed</span>${SPEEDS[S.speed]}</div><div><span>CPUs</span>${o.bots ? o.bots + ' · ' + DIFFS[S.diff] : 'Off'}</div><div><span>Laps</span>${S.laps}</div><div><span>Items</span>${S.items.length} / ${ITEMS.length}</div>${mode === 'online' && room ? `<div><span>Players</span>${room.count}</div>` : ''}</div>
+        const o = opts(), isGp = !online_() && gpMode, cupo = CUPS[S.cup] || CUPS[0], t = S.track === 'random' ? null : TRACKS.find(x => x.id === S.track), many = mode === 'online' && room && room.count < 2, guest = mode === 'online' && room && !room.host;
+        frame('Ready?', `<div class="card">${isGp ? `<div><span>Grand Prix</span>${esc(cupo.name)}</div><div><span>Races</span>${cupo.tracks.map(id => esc(trackById(id).name)).join(' → ')}</div>` : `<div><span>Map</span>${t ? esc(t.name) : '🎲 Random'}</div>`}${mode === 'online' && S.races > 1 ? `<div><span>Race</span>${nextRno} of ${S.races}</div>` : ''}<div><span>Speed</span>${SPEEDS[S.speed]}</div><div><span>CPUs</span>${o.bots ? o.bots + ' · ' + DIFFS[S.diff] : 'Off'}</div><div><span>Laps</span>${S.laps}</div><div><span>Items</span>${S.items.length} / ${ITEMS.length}</div>${mode === 'online' && room ? `<div><span>Players</span>${room.count}</div>` : ''}</div>
           <div class="center"><div class="msg">${many ? 'Need at least 2 players in the room to start' : guest ? 'Waiting for the host to start the race…' : ''}</div>${guest ? '' : `<button class="fb ok bigok" id="bigOk"${many ? ' disabled' : ''}><i>A</i>START RACE</button>`}</div>`, '', { one: true, ok: '' });
         if (!guest) $('bigOk').onclick = () => { audio.sfx('start-race'); SCR.start.ok(); };
       },
       key() { return false; },
-      back() { if (mode === 'online' && room && !room.host) return go('wait'); go('map'); },
-      ok() { if (mode === 'online' && room && !room.host) return; const o = opts(); if (mode === 'online') { if (room && room.count >= 2) online.hostStart({ trackId: o.trackId, laps: o.laps, cls: o.cls, items: o.items, bots: o.bots, diff: o.diff, mirror: o.mirror, gfx: o.gfx }); return; }
-        const t = S.track === 'random' ? TRACKS[Math.floor(Math.random() * TRACKS.length)] : TRACKS.find(x => x.id === S.track) || TRACKS[0];
-        audio.init(); startGame({ ...o, track: t }); },
+      back() { if (mode === 'online' && room && !room.host) return go(seriesOn ? 'map' : 'wait'); go('map'); },
+      ok() { if (mode === 'online' && room && !room.host) return; const o = opts(); if (mode === 'online') { if (room && room.count >= 2) online.hostStart({ races: S.races || 1, rno: nextRno, trackId: o.trackId, laps: o.laps, cls: o.cls, items: o.items, bots: o.bots, diff: o.diff, mirror: o.mirror, gfx: o.gfx }); return; }
+        audio.init();
+        if (gpMode) { const cup = CUPS[S.cup] || CUPS[0]; gp = { cup, i: 0, base: { ...o, track: trackById(cup.tracks[0]), races: cup.tracks.length, rno: 1 } }; serTot = {}; serRank = {}; startGame(gp.base); return; }
+        gp = null; const t = S.track === 'random' ? TRACKS[Math.floor(Math.random() * TRACKS.length)] : TRACKS.find(x => x.id === S.track) || TRACKS[0];
+        startGame({ ...o, track: t }); },
     },
   };
   let scoreRows = [], scoreDone = () => {}, sr2 = 0, settingsFrom = 'main', openedAt = 0, votes = {};
@@ -239,6 +292,39 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
     draw() { frame('Results', scoreRows.map(r => { const c = getChar(r.char), col = ['#ffd400', '#d8dde6', '#cd7f32'][r.pos - 1] || '#fff'; return `<div class="sb${r.me ? ' me' : ''}"><span class="n" style="color:${col}">${r.pos}</span><span class="ic" style="background:${hex(c.c.body === 0xf0f6fa ? 0x3b5bd6 : c.c.body)}">${esc(c.name[0])}<img src="icons/chars/${c.id}.png" alt="" onerror="this.remove()"></span><span>${esc(r.name)}</span><span class="p">+${r.pts}</span></div>`; }).join(''), '', { one: true, back: false, ok: 'OK' }); },
     key() { return false; }, back() {}, ok() { scoreDone(); },
   };
+  // ---------- Grand Prix / multi-race scoreboard: race points -> running total with animated re-ordering ----------
+  const rowIcon = r => { const c = getChar(r.char); return `<span class="ic" style="background:${hex(c.c.body === 0xf0f6fa ? 0x3b5bd6 : c.c.body)}">${esc(c.name[0])}<img src="icons/chars/${c.id}.png" alt="" onerror="this.remove()"></span>`; };
+  function initSeries(rows, info) {
+    if (info.rno <= 1) { serTot = {}; serRank = {}; }
+    const rs = rows.map(r => ({ ...r, prev: serTot[r.key] || 0 })); rs.forEach(r => { r.total = r.prev + r.pts; });
+    const byPrev = [...rs].sort((a, b) => (b.prev - a.prev) || ((serRank[a.key] ?? a.pos) - (serRank[b.key] ?? b.pos))), byNew = [...rs].sort((a, b) => (b.total - a.total) || (a.pos - b.pos));
+    byPrev.forEach((r, i) => { r.prank = info.rno <= 1 ? 0 : i; }); byNew.forEach((r, i) => { r.rank = i; if (info.rno <= 1) r.prank = i; });
+    rs.forEach(r => { serTot[r.key] = r.total; serRank[r.key] = r.rank; });
+    gpState = { rows: rs, races: info.races, rno: info.rno, final: info.rno >= info.races, finished: false };
+  }
+  SCR.gp = {
+    draw() {
+      const g = gpState, n = g.rows.length, rh = Math.max(32, Math.min(58, Math.floor((innerHeight - 210) / n))); g.rh = rh; const first = g.rno <= 1;
+      frame(g.final ? 'Final Results' : `Race ${g.rno} of ${g.races}`, `<div class="gpl" style="height:${n * rh}px">${g.rows.map(r => `<div class="gpr${r.me ? ' me' : ''}" data-k="${esc(r.key)}" style="height:${rh - 6}px;transform:translateY(${(first ? r.rank : r.pos - 1) * rh}px)"><span class="n">${first ? r.rank + 1 : r.pos}</span><span class="ar2">-</span>${rowIcon(r)}<span class="nm">${esc(r.name)}</span><span class="rp">+${r.pts}</span><span class="tp">${first ? r.total : r.prev}</span></div>`).join('')}</div>`, '', { one: true, back: true, ok: 'OK', sub: g.final ? 'GRAND PRIX COMPLETE' : first ? 'CURRENT STANDINGS' : 'RACE RESULTS' });
+      const el = k => [...root.querySelectorAll('.gpr')].find(e => e.dataset.k === k), setArrows = () => g.rows.forEach(r => { const a = el(r.key).querySelector('.ar2'), d = r.prank - r.rank; a.style.opacity = 1; a.textContent = d > 0 ? '▲' : d < 0 ? '▼' : '-'; a.style.color = d > 0 ? '#5aff8a' : d < 0 ? '#ff5a5a' : '#c8cfe0'; });
+      const settle = () => { g.rows.forEach(r => { const e = el(r.key); e.style.transform = `translateY(${r.rank * rh}px)`; e.querySelector('.n').textContent = r.rank + 1; e.querySelector('.tp').textContent = r.total; e.querySelector('.rp').style.opacity = 0; }); setArrows(); g.finished = true; if (g.final) g.rows.forEach(r => { el(r.key).style.borderColor = ['#ffd400', '#d8dde6', '#cd7f32'][r.rank] || '#ffffff30'; }); };
+      g.finish = () => { clearGp(); settle(); };
+      if (first) { g.rows.forEach(r => { el(r.key).querySelector('.rp').style.opacity = 0; }); g.finished = true; setArrows(); if (g.final) settle(); return; }
+      // phase 1: hold the race result for a moment, phase 2: tally points up, phase 3: slide names into their new order with arrows
+      const T = (f, ms) => gpTimers.push(setTimeout(f, ms));
+      T(() => { const steps = 14; for (let i = 1; i <= steps; i++) T(() => { g.rows.forEach(r => { const e = el(r.key); e.querySelector('.tp').textContent = r.prev + Math.round(r.pts * i / steps); if (i === 1) e.classList.add('pulse'); }); if (i % 3 === 0) tick(); }, i * 80); }, 2800);
+      T(() => { side(); settle(); }, 2800 + 14 * 80 + 500);
+    },
+    key() { return false; },
+    back() { cancelSeries(); },
+    ok() { const g = gpState; if (!g.finished) { g.finish(); return; } clearGp(); if (g.final) { seriesOn = false; nextRno = 1; serTot = {}; serRank = {}; gpNext = false; } else { seriesOn = true; nextRno = g.rno + 1; gpNext = true; } scoreDone(); },
+  };
+  let gpNext = false;
+  function cancelSeries() {
+    clearGp(); gp = null; gpNext = false; seriesOn = false; nextRno = 1; serTot = {}; serRank = {};
+    if (mode === 'online') { online.leave(); room = null; mode = 'single'; cancelTo = 'entry'; } else cancelTo = 'char';
+    scoreDone();
+  }
   let wcFromWait = false;
   function pickChar() { setLo({ char: CHARS[ci].id }); const C = getChar(lo.char); const pv = $('pv'); if (pv) pv.querySelector('.pvn').innerHTML = `${esc(C.name)}<small>${C.cls.toUpperCase()}</small>`; root.querySelectorAll('.ct').forEach((t, i) => t.classList.toggle('cur', i === ci)); const s = root.querySelector('.stats'); if (s) s.outerHTML = statsHtml(); const c = root.querySelector('.ct.cur'); c && c.scrollIntoView({ block: 'nearest' }); }
   function chg(d) {
@@ -252,7 +338,7 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
   function resolveVotes() { const b = Object.values(votes), pick = b.length ? b[Math.floor(Math.random() * b.length)] : 'random', id = pick === 'random' ? TRACKS[Math.floor(Math.random() * TRACKS.length)].id : pick; S.track = id; save(); online.ui({ k: 'result', t: id }); go('start'); }
   const back_ = () => SCR[cur] && SCR[cur].back(), ok_ = () => SCR[cur] && SCR[cur].ok();
 
-  function go(s) { cur = s; racingHidden = false; if (s === 'wait') wcFromWait = false; show('flow'); SCR[s].draw(); }
+  function go(s) { cur = s; racingHidden = false; if (s === 'wait') { wcFromWait = false; if (!seriesOn) nextRno = 1; } show('flow'); SCR[s].draw(); }
 
   addEventListener('keydown', e => {
     if (!root.classList.contains('on') || !SCR[cur] || e.repeat || performance.now() - openedAt < 300) return;
@@ -266,23 +352,29 @@ export function initFlow({ $, show, audio, garageUI, openControls, TRACKS, THEME
 
   return {
     startSettings() { settingsFrom = 'main'; openedAt = performance.now(); go('settings'); },
-    startSingle() { openedAt = performance.now(); mode = 'single'; room = null; ci = Math.max(0, CHARS.findIndex(c => c.id === lo.char)); go('char'); },
+    startSingle() { openedAt = performance.now(); mode = 'single'; room = null; gp = null; seriesOn = false; nextRno = 1; go('mode'); },
     startOnline() { openedAt = performance.now(); mode = 'online'; msg = ''; if (online.active && room) go('wait'); else go('entry'); },
-    onRoom(info) { room = info; mode = 'online'; wcFromWait = false; if (cur === 'entry' || cur === 'none' || !SCR[cur]) { ci = Math.max(0, CHARS.findIndex(c => c.id === lo.char)); go('char'); } else go('wait'); },
+    onRoom(info) { room = info; mode = 'online'; wcFromWait = false; if (seriesOn && cur !== 'entry') { cupI = Math.max(0, Math.min(cupI, CUPS.length)); mapFocus = 'cup'; mapJ = 0; go('map'); if (pendingResult) { S.track = pendingResult; pendingResult = null; go('start'); } return; } if (cur === 'entry' || cur === 'none' || !SCR[cur]) { ci = Math.max(0, CHARS.findIndex(c => c.id === lo.char)); go('char'); } else go('wait'); },
     onRoomUpdate(info) {
       const joined = room && info.count > room.count; room = info; updTag(); if (cur === 'wait' || cur === 'start') SCR[cur].draw();
       if (joined && info.host && cur === 'map') for (const d of [400, 1200, 2500]) setTimeout(() => { if (cur === 'map' && room && room.host) online.ui({ k: 'phase', s: 'map' }); }, d);   // pull new joiners onto the map screen
     },
     onError(m) { msg = m; room = null; mode = 'online'; go('entry'); },
-    scoreboard(rows, done) { scoreRows = rows; scoreDone = done; racingHidden = true; audio.music(null); audio.stopJingles(); const me = rows.find(r => r.me); audio.jingle(me && me.pos === 1 ? 'results-win' : 'results-loss'); go('score'); },
+    scoreboard(rows, done, info = {}) { scoreRows = rows; scoreDone = done; racingHidden = true; audio.music(null); audio.stopJingles(); const me = rows.find(r => r.me); audio.jingle(me && me.pos === 1 ? 'results-win' : 'results-loss'); if ((info.races || 1) > 1) { initSeries(rows, info); go('gp'); } else { gpState = null; go('score'); } },
     onUi(m) {
       if (!online_()) return;
-      if (m.k === 'phase' && !room.host) { if (cur !== 'map') { votes = {}; mc = 0; go('map'); } }
+      if (m.k === 'phase' && !room.host) { if (cur !== 'map' && cur !== 'score' && cur !== 'gp' && cur !== 'start') { votes = {}; mapFocus = 'cup'; mapJ = 0; go('map'); } }
       else if (m.k === 'vote') { votes[m.id] = m.t; if (cur === 'map') SCR.map.draw(); }
-      else if (m.k === 'result' && !room.host) { S.track = m.t; go('start'); }
+      else if (m.k === 'result' && !room.host) { if (cur === 'score' || cur === 'gp') pendingResult = m.t; else { S.track = m.t; go('start'); } }
     },
-    hideTag() { racingHidden = true; updTag(); },
-    afterRace() { if (mode === 'online' && room) go('wait'); else go('map'); },
+    hideTag() { racingHidden = true; updTag(); clearGp(); pendingResult = null; if (mode === 'online') votes = {}; },
+    afterRace() {
+      if (cancelTo) { const t = cancelTo; cancelTo = null; go(t); return; }
+      if (mode === 'online' && room) { go('wait'); return; }
+      if (gp && gpNext) { gpNext = false; gp.i++; audio.init(); startGame({ ...gp.base, track: trackById(gp.cup.tracks[gp.i]), rno: gp.i + 1 }); return; }
+      if (gp) { gp = null; go('char'); return; }
+      go('map');
+    },
     leave() { room = null; mode = 'single'; racingHidden = false; updTag(); },
     get preview() { return root.classList.contains('on') && ['char', 'kart'].includes(cur); },
   };

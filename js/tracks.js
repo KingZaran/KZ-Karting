@@ -54,7 +54,24 @@ export const TRACKS = [
   { id: 'deepdocks', name: 'Deep Docks', width: 20, elev: [14, 4, 2, 0, 2, 5, 1], pts: SHAPE.bell, zones: [['deepdocks', 1]] },
   { id: 'lootlake', name: 'Loot Lake', width: 22, elev: [8, 2, 1, 0, 1, 3, 0], pts: SHAPE.kidney, zones: [['lootlake', 1]] },
   { id: 'garage', name: 'Level 1', width: 20, elev: [6, 2, 1, 0, 1, 2, 0], pts: SHAPE.pool, zones: [['garage', 1]] },
+  { id: 'stormcircle', name: 'Storm Circle', width: 22, elev: [10, 3, 2, 0, 2, 4, 0], pts: SHAPE.clover, zones: [['tilted', .34], ['lootlake', .68], ['storm', 1]] },
+  { id: 'studs', name: 'Studs & Stairs', width: 22, elev: [14, 4, 2, 0, 2, 5, 1], pts: SHAPE.tri, zones: [['brick', .5], ['obby', 1]] },
+  { id: 'neonobby', name: 'Neon Obby Rush', width: 22, elev: [16, 5, 2, 1, 3, 5, 0], pts: SHAPE.kidney, zones: [['obby', .4], ['neon', .7], ['brick', 1]] },
+  { id: 'inkplaza', name: 'Ink Plaza Run', width: 22, elev: [12, 4, 2, 0, 2, 5, 1], pts: SHAPE.twist, zones: [['inkopolis', .5], ['ink', 1]] },
+  { id: 'gauntlet', name: 'Backrooms Gauntlet', width: 20, elev: [8, 2, 1, 0, 1, 3, 0], pts: SHAPE.wide, zones: [['backrooms', .3], ['pool', .62], ['garage', 1]] },
   { id: 'battleisland', name: 'Battle Island', width: 22, elev: [16, 5, 3, 0, 3, 6, 1], pts: SHAPE.island, zones: [['storm', 1]] },
+];
+// Cups: 4 maps each (like Mario Kart 8 Deluxe). Grand Prix races all 4 in order; Versus lets you pick one map from a cup.
+export const CUPS = [
+  { id: 'hk', name: 'Hollow Knight Cup', icon: '🪲', c1: '#3a4a7a', c2: '#9fe0ff', tracks: ['hollow', 'cityoftears', 'greenpath', 'deepnest'] },
+  { id: 'ss', name: 'Silksong Cup', icon: '🪡', c1: '#8a1c2b', c2: '#ffcf6a', tracks: ['bellhart', 'mossgrotto', 'mountfay', 'deepdocks'] },
+  { id: 'br', name: 'Backrooms Cup', icon: '🚪', c1: '#9a8a30', c2: '#fff08a', tracks: ['halls', 'poolrooms', 'garage', 'gauntlet'] },
+  { id: 'sm', name: 'Smash Cup', icon: '💥', c1: '#d8302a', c2: '#ffd23f', tracks: ['battlefield', 'pokestadium', 'dreamland', 'smashville'] },
+  { id: 'fn', name: 'Fortnite Cup', icon: '🪂', c1: '#6a2ad8', c2: '#7ad0ff', tracks: ['battleisland', 'tilted', 'lootlake', 'stormcircle'] },
+  { id: 'rb', name: 'Roblox Cup', icon: '🧱', c1: '#d8302a', c2: '#ffffff', tracks: ['baseplate', 'obby', 'studs', 'neonobby'] },
+  { id: 'sp', name: 'Splatoon Cup', icon: '🦑', c1: '#ff2d95', c2: '#2dffa5', tracks: ['inkarena', 'moray', 'inkopolis', 'inkplaza'] },
+  { id: 'mc', name: 'Minecraft Cup', icon: '⛏️', c1: '#3f8a2c', c2: '#b8f08a', tracks: ['overworld', 'village', 'mushroom', 'theend'] },
+  { id: 'kz', name: 'Crossover Cup', icon: '⭐', c1: '#2a6ad8', c2: '#ffe14f', tracks: ['circuit', 'mayhem', 'frostfire', 'finaldest'] },
 ];
 export const ITEMS = [
   ['banana','Banana'],['blooper','Blooper'],['bob-omb','Bob-omb'],['boo','Boo'],['boomerang-flower','Boomerang Flower'],['bullet-bill','Bullet Bill'],

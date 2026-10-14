@@ -9,7 +9,7 @@ import { createGarage } from './garage.js';
 import { initGarageUI } from './garageui.js';
 import { MODELS, preloadModels, cloneModel } from './models.js';
 import { createScenery, makeEnv } from './scenery.js';
-import { TRACKS, ITEMS } from './tracks.js';
+import { TRACKS, ITEMS, CUPS } from './tracks.js';
 import { createItemModels } from './itemmodels.js';
 import { buildThemes } from './themes.js';
 import { createOnline } from './online.js';
@@ -278,7 +278,7 @@ let lastCd = -1, race = { laps: 3 }, karts = [], player, state = 'idle', countdo
 function startRace(o, noIntro) {
   lastOpts = o; stopShowcase(); audio.stopJingles(); audio.music(null); musTheme = null; applyGfx(o.gfx); flow.hideTag(); renderer.domElement.style.transform = $('mini').style.transform = o.mirror ? 'scaleX(-1)' : ''; lastCd = -1; $('mini').style.display = 'block'; show(null); clearWorld(); loadTrack(o.track);
   karts.forEach(k => scene.remove(k.mesh)); karts = [];
-  race = { laps: +o.laps, items: o.items, finishOrder: [], mirror: !!o.mirror, over: false }; $('menuBtn').textContent = '☰ Menu'; hudSig = '';
+  race = { laps: +o.laps, items: o.items, finishOrder: [], mirror: !!o.mirror, over: false, races: o.races || 1, rno: o.rno || 1 }; $('menuBtn').textContent = '☰ Menu'; hudSig = '';
   MAX = 48 * +o.cls; const diff = +o.diff, usedChars = new Set([o.lo.char]), usedPaints = new Set([o.lo.paint]);
   const dLvl = diff <= .85 ? { lvl: 0, skill: 1.07, rubber: .15, drift: .9 } : diff <= .95 ? { lvl: 1, skill: 1.15, rubber: .21, drift: 1 } : { lvl: 2, skill: 1.28, rubber: .3, drift: 1 };   // tougher CPUs: Easy~old Hard, Normal harder, Hard much harder
   const OL = o.online, total = OL ? OL.roster.length : Math.min(12, o.bots + 1);   // never more than 12 racers
@@ -287,10 +287,11 @@ function startRace(o, noIntro) {
     const row = Math.floor(n/2), side = n % 2 ? 1 : -1;
     const idx = (N - 6 - row*8 + N) % N, t = tangent(idx), nrm = new THREE.Vector3(-t.z,0,t.x);
     const p = samples[idx].clone().addScaledVector(nrm, side*4);
-    const lo = OL ? (OL.roster[n].lo || randomLoadout()) : n === 0 ? o.lo : randomLoadout(usedChars, usedPaints), st = computeStats(lo);
+    const lo = OL ? (OL.roster[n].lo || randomLoadout()) : n === 0 ? o.lo : (o.botLos && o.botLos[n - 1]) || randomLoadout(usedChars, usedPaints), st = computeStats(lo);
     karts.push({ lo, col: PAINT[lo.paint].hex, mesh: makeKart(PAINT[lo.paint].hex, lo), top: MAX * st.speedMul, acc: ACC * st.accMul, hand: st.hand, driftMul: st.driftMul, mass: st.mass, size: st.size, spinMul: st.spinMul, offMul: st.offMul, pos: p, heading: Math.atan2(t.x, t.z), speed: 0, idx, lap: -1, progress: -1 + idx/N, boost: 0, driftT: 0, item: null, spin: 0, star: 0, shrink: 0, rocket: 0, plantT: 0, invuln: 0, useCd: 0, inkT: 0, coins: 0, hopY: 0,
       isBot: OL ? !!(OL.roster[n].bot && OL.host) : n !== 0, remote: OL ? (OL.roster[n].bot ? !OL.host : OL.roster[n].id !== OL.me) : false, pid: OL ? OL.roster[n].id : null, name: OL ? OL.roster[n].name : n === 0 ? 'YOU' : 'Bot ' + n, skill: dLvl.skill - Math.random() * .05, rubber: dLvl.rubber, drifter: Math.random() < dLvl.drift, line: Math.random(), diffLvl: dLvl.lvl, lane: (Math.random()-.5) * (WIDTH * .5), finished: false , immune: 0, starT: 0, rocketT: 0, ink: 0, useAt: 0, gotAt: 0 });
   }
+  if (!OL) o.botLos = karts.slice(1).map(k => k.lo);   // Grand Prix: the same CPU racers carry over to the next race
   karts.forEach(k => k.mesh.scale.setScalar(k.size)); lastTheme = null; player = karts.find(k => !k.isBot && !k.remote) || karts[0]; ranked = [...karts]; spawnBoxes(); clock.getDelta(); $('big').textContent = ''; $('shellAlert').style.display = 'none';
   if (noIntro) { $('hud').style.display = $('menuBtn').style.display = 'block'; state = 'grid'; gridPhase(); }
   else { state = 'intro'; introT = 0; introAt = performance.now(); introLen = Math.max(6, audio.dur('course-intro') || 12); $('hud').style.display = 'none'; $('menuBtn').style.display = 'none'; $('introName').textContent = trackDef.name; $('introUI').style.display = 'flex'; introJ = audio.jingle('course-intro', { onend: endIntro, fb: introLen }); }
@@ -315,7 +316,7 @@ function introCam() {
 }
 function toMenu() { $('introUI').style.display = 'none'; $('shellAlert').style.display = 'none'; if (introJ) { introJ.stop(); introJ = null }; const inRoom = online.racing; renderer.domElement.style.transform = $('mini').style.transform = ''; state = 'idle'; audio.silence(); $('mini').style.display = 'none'; karts.forEach(k => scene.remove(k.mesh)); karts = []; clearWorld(); $('hud').style.display = $('menuBtn').style.display = 'none'; $('big').textContent = ''; startShowcase(); if (inRoom) online.backToLobby(); else flow.afterRace(); }
 const PTS = [15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-$('menuBtn').onclick = () => { if (race.over && $('menuBtn').textContent.startsWith('NEXT')) { const rows = [...karts].sort(rankSort).map((k, i) => ({ pos: i + 1, name: k.remote || k.isBot || online.racing ? k.name : 'YOU', char: k.lo.char, pts: PTS[i] || 0, me: k === player })); $('hud').style.display = $('menuBtn').style.display = $('mini').style.display = 'none'; $('big').textContent = ''; flow.scoreboard(rows, toMenu); } else toMenu(); };
+$('menuBtn').onclick = () => { if (race.over && $('menuBtn').textContent.startsWith('NEXT')) { const rows = [...karts].sort(rankSort).map((k, i) => ({ pos: i + 1, name: k.remote || k.isBot || online.racing ? k.name : 'YOU', char: k.lo.char, pts: PTS[i] || 0, me: k === player, key: String(k.pid || k.name) })); $('hud').style.display = $('menuBtn').style.display = $('mini').style.display = 'none'; $('big').textContent = ''; flow.scoreboard(rows, toMenu, { races: race.races, rno: race.rno }); } else toMenu(); };
 
 // ---------- track voting ----------
 function drawThumb(def) {
@@ -812,8 +813,9 @@ function updateShowcase(dt) {
 }
 const garage = createGarage(THREE, $('gcanvas')), garageUI = initGarageUI({ $, audio, garage, lo0: settings.lo });
 const menus = initMenus({ $, show, audio, garageUI, startFlow: () => {}, onSingle: () => flow.startSingle(), onOnline: () => flow.startOnline(), onSettings: () => flow.startSettings(), onLeave: () => online.leave() });
-const flow = initFlow({ $, show, audio, garageUI, openControls: () => ctl.open(), TRACKS, THEMES, ITEMS, itemIcon, drawThumb, online, startGame: o => startRace(o), toMain: () => menus.go('main') });
+const flow = initFlow({ $, show, audio, garageUI, openControls: () => ctl.open(), TRACKS, THEMES, ITEMS, itemIcon, drawThumb, online, startGame: o => startRace(o), toMain: () => menus.go('main'), CUPS });
 startShowcase();
+window.__kzFlow = flow; window.__kzDbg = { toMenu: () => toMenu(), race: () => ({ rno: race.rno, races: race.races, track: trackDef && trackDef.id, state }) };   // handy for testing the menus from the console
 // ---------- loading screen: preload 3D models, audio and per-map materials, then zoom into the title ----------
 const LD = $('loader'), ldFill = $('ldfill'), ldTxt = $('ldtxt'), ldW = { m: [0, .5], a: [0, .25], w: [0, .25] }; let ldDone = false;
 const ldBlock = e => { if (!ldDone) { e.stopImmediatePropagation(); e.preventDefault(); } };
