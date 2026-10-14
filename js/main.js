@@ -760,7 +760,8 @@ function loop() {
       k.plantMesh.visible = k.plantT > 0; if (k.plantT > 0) k.plantMesh.scale.setScalar(1 + .25 * Math.sin(T * 14));
     });
     ranked = [...karts].sort(rankSort);
-    if (state === 'racing' && !race.over) { const hs = karts.filter(k => !k.isBot && !(k.remote && String(k.pid).startsWith('bot'))); if (hs.length && hs.every(k => k.finished)) { race.over = true; setTimeout(() => { if (state !== 'idle') $('menuBtn').textContent = 'NEXT ▶'; }, 2500); } }
+    if (state === 'racing' && !race.over) { const hs = karts.filter(k => !k.isBot && !(k.remote && String(k.pid).startsWith('bot'))); const lastOne = online.racing && karts.length > 2 && karts.filter(k => !k.finished).length === 1;   // multiplayer: everyone else (bots too) is across the line, so the final place is already decided
+    if (hs.length && (hs.every(k => k.finished) || lastOne)) { race.over = true; setTimeout(() => { if (state !== 'idle') $('menuBtn').textContent = 'NEXT ▶'; }, lastOne && !player.finished ? 800 : 2500); } }
     const place = ranked.indexOf(player) + 1, it = player.item;
     { const lap = Math.min(Math.max(player.lap + 1, 1), race.laps), spd = Math.round(Math.abs(player.speed) * 3), col = ['#ffd400', '#d8dde6', '#cd7f32'][place - 1] || '#ffffff';
       $('posVal').textContent = `${place}/${karts.length}`; $('posVal').style.color = col; $('lapBox').textContent = `LAP ${lap}/${race.laps}  🪙${player.coins}`; $('spVal').textContent = spd;
