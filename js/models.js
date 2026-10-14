@@ -147,7 +147,7 @@ export async function preloadModels(THREE, onProgress) {
     return { yaw: (best[0] !== 0 && conf > .2) ? best[0] : 0, conf };
   }
   // Models with NO skeleton (T-posed static meshes): bend arms and legs by moving vertices. Works in world space on the baked mesh.
-  function bendStatic(holder, SEAT) {
+  function bendStatic(holder, SEAT, ov = {}) {
     upd(holder);
     const meshes = []; holder.traverse(m => { if (m.isMesh && m.geometry && m.geometry.attributes.position && !m.isSkinnedMesh) meshes.push(m); });
     if (!meshes.length) return null;
@@ -156,27 +156,27 @@ export async function preloadModels(THREE, onProgress) {
     for (const m of meshes) { const a = m.geometry.attributes.position, step = Math.max(1, Math.floor(a.count / 6000));
       for (let i = 0; i < a.count; i += step) { v.fromBufferAttribute(a, i).applyMatrix4(m.matrixWorld); const ax = Math.abs(v.x - cx), y = v.y - y0; if (y > .28 * H && y < .48 * H) waist.push(ax); if (y > .5 * H && ax > .3 * A) armYs.push(v.y); } }
     waist.sort((p, q) => p - q); const wt = waist.length ? waist[Math.floor(waist.length * .95)] : .15 * A;
-    const Sx = Math.min(Math.max(wt * 1.1, .2 * A), .38 * A); armYs.sort((p, q) => p - q);
-    const shY = armYs.length ? armYs[armYs.length >> 1] : y0 + .72 * H, hipY = y0 + .48 * H, kneeY = y0 + .26 * H, elbX = Sx + .5 * (A - Sx);
+    const Sx = ov.sx !== undefined ? ov.sx * H : Math.min(Math.max(wt * 1.1, .2 * A), .38 * A); armYs.sort((p, q) => p - q);
+    const shY = armYs.length ? armYs[armYs.length >> 1] : y0 + .72 * H, hipY = y0 + .48 * H, kneeY = y0 + .26 * H, elbX = Sx + (ov.elbow ?? .5) * (A - Sx);
     const sm = (e0, e1, x) => { const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
     const q = (a, b) => new THREE.Quaternion().setFromUnitVectors(a.clone().normalize(), b.clone().normalize());
-    const R = {}; for (const s of [-1, 1]) {
+    let kArm = 1; const R = {}; for (const s of [-1, 1]) {
       // shoulder in the seat frame, hand target on the wheel -> elbow by the law of cosines (elbows drop down/outward)
       const sh = V3(s * Sx, shY - hipY + SEAT.y, SEAT.z), T = V3(s * HAND.x, HAND.y, HAND.z), a = elbX - Sx, b = Math.max(.01, A - elbX);
       { const need = .72 * (a + b), dxy = Math.hypot(T.x - sh.x, T.y - sh.y), dz = Math.sqrt(Math.max(0, need * need - dxy * dxy)); if (T.clone().sub(sh).length() < need) T.z = Math.min(1.9, sh.z + dz); }
       let d = T.clone().sub(sh).length(); const dir = T.clone().sub(sh).normalize(); d = Math.min(Math.max(d, Math.abs(a - b) + 1e-3), a + b - 1e-3);
       const along = (a * a - b * b + d * d) / (2 * d), hh = Math.sqrt(Math.max(0, a * a - along * along)), pole = V3(s * .45, -1, -.1); pole.addScaledVector(dir, -pole.dot(dir)).normalize();
       const El = sh.clone().addScaledVector(dir, along).addScaledVector(pole, hh);
-      const t1 = El.clone().sub(sh).normalize(), t2 = T.clone().sub(El).normalize(), th = V3(s * .05, -.03, 1).normalize();
-      R[s] = { t1, R1: q(V3(s, 0, 0), t1), R2: q(t1, t2), R3: q(V3(0, -1, 0), th), R4: q(th, V3(0, -1, .12)), th }; }
-    const hipX = wt * .5, kneeLen = hipY - kneeY, tmp = V3(), out = V3();
+      const t1 = ov.straight ? dir.clone() : El.clone().sub(sh).normalize(), t2 = ov.straight ? dir.clone() : T.clone().sub(El).normalize(), th = V3(s * .05, -.03, 1).normalize();
+      kArm = Math.min(kArm, ov.straight ? Math.min(1, T.clone().sub(sh).length() / (A - Sx)) : 1); R[s] = { t1, R1: q(V3(s, 0, 0), t1), R2: q(t1, t2), R3: q(V3(0, -1, 0), th), R4: q(th, V3(0, -1, .12)), th }; }
+    const er = ov.eramp ?? .08, rp = ov.ramp ?? .2, hipX = wt * .5, kneeLen = hipY - kneeY, tmp = V3(), out = V3();
     function D(px, py, pz, o) {                       // deform one point (given in world space)
       let x = px - cx, y = py, z = pz - zc; const s = x < 0 ? -1 : 1, ax = Math.abs(x), r = R[s];
       // arm
-      const wArm = sm(.8 * Sx, 1.2 * Sx, ax) * sm(.28 * H, .4 * H, y - y0) * (1 - sm(.3 * H, .45 * H, y - shY));
+      const wArm = sm((1 - rp) * Sx, (1 + rp) * Sx, ax) * sm(.28 * H, .4 * H, y - y0) * (1 - sm(.3 * H, .45 * H, y - shY));
       if (wArm > 0) {
-        const ps = V3(s * Sx, shY, 0); tmp.set(x, y, z).sub(ps); out.copy(tmp).applyQuaternion(r.R1); tmp.lerp(out, wArm); let px1 = ps.x + tmp.x, py1 = ps.y + tmp.y, pz1 = ps.z + tmp.z;
-        const we = wArm * sm(.92 * elbX, 1.08 * elbX, ax);
+        const ps = V3(s * Sx, shY, 0); if (kArm < 1 && ax > Sx) x = s * (Sx + (ax - Sx) * (1 - wArm * (1 - kArm))); tmp.set(x, y, z).sub(ps); out.copy(tmp).applyQuaternion(r.R1); tmp.lerp(out, wArm); let px1 = ps.x + tmp.x, py1 = ps.y + tmp.y, pz1 = ps.z + tmp.z;
+        const we = wArm * sm((1 - er) * elbX, (1 + er) * elbX, ax);
         if (we > 0) { const E = ps.clone().addScaledVector(r.t1, elbX - Sx); tmp.set(px1, py1, pz1).sub(E); out.copy(tmp).applyQuaternion(r.R2); tmp.lerp(out, we); px1 = E.x + tmp.x; py1 = E.y + tmp.y; pz1 = E.z + tmp.z; }
         x = px1; y = py1; z = pz1;
       }
@@ -240,7 +240,7 @@ export async function preloadModels(THREE, onProgress) {
           const hp = wp(hipsOf(holder)); obj.position.set(SEAT.x - hp.x, SEAT.y - hp.y, SEAT.z - hp.z); upd(holder);   // seat first, so the hands can reach the wheel
           info = poseDriver(holder); mode = 'skeleton';
         } else {
-          const r = bendStatic(holder, SEAT);
+          const r = bendStatic(holder, SEAT, o.arm);
           if (r) { placed = r.node; placed.position.set(SEAT.x - r.pivot.x, SEAT.y - r.pivot.y, SEAT.z - r.pivot.z); info = { arms: 2, legs: 2, why: `static mesh bent (shoulder ${r.arm.Sx.toFixed(2)}, waist ${r.wt.toFixed(2)})` }; mode = 'static'; }
           else info = { arms: 0, legs: 0, why: 'no meshes' };
         }

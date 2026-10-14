@@ -3,7 +3,14 @@
   "chars": {
     "mario": "models/chars/mario.glb",
     "luigi": "models/chars/luigi.glb",
-    "donkey-kong": "models/chars/donkey-kong.glb",
+    "donkey-kong": {
+      "url": "models/chars/donkey-kong.glb",
+      "arm": {
+        "sx": 0.11,
+        "ramp": 0.1,
+        "straight": 1
+      }
+    },
     "bowser": "models/chars/bowser.glb",
     "bowser-jr": "models/chars/bowser-jr.glb",
     "cat-peach": "models/chars/cat-peach.glb",
@@ -16,7 +23,14 @@
     "rosalina": "models/chars/rosalina.glb",
     "roy": "models/chars/roy.glb",
     "waluigi": "models/chars/waluigi.glb",
-    "wario": "models/chars/wario.glb",
+    "wario": {
+      "url": "models/chars/wario.glb",
+      "arm": {
+        "sx": 0.17,
+        "ramp": 0.1,
+        "straight": 1
+      }
+    },
     "hazmat-main": "models/chars/hazmat.glb",
     "skinwalker": "models/chars/skinwalker.glb"
   },
