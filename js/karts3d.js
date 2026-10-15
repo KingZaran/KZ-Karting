@@ -66,6 +66,19 @@ export function buildKart(THREE, lo, paint, env = null) {
       for (let i = 0; i < 5; i++) { const a = i / 5 * 6.2832; put(spin, G.box(Wh.wd * .72, r * .26, r * 1.55), dark, 0, 0, 0, a, 0, 0); }
       put(spin, G.sph(r * .2), chrome, x * (Wh.wd * .35), 0, 0);
       if (Wh.id === 'mud') for (let i = 0; i < 12; i++) { const a = i / 12 * 6.2832; put(spin, G.box(Wh.wd * .95, .16, .26), tyre, 0, Math.sin(a) * (r - .02), Math.cos(a) * (r - .02), a, 0, 0); }
+      // realism: rim lip, tyre sidewall rings with a coloured stripe, lug nuts, drilled brake disc + caliper, fender arch
+      const wd = Wh.wd, rimR = r - tube * 1.4, ox = x * wd * .5;
+      for (const sx of [-1, 1]) put(spin, G.tor(rimR + .01, .035), chrome, sx * wd * .36, 0, 0, 0, Math.PI / 2, 0).scale.set(1, 1, .6);
+      const ringM = new THREE.MeshStandardMaterial({ color: 0x34343c, roughness: .9, side: THREE.DoubleSide }), stripeM = new THREE.MeshStandardMaterial({ color: Wh.id === 'roller' ? 0xffffff : 0xe8e8e8, roughness: .6, side: THREE.DoubleSide });
+      for (const sx of [-1, 1]) {
+        const rg = new THREE.Mesh(new THREE.RingGeometry(rimR * 1.04, r * .93, 40), ringM); rg.rotation.y = sx * Math.PI / 2; rg.position.x = sx * (wd * .5 + .004); spin.add(rg);
+        const st = new THREE.Mesh(new THREE.RingGeometry(r * .8, r * .84, 40, 1, 0, 3.6), stripeM); st.rotation.y = sx * Math.PI / 2; st.position.x = sx * (wd * .5 + .006); spin.add(st);
+      }
+      for (let i = 0; i < 5; i++) { const a = i / 5 * 6.2832 + .3; put(spin, G.cyl(.045, .045, .06, 8), chrome, ox + x * .02, Math.sin(a) * r * .2, Math.cos(a) * r * .2, 0, 0, Math.PI / 2); }
+      const disc = put(spin, G.cyl(rimR * .78, rimR * .78, .04, 28), M(0x9aa0a8, { metalness: .9, roughness: .35 }), -x * wd * .2, 0, 0, 0, 0, Math.PI / 2);
+      for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832; put(spin, G.cyl(.028, .028, .05, 6), dark, -x * wd * .2, Math.sin(a) * rimR * .55, Math.cos(a) * rimR * .55, 0, 0, Math.PI / 2); }
+      if (front) put(steer, G.box(.12, rimR * .38, rimR * .5), M(0xd32f2f, { roughness: .4 }), -x * wd * .2, 0, -rimR * .62);
+      put(g, G.tor(r * 1.14, .07, Math.PI), dark, x * (W2 + .01), r, wz, 0, Math.PI / 2, 0);
       g.userData.wheels.push({ steer, spin, r, front, side: x });
     }
   }
