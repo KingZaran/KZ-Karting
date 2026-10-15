@@ -21,17 +21,17 @@ export const CHARS = [
 ];
 export const KARTS = [
   { id: 'standard', name: 'Standard Kart', mod: { speed: 6, accel: 5, handling: 5, weight: 6, drift: 6 }, l: 3.6, w: 2.2, h: .7, size: 1 },
-  { id: 'hotrod', name: 'Hot Rod', mod: { speed: 2, accel: -2, handling: -1, weight: 0, drift: 0 }, l: 4.2, w: 1.9, h: .6, size: 1 },
-  { id: 'cruiser', name: 'Cruiser', mod: { speed: 1, accel: -1, handling: -1, weight: 2, drift: 0 }, l: 4, w: 2.5, h: .8, size: 1.1 },
-  { id: 'buggy', name: 'Dune Buggy', mod: { speed: -1, accel: 2, handling: 1, weight: -1, drift: 1 }, l: 3.4, w: 2.1, h: .6, size: 1 },
-  { id: 'bumper', name: 'Bumper Cart', mod: { speed: -2, accel: 1, handling: 2, weight: -2, drift: 1 }, l: 3, w: 2.4, h: .7, size: .92 },
-  { id: 'tank', name: 'Mini Tank', mod: { speed: -1, accel: -1, handling: -2, weight: 3, drift: -1 }, l: 4, w: 2.6, h: .9, size: 1.12 },
+  { id: 'hotrod', name: 'Hot Rod', mod: { speed: 4, accel: 8, handling: 5, weight: 5, drift: 7 }, l: 4.2, w: 1.9, h: .6, size: 1 },
+  { id: 'cruiser', name: 'Cruiser', mod: { speed: 8, accel: 5, handling: 6, weight: 7, drift: 5 }, l: 4, w: 2.5, h: .8, size: 1.1 },
+  { id: 'buggy', name: 'Dune Buggy', mod: { speed: 5, accel: 8, handling: 9, weight: 2, drift: 7 }, l: 3.4, w: 2.1, h: .6, size: 1 },
+  { id: 'bumper', name: 'Bumper Cart', mod: { speed: 5, accel: 9, handling: 5, weight: 7, drift: 3 }, l: 3, w: 2.4, h: .7, size: .92 },
+  { id: 'tank', name: 'Mini Tank', mod: { speed: 2, accel: 6, handling: 9, weight: 10, drift: 4 }, l: 4, w: 2.6, h: .9, size: 1.12 },
 ];
 export const WHEELS = [
-  { id: 'standard', name: 'Standard', mod: { speed: 0, accel: 0, handling: 0, weight: 0, drift: 0 }, r: .55, wd: .5, off: .4, col: 0x111111 },
-  { id: 'slick', name: 'Slick', mod: { speed: 1, accel: -1, handling: 0, weight: 0, drift: 0 }, r: .5, wd: .75, off: .3, col: 0x222a33 },
-  { id: 'mud', name: 'Off-Road', mod: { speed: -1, accel: 0, handling: -1, weight: 1, drift: 0 }, r: .72, wd: .7, off: .68, col: 0x2a1a0a },
-  { id: 'roller', name: 'Roller', mod: { speed: -1, accel: 2, handling: 1, weight: 0, drift: 0 }, r: .45, wd: .45, off: .4, col: 0xd02020 },
+  { id: 'standard', name: 'Standard', mod: { speed: 7, accel: 5, handling: 8, weight: 5, drift: 8 }, r: .55, wd: .5, off: .4, col: 0x111111 },
+  { id: 'slick', name: 'Slick', mod: { speed: 9, accel: 7, handling: 5, weight: 2, drift: 6 }, r: .5, wd: .75, off: .3, col: 0x222a33 },
+  { id: 'mud', name: 'Off-Road', mod: { speed: 5, accel: 7, handling: 8, weight: 9, drift: 3 }, r: .72, wd: .7, off: .68, col: 0x2a1a0a },
+  { id: 'roller', name: 'Roller', mod: { speed: 5, accel: 4, handling: 6, weight: 7, drift: 5 }, r: .45, wd: .45, off: .4, col: 0xd02020 },
 ];
 export const PAINT = [
   { name: 'Red', hex: 0xe53935 }, { name: 'Blue', hex: 0x1e88e5 }, { name: 'Green', hex: 0x43a047 }, { name: 'Yellow', hex: 0xfdd835 },
