@@ -46,9 +46,26 @@ export function buildKart(THREE, lo, paint, env = null) {
     put(g, G.box(K.w * .62, .55, K.l * .3), seatM, 0, base + rim + .16, -K.l * .14);
     put(g, G.box(K.w * .55, 1.0, .35), seatM, 0, top + .55, -K.l * .14 - .7);
     put(g, G.cyl(.06, .06, .8, 10), dark, 0, top + .38, L * .3, .9);
-    put(g, G.tor(.32, .06), dark, 0, top + .6, L * .35, -.75);
+    steeringWheel(THREE, g, G, put, dark, chrome, top + .6, L * .35);
     // lights
-    for (const sx of [-1, 1]) { const hl = put(g, G.sph(.26), E(0xfff4c0, 1.6), sx * K.w * .3, base + nose * .85 + .1, L - .05); hl.scale.set(1, .7, .5); put(g, G.box(.5, .16, .12), E(0xff2a2a, 1.6), sx * K.w * .3, base + tail * .62, -L - .1); }
+    for (const sx of [-1, 1]) { const hl = put(g, G.sph(.26), E(0xfff4c0, 1.6), sx * K.w * .3, base + nose * .85 + .1, L + .2); hl.scale.set(1, .7, .5); put(g, G.box(.5, .16, .12), E(0xff2a2a, 1.6), sx * K.w * .3, base + tail * .62, -L - .3); }
+    // detail pass: headlight bezels, grille, splitter, number plate, diffuser, side stripes, mirrors, headrest
+    const trim = M(0x15151a, { roughness: .4, metalness: .5 });
+    for (const sx of [-1, 1]) {
+      put(g, G.tor(.27, .035), chrome, sx * K.w * .3, base + nose * .85 + .1, L + .23).scale.set(1, .72, 1);
+      put(g, G.box(.04, .09, K.l * .62), M(0xf4f4f4, { roughness: .35 }), sx * (W2 + .02), base + h * .55, -.1);
+      put(g, G.box(.04, .035, K.l * .62), M(0x15151a, { roughness: .35 }), sx * (W2 + .02), base + h * .4, -.1);
+      const arm = new THREE.Group(); arm.position.set(sx * (W2 - .12), top + .22, L * .28); g.add(arm);
+      put(arm, G.cyl(.03, .03, .35, 8), chrome, sx * .12, .12, 0, 0, 0, -sx * .8); put(arm, G.box(.22, .14, .05), chrome, sx * .26, .26, 0, 0, sx * .3, 0);
+    }
+    for (let i = 0; i < 4; i++) put(g, G.box(K.w * .34, .018, .035), chrome, 0, base + nose * (.35 + i * .13), L + .29);
+    put(g, G.box(K.w * .38, nose * .6, .03), trim, 0, base + nose * .58, L + .27);
+    put(g, G.box(K.w * .86, .06, .36), trim, 0, base + .02, L + .32);
+    put(g, G.box(.85, .3, .035), new THREE.MeshStandardMaterial({ color: 0xf5f5f0, roughness: .5 }), 0, base + tail * .42, -L - .3);
+    for (let i = 0; i < 5; i++) put(g, G.box(.06, .15, .01), trim, (i - 2) * .14, base + tail * .42, -L - .32);
+    for (let i = -2; i <= 2; i++) put(g, G.box(.04, .2, .5), trim, i * .32, base + .05, -L - .3);
+    put(g, G.box(K.w * .3, .24, .22), seatM, 0, top + 1.18, -K.l * .14 - .72);
+    put(g, G.box(K.w * .12, .75, .02), new THREE.MeshStandardMaterial({ color: paint, roughness: .5 }), 0, top + .55, -K.l * .14 - .53);
     // style extras
     const fender = (wx, wz, wr) => put(g, G.box(Wh.wd + .35, .16, wr * 2.4), paintM, wx, wr * 2 + .1, wz);
     if (K.id === 'standard') { for (const sx of [-1, 1]) { put(g, G.cyl(.17, .17, .9, 18), chrome, sx * .6, base + .45, -L - .35, Math.PI / 2); put(g, G.cyl(.1, .1, .12, 14), dark, sx * .6, base + .45, -L - .82, Math.PI / 2); } put(g, G.box(K.w * .85, .22, .5), chrome, 0, base + .3, L + .12); }
@@ -84,10 +101,18 @@ export function buildKart(THREE, lo, paint, env = null) {
   }
   // ---- driver
   const seatY = top, cg = new THREE.Group(); cg.position.set(0, seatY, -K.l * .14); cg.scale.setScalar(C.scale || 1); g.add(cg);
-  if (gk) { put(g, G.tor(.32, .06), dark, 0, top + .6, L * .35, -.75); put(g, G.box(K.w * .55, 1.0, .35), seatM, 0, top + .55, -K.l * .14 - .7); }
+  if (gk) { steeringWheel(THREE, g, G, put, dark, chrome, top + .6, L * .35); put(g, G.box(K.w * .55, 1.0, .35), seatM, 0, top + .55, -K.l * .14 - .7); }
   const gc = MODELS.chars[C.id];
   if (gc) { const m = cloneModel(gc); m.traverse(o => { if (o.isMesh) { o.castShadow = true; if (o.material && !o.material.userData.own) { o.material = o.material.clone(); o.material.userData.own = true; if (env) { o.material.envMap = env; o.material.envMapIntensity = .5; } } } }); cg.add(m); clipBelowSeat(THREE, m, cg); } else buildChar(THREE, C, cg, M, E, G, put);
   return g;
+}
+// steering wheel: rim, hub boss and three spokes; the face points back at the driver, top edge leaning forward
+function steeringWheel(THREE, g, G, put, dark, chrome, y, z) {
+  const w = new THREE.Group(); w.position.set(0, y, z); w.rotation.x = -2.62; g.add(w);
+  put(w, G.tor(.32, .055), dark, 0, 0, 0);
+  put(w, G.cyl(.09, .1, .08, 16), chrome, 0, 0, 0, Math.PI / 2);
+  for (const a of [Math.PI / 2, Math.PI / 2 + 2.1, Math.PI / 2 - 2.1]) put(w, G.box(.07, .3, .035), dark, Math.cos(a) * .16, Math.sin(a) * .16, 0, 0, 0, a - Math.PI / 2);
+  put(w, G.box(.12, .035, .04), new THREE.MeshStandardMaterial({ color: 0xe53935, roughness: .4 }), 0, .3, .03);
 }
 function buildChar(THREE, C, cg, M, E, G, put) {
   const { body, skin, accent } = C.c, bm = M(body), sm = M(skin), am = M(accent);
