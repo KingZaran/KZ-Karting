@@ -2,6 +2,7 @@
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { getChar, getKart, getWheel } from './roster.js';
 import { MODELS, cloneModel } from './models.js';
+import { kartDetail, mergeStatic } from './kartdetail.js';
 // Skirts, capes and tails that hang through the tub / out of the kart body: discard everything below the seat plane (in the driver's frame).
 function clipBelowSeat(THREE, root, cg) {
   const inv = new THREE.Matrix4();
@@ -49,31 +50,15 @@ export function buildKart(THREE, lo, paint, env = null) {
     steeringWheel(THREE, g, G, put, dark, chrome, top + .6, L * .35);
     // lights
     for (const sx of [-1, 1]) { const hl = put(g, G.sph(.26), E(0xfff4c0, 1.6), sx * K.w * .3, base + nose * .85 + .1, L + .2); hl.scale.set(1, .7, .5); put(g, G.box(.5, .16, .12), E(0xff2a2a, 1.6), sx * K.w * .3, base + tail * .62, -L - .3); }
-    // detail pass: headlight bezels, grille, splitter, number plate, diffuser, side stripes, mirrors, headrest
-    const trim = M(0x15151a, { roughness: .4, metalness: .5 });
-    for (const sx of [-1, 1]) {
-      put(g, G.tor(.27, .035), chrome, sx * K.w * .3, base + nose * .85 + .1, L + .23).scale.set(1, .72, 1);
-      put(g, G.box(.04, .09, K.l * .62), M(0xf4f4f4, { roughness: .35 }), sx * (W2 + .02), base + h * .55, -.1);
-      put(g, G.box(.04, .035, K.l * .62), M(0x15151a, { roughness: .35 }), sx * (W2 + .02), base + h * .4, -.1);
-      const arm = new THREE.Group(); arm.position.set(sx * (W2 - .12), top + .22, L * .28); g.add(arm);
-      put(arm, G.cyl(.03, .03, .35, 8), chrome, sx * .12, .12, 0, 0, 0, -sx * .8); put(arm, G.box(.22, .14, .05), chrome, sx * .26, .26, 0, 0, sx * .3, 0);
-    }
-    for (let i = 0; i < 4; i++) put(g, G.box(K.w * .34, .018, .035), chrome, 0, base + nose * (.35 + i * .13), L + .29);
-    put(g, G.box(K.w * .38, nose * .6, .03), trim, 0, base + nose * .58, L + .27);
-    put(g, G.box(K.w * .86, .06, .36), trim, 0, base + .02, L + .32);
-    put(g, G.box(.85, .3, .035), new THREE.MeshStandardMaterial({ color: 0xf5f5f0, roughness: .5 }), 0, base + tail * .42, -L - .3);
-    for (let i = 0; i < 5; i++) put(g, G.box(.06, .15, .01), trim, (i - 2) * .14, base + tail * .42, -L - .32);
-    for (let i = -2; i <= 2; i++) put(g, G.box(.04, .2, .5), trim, i * .32, base + .05, -L - .3);
-    put(g, G.box(K.w * .3, .24, .22), seatM, 0, top + 1.18, -K.l * .14 - .72);
-    put(g, G.box(K.w * .12, .75, .02), new THREE.MeshStandardMaterial({ color: paint, roughness: .5 }), 0, top + .55, -K.l * .14 - .53);
     // style extras
     const fender = (wx, wz, wr) => put(g, G.box(Wh.wd + .35, .16, wr * 2.4), paintM, wx, wr * 2 + .1, wz);
     if (K.id === 'standard') { for (const sx of [-1, 1]) { put(g, G.cyl(.17, .17, .9, 18), chrome, sx * .6, base + .45, -L - .35, Math.PI / 2); put(g, G.cyl(.1, .1, .12, 14), dark, sx * .6, base + .45, -L - .82, Math.PI / 2); } put(g, G.box(K.w * .85, .22, .5), chrome, 0, base + .3, L + .12); }
-    if (K.id === 'hotrod') { put(g, G.box(2.5, .12, .75), paintM, 0, top + .9, -L + .1); for (const sx of [-1, 1]) { put(g, G.box(.12, .9, .12), dark, sx * .85, top + .45, -L + .1); put(g, G.cyl(.13, .2, 1.1, 14), chrome, sx * .5, base + .45, -L - .45, Math.PI / 2); put(g, G.cone(.16, .5, 10), E(0xff7a1a, 1.3), sx * .5, base + .45, -L - 1.2, -Math.PI / 2); } put(g, G.box(K.w * 1.15, .12, .5), dark, 0, base - .02, L + 1.3); put(g, G.cyl(.3, .3, .5, 14), chrome, 0, base + hood + .3, L * .55); }
+    if (K.id === 'hotrod') { put(g, G.box(2.5, .12, .75), paintM, 0, top + .9, -L + .1); for (const sx of [-1, 1]) { put(g, G.box(.12, .9, .12), dark, sx * .85, top + .45, -L + .1); put(g, G.cyl(.13, .2, 1.1, 14), chrome, sx * .5, base + .45, -L - .45, Math.PI / 2); put(g, G.cone(.16, .5, 10), E(0xff7a1a, 1.3), sx * .5, base + .45, -L - 1.2, -Math.PI / 2); } put(g, G.cyl(.3, .3, .5, 14), chrome, 0, base + hood + .3, L * .55); }
     if (K.id === 'cruiser') { put(g, G.box(K.w * .92, .55, .26), chrome, 0, base + .3, L + .12); for (const sx of [-1, 1]) { put(g, G.box(.12, .95, .55), paintM, sx * (W2 - .15), top + .5, -L + .35); fender(sx * (W2 + Wh.wd * .35), -.32 * K.l, Wh.r); fender(sx * (W2 + Wh.wd * .35), .32 * K.l, Wh.r); } put(g, G.box(K.w * 1.05, .3, .3), chrome, 0, base + .12, -L - .12); }
     if (K.id === 'buggy') { for (const [x, z] of [[-.85, .7], [.85, .7], [-.85, -.95], [.85, -.95]]) put(g, G.cyl(.07, .07, 1.7, 12), chrome, x, top + .85, z); for (const z of [.7, -.95]) put(g, G.cyl(.07, .07, 1.7, 12), chrome, 0, top + 1.7, z, 0, 0, Math.PI / 2).scale.set(1, 1, 1); put(g, G.cyl(.07, .07, 1.7, 12), chrome, -.85, top + 1.7, -.12, Math.PI / 2); put(g, G.cyl(.07, .07, 1.7, 12), chrome, .85, top + 1.7, -.12, Math.PI / 2); put(g, G.box(1.1, .75, .9), M(0x555a63, { metalness: .7 }), 0, top + .45, -L + .3); put(g, G.cyl(.22, .26, .7, 14), chrome, 0, top + 1.1, -L + .3); }
     if (K.id === 'bumper') { put(g, G.tor(K.w * .56, .3), M(0xf2f2f2, { roughness: .35 }), 0, base + .4, 0, Math.PI / 2).scale.set(1, 1.2, 1); put(g, G.cyl(.14, .14, 1, 12), chrome, 0, top + .55, -.95); put(g, G.sph(.3), E(0xffd400, .8), 0, top + 1.15, -.95); }
     if (K.id === 'tank') { for (const sx of [-1, 1]) put(g, G.box(.42, .85, K.l * .92), M(0x4b5340, { metalness: .45, roughness: .55 }), sx * (W2 + .08), base + .5, 0); put(g, G.cyl(.62, .7, .62, 24), paintM, 0, top + .34, .6); put(g, G.cyl(.15, .15, 2.2, 14), dark, 0, top + .38, 1.9, Math.PI / 2); for (const sx of [-1, 1]) fender(sx * (W2 + Wh.wd * .35), 0, Wh.r); }
+    kartDetail({ THREE, g, G, put, M, E, dark, chrome, seatM, paintM, paint, K, Wh, W2, L, base, top, nose, tail, hood, rim, h, charId: C.id });
     // ---- wheels (front pair steers, all spin)
     const wr = Wh.r, tube = Math.min(Wh.wd * .5, wr * .4), tyre = M(Wh.col, { roughness: .9, metalness: 0, envMapIntensity: .2 }), hub = M(0xc2c7d0, { metalness: .9, roughness: .25, envMapIntensity: 1 });
     for (const [x, z, sc, front] of [[-1, .32, 1, true], [1, .32, 1, true], [-1, -.32, K.id === 'buggy' ? 1.25 : 1, false], [1, -.32, K.id === 'buggy' ? 1.25 : 1, false]]) {
@@ -97,7 +82,9 @@ export function buildKart(THREE, lo, paint, env = null) {
       if (front) put(steer, G.box(.12, rimR * .38, rimR * .5), M(0xd32f2f, { roughness: .4 }), -x * wd * .2, 0, -rimR * .62);
       put(g, G.tor(r * 1.14, .07, Math.PI), dark, x * (W2 + .01), r, wz, 0, Math.PI / 2, 0);
       g.userData.wheels.push({ steer, spin, r, front, side: x });
+      mergeStatic(THREE, spin);
     }
+    mergeStatic(THREE, g, [chassis]);
   }
   // ---- driver
   const seatY = top, cg = new THREE.Group(); cg.position.set(0, seatY, -K.l * .14); cg.scale.setScalar(C.scale || 1); g.add(cg);
