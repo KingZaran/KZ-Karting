@@ -11,7 +11,10 @@
         "straight": 1
       }
     },
-    "bowser": "models/chars/bowser.glb",
+    "bowser": {
+      "url": "models/chars/bowser.glb",
+      "dz": 0.45
+    },
     "bowser-jr": "models/chars/bowser-jr.glb",
     "cat-peach": "models/chars/cat-peach.glb",
     "daisy": "models/chars/daisy.glb",

@@ -1,6 +1,6 @@
 // Keyboard control remapping: bindings saved in localStorage, "Controls" button + overlay injected by this module.
-const ACTIONS = [['up', 'Accelerate'], ['down', 'Brake / Reverse'], ['left', 'Steer left'], ['right', 'Steer right'], ['drift', 'Drift / Hop'], ['item', 'Use item'], ['restart', 'Restart race'], ['mute', 'Mute sound']];
-const DEFAULTS = { up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], drift: ['Space', 'ShiftLeft'], item: ['KeyE', 'Enter'], restart: ['KeyR', ''], mute: ['KeyM', ''] };
+const ACTIONS = [['up', 'Accelerate'], ['down', 'Brake / Reverse'], ['left', 'Steer left'], ['right', 'Steer right'], ['drift', 'Drift / Hop'], ['item', 'Use item'], ['mute', 'Mute sound']];
+const DEFAULTS = { up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'], drift: ['Space', 'ShiftLeft'], item: ['KeyE', 'Enter'], mute: ['KeyM', ''] };
 const KEY = 'kzkarting.controls.v1';
 const nice = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ArrowUp', '↑').replace('ArrowDown', '↓').replace('ArrowLeft', '←').replace('ArrowRight', '→').replace('ShiftLeft', 'Left Shift').replace('ShiftRight', 'Right Shift').replace('ControlLeft', 'Left Ctrl').replace('ControlRight', 'Right Ctrl').replace('AltLeft', 'Left Alt').replace('AltRight', 'Right Alt').replace('Space', 'Space').replace('Enter', 'Enter').replace('Numpad', 'Num ');
 export function createControls() {
@@ -125,7 +125,7 @@ export function createControls() {
     else { for (const o in map) map[o] = map[o].map(c => c === e.code ? '' : c); map[a][i] = e.code; }
     waiting = null; save(); render();
   }, true);
-  const hint = () => `${nice(map.up[0])}/${nice(map.left[0])}/${nice(map.down[0])}/${nice(map.right[0])} drive · ${nice(map.drift[0])} drift · ${nice(map.item[0])} item · ${nice(map.restart[0])} restart · ${nice(map.mute[0])} mute`;
+  const hint = () => `${nice(map.up[0])}/${nice(map.left[0])}/${nice(map.down[0])}/${nice(map.right[0])} drive · ${nice(map.drift[0])} drift · ${nice(map.item[0])} item · ${nice(map.mute[0])} mute`;
   const sync = () => { const f = document.querySelector('#menu .foot small'); if (f) f.textContent = (hint() + ' · hold ' + nice(map.down[0]) + ' to drop item behind').toUpperCase(); };
   sync(); const _c = close; ov.addEventListener('click', sync); box.addEventListener('click', sync); addEventListener('keyup', sync);
   return { held, heldRaw, countdownUI: cdOn, is, hint, open };

@@ -269,7 +269,7 @@ const COLORS = [0xe53935,0x1e88e5,0x43a047,0xfdd835,0x8e24aa,0xfb8c00,0x00acc1,0
 function makeKart(color, lo) { const g = buildKart(THREE, lo || randomLoadout(), color, mainEnv); scene.add(g); return g; }
 
 const keys = {};
-addEventListener('keydown', e => { keys[e.code] = true; if (ctl.is('mute', e.code)) zoneBanner(audio.toggle() ? '🔇 Sound off' : '🔊 Sound on'); if (ctl.is('restart', e.code) && state !== 'idle' && !online.racing) startRace(lastOpts, true);
+addEventListener('keydown', e => { keys[e.code] = true; if (ctl.is('mute', e.code)) zoneBanner(audio.toggle() ? '🔇 Sound off' : '🔊 Sound on');
   if (!e.repeat && ctl.is('item', e.code) && state === 'racing' && player && !player.finished && player.spin <= 0 && !player.lift && player.item) { if (TRAIL.includes(BASE[player.item.id])) player.holding = true; else useItem(player, ctl.held('down')); } });
 addEventListener('keyup', e => { keys[e.code] = false; if (ctl.is('item', e.code) && player && player.holding) { player.holding = false; if (state === 'racing' && player.item && !player.finished) { const b = BASE[player.item.id]; useItem(player, b === 'banana' ? !ctl.held('down') : ctl.held('down')); } } });
 
@@ -771,7 +771,7 @@ function loop() {
       const sig = [s1 && (s1.roll ? 'r' + spin : s1.id + s1.uses + (s1.active ? 'a' + Math.floor(s1.t * 8) : '')), s2 && (s2.roll ? 'r' + spin : s2.id)].join('|');
       if (sig !== hudSig) { hudSig = sig; const f = (el, itm) => { el.style.display = itm ? 'flex' : 'none'; const sid = itm && (itm.roll ? ITEMS[Math.floor(Math.random() * ITEMS.length)][0] : itm.id); el.innerHTML = itm ? `<img data-item="${sid}" alt="">${itm.uses > 1 ? `<span class="cnt">×${itm.uses}</span>` : ''}${itm.active ? `<div class="itring" style="--p:${Math.max(0, itm.t / itm.max * 360).toFixed(0)}deg"></div>` : ''}` : ''; fixItemImgs(el); }; f($('it1'), s1); f($('it2'), s2); } }
     $('ink').style.opacity = Math.min(1, player.ink);
-    if (player.finished) $('big').textContent = `Finished ${place}${['st','nd','rd'][place-1]||'th'}! (R = restart)`;
+    if (player.finished) $('big').textContent = `Finished ${place}${['st','nd','rd'][place-1]||'th'}!`;
     { const th = themeAt(player.idx); applyEnv(th, 1 - Math.exp(-2.5 * dt)); if (th !== lastTheme && state !== 'intro') { lastTheme = th; zoneBanner(th.name); } if (state === 'racing' && th !== musTheme) { musTheme = th; audio.music(trackDef.id, Object.keys(THEMES).find(k => THEMES[k] === th)); } }
     const back = V(-Math.sin(player.heading), 0, -Math.cos(player.heading)), s01 = Math.min(1, Math.abs(player.speed) / MAX);
     const cy = (player.air || player.lift) ? player.ty : player.pos.y;

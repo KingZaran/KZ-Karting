@@ -84,7 +84,7 @@ export async function preloadModels(THREE, onProgress) {
   // steering wheel centre in the driver's frame (kart y=0 at the seat top); hands sit on either side of it
   const HAND = { x: .3, y: .62, z: 1.1 };
   // Find arms (long sideways chains) and legs (long downward chains) purely from the skeleton's geometry.
-  const rollK = {};
+  const rollK = {}, handTilt = .35, curl = .5;
   function poseDriver(holder) {
     const J = jointsOf(holder); if (J.length < 6) return { arms: 0, legs: 0, why: 'no skeleton' };
     upd(holder);
@@ -113,9 +113,18 @@ export async function preloadModels(THREE, onProgress) {
       detail.push(`${s > 0 ? '+x' : '-x'} arm: ${arm ? arm.map(b => b.name).join('>') : 'none'}`);
       if (arm && arm.length >= 3) {
         let u = 0; while (u < arm.length - 3 && (P.get(arm[u + 1]).distanceTo(P.get(arm[u])) < .075 * H || Math.abs(P.get(arm[u]).x - cx) < .05 * H)) u++; // skip spine/clavicle stubs: the upper arm is the first long bone
-        if (arm[u + 2]) { ik2(arm[u], arm[u + 1], arm[u + 2], V3(s * HAND.x, HAND.y, HAND.z), s);
-          const hb = arm[u + 2], pq = hb.parent ? wq(hb.parent) : new THREE.Quaternion(), roll = new THREE.Quaternion().setFromAxisAngle(V3(0, 0, 1), -s * Math.PI / 2 * (rollK[hb.name] ?? 1));
-          hb.quaternion.copy(pq.invert().multiply(roll).multiply(wq(hb))); hb.updateWorldMatrix(true, true); gap = Math.max(gap, V3(s * HAND.x, HAND.y, HAND.z).z - wp(hb).z); }
+        if (arm[u + 2]) {
+          const hb = arm[u + 2], q0 = wq(hb), fc = kids(hb)[0], f0 = (fc ? wp(fc).sub(wp(hb)) : wp(hb).sub(wp(arm[u + 1]))).normalize(), dn = V3(0, -1, 0);
+          let n0 = dn.clone().addScaledVector(f0, -dn.dot(f0)); if (n0.lengthSq() < .04) n0 = V3(-s, 0, 0); n0.normalize();   // rest palm normal: palms hang down in a T/A-pose
+          ik2(arm[u], arm[u + 1], arm[u + 2], V3(s * HAND.x, HAND.y, HAND.z), s);
+          // grip the wheel: fingers curl forward over the rim, palm faces the wheel's centre, thumb up
+          const F = V3(0, -.2, 1).normalize(), N = V3(-s * Math.cos(handTilt), Math.sin(handTilt), 0).normalize();
+          const Br = new THREE.Matrix4().makeBasis(f0, n0, f0.clone().cross(n0)), Bt = new THREE.Matrix4().makeBasis(F, N, F.clone().cross(N));
+          const Rq = new THREE.Quaternion().setFromRotationMatrix(Bt.multiply(Br.transpose())), pq = hb.parent ? wq(hb.parent) : new THREE.Quaternion();
+          hb.quaternion.copy(pq.invert().multiply(Rq.multiply(q0))); hb.updateWorldMatrix(true, true);
+          { const ax = F.clone().cross(N).normalize(), Rc = new THREE.Quaternion().setFromAxisAngle(ax, curl);   // curl every finger joint around the rim
+            hb.traverse(d => { if (d === hb || !d.isBone) return; d.updateWorldMatrix(true, false); const pq2 = wq(d.parent); d.quaternion.copy(pq2.invert().multiply(Rc).multiply(wq(d))); d.updateWorldMatrix(true, true); }); }
+          gap = Math.max(gap, V3(s * HAND.x, HAND.y, HAND.z).z - wp(hb).z); }
         else aim(arm[u], arm[u + 1], V3(s * .22, -.62, .6));
         arms++;
       }
@@ -168,9 +177,9 @@ export async function preloadModels(THREE, onProgress) {
       const along = (a * a - b * b + d * d) / (2 * d), hh = Math.sqrt(Math.max(0, a * a - along * along)), pole = V3(s * .45, -1, -.1); pole.addScaledVector(dir, -pole.dot(dir)).normalize();
       const El = sh.clone().addScaledVector(dir, along).addScaledVector(pole, hh);
       const t1 = ov.straight ? dir.clone() : El.clone().sub(sh).normalize(), t2 = ov.straight ? dir.clone() : T.clone().sub(El).normalize(), th = V3(s * .05, -.03, 1).normalize();
-      kArm = Math.min(kArm, ov.straight ? Math.min(1, T.clone().sub(sh).length() / (A - Sx)) : 1); R[s] = { t1, R1: q(V3(s, 0, 0), t1), R2: q(t1, t2), R3: q(V3(0, -1, 0), th), R4: q(th, V3(0, -1, .12)), th }; }
-    const er = ov.eramp ?? .08, rp = ov.ramp ?? .2, hipX = wt * .5, kneeLen = hipY - kneeY, tmp = V3(), out = V3();
-    function D(px, py, pz, o) {                       // deform one point (given in world space)
+      kArm = Math.min(kArm, ov.straight ? Math.min(1, T.clone().sub(sh).length() / (A - Sx)) : 1); R[s] = { t1, t2, R1: q(V3(s, 0, 0), t1), R2: q(t1, t2), R3: q(V3(0, -1, 0), th), R4: q(th, V3(0, -1, .12)), th }; }
+    const hr = ov.hramp ?? .006, hl = (ov.hand ?? .2) * (A - Sx), qs = new THREE.Quaternion(), Wp = ov.roll === 0 ? null : {}, er = ov.eramp ?? .08, rp = ov.ramp ?? .2, hipX = wt * .5, kneeLen = hipY - kneeY, tmp = V3(), out = V3();
+    function D(px, py, pz, o, noHand) {                       // deform one point (given in world space)
       let x = px - cx, y = py, z = pz - zc; const s = x < 0 ? -1 : 1, ax = Math.abs(x), r = R[s];
       // arm
       const wArm = sm((1 - rp) * Sx, (1 + rp) * Sx, ax) * sm(.28 * H, .4 * H, y - y0) * (1 - sm(.3 * H, .45 * H, y - shY));
@@ -178,6 +187,10 @@ export async function preloadModels(THREE, onProgress) {
         const ps = V3(s * Sx, shY, 0); if (kArm < 1 && ax > Sx) x = s * (Sx + (ax - Sx) * (1 - wArm * (1 - kArm))); tmp.set(x, y, z).sub(ps); out.copy(tmp).applyQuaternion(r.R1); tmp.lerp(out, wArm); let px1 = ps.x + tmp.x, py1 = ps.y + tmp.y, pz1 = ps.z + tmp.z;
         const we = wArm * sm((1 - er) * elbX, (1 + er) * elbX, ax);
         if (we > 0) { const E = ps.clone().addScaledVector(r.t1, elbX - Sx); tmp.set(px1, py1, pz1).sub(E); out.copy(tmp).applyQuaternion(r.R2); tmp.lerp(out, we); px1 = E.x + tmp.x; py1 = E.y + tmp.y; pz1 = E.z + tmp.z; }
+        if (!noHand && Wp) {   // hand: roll so the palm faces the wheel's centre (thumb up), curl the fingers around the rim
+          const hs = A - hl, wh = wArm * sm(hs - hr * A, hs + hr * A, ax), wc = wArm * sm(hs + .4 * hl, hs + .9 * hl, ax);
+          if (wh > 0) { tmp.set(px1, py1, pz1).sub(Wp[s]); tmp.applyQuaternion(qs.identity().slerp(r.Qh, wh)); if (wc > 0) tmp.applyQuaternion(qs.identity().slerp(r.Qc, wc)); px1 = Wp[s].x + tmp.x; py1 = Wp[s].y + tmp.y; pz1 = Wp[s].z + tmp.z; }
+        }
         x = px1; y = py1; z = pz1;
       }
       // leg
@@ -189,6 +202,13 @@ export async function preloadModels(THREE, onProgress) {
         x = px1; y = py1; z = pz1;
       }
       o.set(x + cx, y, z + zc);
+    }
+    if (Wp) for (const s of [-1, 1]) {   // wrist pivots (arm bent, hand not yet rolled) + the roll / curl rotations about the forearm
+      const wy = [], wz = []; for (const m of meshes) { const a = m.geometry.attributes.position, st = Math.max(1, Math.floor(a.count / 8000)), vv = V3();
+        for (let i = 0; i < a.count; i += st) { vv.fromBufferAttribute(a, i).applyMatrix4(m.matrixWorld); if ((vv.x - cx) * s > 0 && Math.abs(Math.abs(vv.x - cx) - (A - hl)) < .03 * A && Math.abs(vv.y - shY) < .15 * H) { wy.push(vv.y); wz.push(vv.z); } } }
+      const avg = (a, d) => a.length ? a.reduce((p, q) => p + q, 0) / a.length : d, o0 = V3(); D(cx + s * (A - hl), avg(wy, shY), avg(wz, zc), o0, true); Wp[s] = o0.clone().sub(V3(cx, 0, zc));
+      R[s].Qh = new THREE.Quaternion().setFromAxisAngle(R[s].t2.clone().normalize(), -s * (ov.roll ?? Math.PI / 2));
+      R[s].Qc = new THREE.Quaternion().setFromAxisAngle(V3(0, 1, 0), -s * (ov.curl ?? .6));
     }
     const flat = new THREE.Group(), eps = .004 * H, p0 = V3(), p1 = V3(), n = V3();
     for (const m of meshes) {
@@ -253,8 +273,9 @@ export async function preloadModels(THREE, onProgress) {
       const w = box.max.x - box.min.x, cap = o.maxWidth === undefined ? 2.6 : o.maxWidth;
       if (cap > 0 && w > cap) { const f = cap / w; placed.scale.multiplyScalar(f); placed.position.set(SEAT.x + f * (placed.position.x - SEAT.x), SEAT.y + f * (placed.position.y - SEAT.y), SEAT.z + f * (placed.position.z - SEAT.z)); upd(holder); box = new THREE.Box3().setFromObject(holder); }
     }
-    const FIT = { bowser: .72, roy: .7, 'bowser-jr': .88, ludwig: .88, morton: .88 }, fit = o.fit ?? FIT[o.id];
+    const FIT = { bowser: .9, roy: .7, 'bowser-jr': .88, ludwig: .88, morton: .88 }, fit = o.fit ?? FIT[o.id];
     if (posed && fit && fit !== 1) { placed.scale.multiplyScalar(fit); placed.position.set(SEAT.x + fit * (placed.position.x - SEAT.x), SEAT.y + fit * (placed.position.y - SEAT.y), SEAT.z + fit * (placed.position.z - SEAT.z)); upd(holder); box = new THREE.Box3().setFromObject(holder); }
+    if (posed && o.dz) { placed.position.z += o.dz; upd(holder); box = new THREE.Box3().setFromObject(holder); }   // manifest: slide the driver toward the wheel
     if (posed) {   // short characters (e.g. Lemmy) would sink into the tub with only their hair showing: raise them so the head clears the cowl
       const want = o.headHeight === undefined ? 2.0 : o.headHeight, top = box.max.y; if (want > 0 && top < want) { const lift = Math.min(.9, want - top); placed.position.y += lift; upd(holder); box = new THREE.Box3().setFromObject(holder); }
     }
