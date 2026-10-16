@@ -20,6 +20,7 @@ export function kartDetail(c) {
   const carbon = mat(0xffffff, { map: carbonT, roughness: .35, metalness: .3 });
   const rod = (a, b, r, m) => { const d = b.clone().sub(a), len = d.length(), cyl = new THREE.Mesh(G.cyl(r, r, len, 8), m); cyl.position.copy(a).addScaledVector(d, .5); cyl.quaternion.setFromUnitVectors(V(0, 1, 0), d.normalize()); cyl.castShadow = true; g.add(cyl); return cyl; };
   const decal = (tex, w, hh, x, y, z, ry, extra = {}) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, hh), new THREE.MeshStandardMaterial({ map: tex, alphaTest: .4, roughness: .4, side: THREE.DoubleSide, ...extra })); m.position.set(x, y, z); m.rotation.y = ry; g.add(m); return m; };
+  const tailM = E(0xff1a1a, 1.2); g.userData.tail = tailM;
   const num = numFor(charId);
   const roundel = canvasTex(THREE, 'roundel' + num, 128, 128, (x, w) => { x.clearRect(0, 0, w, w); x.fillStyle = '#fff'; x.beginPath(); x.arc(64, 64, 60, 0, 7); x.fill(); x.fillStyle = '#111'; x.beginPath(); x.arc(64, 64, 52, 0, 7); x.fill(); x.fillStyle = '#fff'; x.font = 'bold 66px Arial Black, Arial'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(String(num), 64, 70); });
   const gaugeT = canvasTex(THREE, 'gauge', 256, 96, (x, w, hh) => { x.fillStyle = '#05070a'; x.fillRect(0, 0, w, hh); for (const [cx, col, v] of [[64, '#3cf', .7], [192, '#fa3', .45]]) { x.strokeStyle = col; x.lineWidth = 4; x.beginPath(); x.arc(cx, 52, 36, Math.PI * .8, Math.PI * 2.2); x.stroke(); for (let i = 0; i <= 10; i++) { const a = Math.PI * .8 + i / 10 * Math.PI * 1.4; x.lineWidth = 2; x.beginPath(); x.moveTo(cx + Math.cos(a) * 30, 52 + Math.sin(a) * 30); x.lineTo(cx + Math.cos(a) * 36, 52 + Math.sin(a) * 36); x.stroke(); } const a = Math.PI * .8 + v * Math.PI * 1.4; x.strokeStyle = '#f33'; x.lineWidth = 3; x.beginPath(); x.moveTo(cx, 52); x.lineTo(cx + Math.cos(a) * 30, 52 + Math.sin(a) * 30); x.stroke(); } x.fillStyle = '#7f7'; x.fillRect(112, 74, 32, 10); });
@@ -47,12 +48,12 @@ export function kartDetail(c) {
     put(g, G.sph(.1), E(0xbfe9ff, 1.8), sx * K.w * .3, base + nose * .85 + .1, L + .3);
     put(g, G.box(.3, .08, .06), E(0xffa000, 1.2), sx * K.w * .44, base + nose * .55, L + .24);
     put(g, G.sph(.07), E(0xfff3c0, 1.2), sx * K.w * .2, base + .22, L + .3);
-    put(g, G.box(.28, .08, .06), E(0xff1a1a, 1.4), sx * K.w * .4, base + tail * .8, -L - .3);
+    put(g, G.box(.28, .08, .06), tailM, sx * K.w * .4, base + tail * .8, -L - .3);
     put(g, G.cyl(.06, .06, .05, 10), E(0xffffff, .9), sx * K.w * .15, base + tail * .62, -L - .31, Math.PI / 2);
     const arm = new THREE.Group(); arm.position.set(sx * (W2 - .12), top + .22, L * .28); g.add(arm);
     put(arm, G.cyl(.03, .03, .35, 8), chrome, sx * .12, .12, 0, 0, 0, -sx * .8); put(arm, G.box(.22, .14, .05), chrome, sx * .26, .26, 0, 0, sx * .3, 0); put(arm, G.box(.18, .1, .02), alu, sx * .26, .26, -.03, 0, sx * .3, 0);
   }
-  put(g, G.box(K.w * .62, .045, .05), E(0xff1a1a, 1.2), 0, base + tail * .8, -L - .3);
+  put(g, G.box(K.w * .62, .045, .05), tailM, 0, base + tail * .8, -L - .3);
   for (let i = 0; i < 5; i++) put(g, G.box(K.w * .34, .018, .035), chrome, 0, base + nose * (.35 + i * .1), L + .29);
   put(g, G.box(K.w * .38, nose * .6, .03), trim, 0, base + nose * .55, L + .27);
   put(g, G.box(K.w * .9, .07, .4), carbon, 0, base + .02, L + .3);                                            // splitter

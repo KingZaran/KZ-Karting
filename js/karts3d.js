@@ -47,7 +47,7 @@ export function buildKart(THREE, lo, paint, env = null) {
     put(g, G.box(K.w * .62, .55, K.l * .3), seatM, 0, base + rim + .16, -K.l * .14);
     put(g, G.box(K.w * .55, 1.0, .35), seatM, 0, top + .55, -K.l * .14 - .7);
     put(g, G.cyl(.06, .06, .8, 10), dark, 0, top + .38, L * .3, .9);
-    steeringWheel(THREE, g, G, put, dark, chrome, top + .6, L * .35);
+    g.userData.sw = steeringWheel(THREE, g, G, put, dark, chrome, top + .6, L * .35);
     // lights
     for (const sx of [-1, 1]) { const hl = put(g, G.sph(.26), E(0xfff4c0, 1.6), sx * K.w * .3, base + nose * .85 + .1, L + .2); hl.scale.set(1, .7, .5); put(g, G.box(.5, .16, .12), E(0xff2a2a, 1.6), sx * K.w * .3, base + tail * .62, -L - .3); }
     // style extras
@@ -61,6 +61,8 @@ export function buildKart(THREE, lo, paint, env = null) {
     kartDetail({ THREE, g, G, put, M, E, dark, chrome, seatM, paintM, paint, K, Wh, W2, L, base, top, nose, tail, hood, rim, h, charId: C.id });
     // ---- wheels (front pair steers, all spin)
     const wr = Wh.r, tube = Math.min(Wh.wd * .5, wr * .4), tyre = M(Wh.col, { roughness: .9, metalness: 0, envMapIntensity: .2 }), hub = M(0xc2c7d0, { metalness: .9, roughness: .25, envMapIntensity: 1 });
+    const treadM = M(0x2a2a30, { roughness: .95, envMapIntensity: .1 }), blurM = new THREE.MeshBasicMaterial({ color: 0x9aa0aa, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide });
+    const capM = new THREE.MeshStandardMaterial({ roughness: .3, metalness: .6, map: (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); x.fillStyle = '#c9ced6'; x.fillRect(0, 0, 64, 64); x.fillStyle = '#d32f2f'; x.beginPath(); x.arc(32, 32, 26, 0, 7); x.fill(); x.fillStyle = '#fff'; x.font = 'bold 30px Arial Black, Arial'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('KZ', 32, 35); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })() });
     for (const [x, z, sc, front] of [[-1, .32, 1, true], [1, .32, 1, true], [-1, -.32, K.id === 'buggy' ? 1.25 : 1, false], [1, -.32, K.id === 'buggy' ? 1.25 : 1, false]]) {
       const r = wr * sc, wx = x * (W2 + Wh.wd * .35), wz = z * K.l, steer = new THREE.Group(), spin = new THREE.Group(); steer.position.set(wx, r, wz); steer.add(spin); g.add(steer);
       const tor = put(spin, G.tor(r - tube * .85, tube), tyre, 0, 0, 0, 0, Math.PI / 2, 0); tor.scale.set(1, 1, Wh.wd / (tube * 2));
@@ -81,7 +83,11 @@ export function buildKart(THREE, lo, paint, env = null) {
       for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832; put(spin, G.cyl(.028, .028, .05, 6), dark, -x * wd * .2, Math.sin(a) * rimR * .55, Math.cos(a) * rimR * .55, 0, 0, Math.PI / 2); }
       if (front) put(steer, G.box(.12, rimR * .38, rimR * .5), M(0xd32f2f, { roughness: .4 }), -x * wd * .2, 0, -rimR * .62);
       put(g, G.tor(r * 1.14, .07, Math.PI), dark, x * (W2 + .01), r, wz, 0, Math.PI / 2, 0);
-      g.userData.wheels.push({ steer, spin, r, front, side: x });
+      // tread blocks + KZ centre caps (so spinning is obvious), and a fast-spin blur disc
+      if (Wh.id !== 'mud') for (let i = 0; i < 30; i++) { const a = i / 30 * 6.2832, R0 = r + tube * .1; put(spin, G.box(wd * (Wh.id === 'slick' ? .6 : .92), .05, r * .17), treadM, 0, Math.sin(a) * R0, Math.cos(a) * R0, Math.PI / 2 - a, 0, 0); }
+      for (const sx of [-1, 1]) { const cap = new THREE.Mesh(new THREE.CircleGeometry(r * .2, 20), capM); cap.rotation.y = sx * Math.PI / 2; cap.position.x = sx * (wd * .5 + .02); spin.add(cap); }
+      for (const sx of [-1, 1]) { const bl = new THREE.Mesh(new THREE.CircleGeometry(r * .96, 28), blurM); bl.rotation.y = sx * Math.PI / 2; bl.position.x = sx * (wd * .5 + .03); bl.renderOrder = 3; steer.add(bl); }
+      g.userData.wheels.push({ steer, spin, r, front, side: x, blur: blurM });
       mergeStatic(THREE, spin);
     }
     mergeStatic(THREE, g, [chassis]);
@@ -100,6 +106,7 @@ function steeringWheel(THREE, g, G, put, dark, chrome, y, z) {
   put(w, G.cyl(.09, .1, .08, 16), chrome, 0, 0, 0, Math.PI / 2);
   for (const a of [Math.PI / 2, Math.PI / 2 + 2.1, Math.PI / 2 - 2.1]) put(w, G.box(.07, .3, .035), dark, Math.cos(a) * .16, Math.sin(a) * .16, 0, 0, 0, a - Math.PI / 2);
   put(w, G.box(.12, .035, .04), new THREE.MeshStandardMaterial({ color: 0xe53935, roughness: .4 }), 0, .3, .03);
+  return w;
 }
 function buildChar(THREE, C, cg, M, E, G, put) {
   const { body, skin, accent } = C.c, bm = M(body), sm = M(skin), am = M(accent);

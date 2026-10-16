@@ -768,7 +768,12 @@ function loop() {
       trackLap(k); const sp01 = Math.min(1, Math.abs(k.speed) / MAX); k.slide = (k.slide || 0) + ((k.drifting ? (k.steer || 0) * .5 : 0) - (k.slide || 0)) * Math.min(1, 10 * dt);
       k.mesh.rotation.order = 'YXZ'; k.mesh.position.set(k.pos.x, k.pos.y + (k.off && sp01 > .2 ? Math.abs(Math.sin(T * 45 + k.heading)) * .12 : 0) + (k.hopT > 0 ? Math.sin((1 - k.hopT) * Math.PI) * 2.6 : 0), k.pos.z); updateCloud(k);
       k.mesh.rotation.set(0, k.heading + k.spin * 12 + k.slide + (k.leafT > 0 ? (1 - k.leafT / .6) * 12.57 : 0), (k.steer || 0) * (.14 + (k.drifting ? .1 : 0)) * sp01); emitKartFx(k, dt); syncCarry(k, dt);
-      { const ws = k.mesh.userData.wheels; if (ws) for (const w of ws) { w.spin.rotation.x += k.speed * dt / w.r; if (w.front) w.steer.rotation.y = (k.steer || 0) * .4; } }
+      { const ud = k.mesh.userData, ws = ud.wheels, vis = k.speed * dt; k.wst = (k.wst || 0) + ((k.steer || 0) - (k.wst || 0)) * Math.min(1, 14 * dt);
+        k.brk = Math.max(0, Math.min(1, ((k.pSp === undefined ? k.speed : k.pSp) - k.speed) / Math.max(dt, 1e-3) / 30)); k.pSp = k.speed;
+        if (ws) for (const w of ws) { w.spin.rotation.x += vis / w.r; if (w.front) w.steer.rotation.y = k.wst * .55; if (w.blur) w.blur.opacity = Math.max(0, Math.min(.28, (Math.abs(k.speed) - 22) / 70)); }
+        if (ud.sw) ud.sw.rotation.z = -k.wst * .7;
+        if (ud.tail) ud.tail.emissiveIntensity = 1.2 + 2.4 * Math.max(k.brk, k.speed < -1 ? 1 : 0);
+        k.pitchV = (k.pitchV || 0) + ((Math.max(-.06, Math.min(.06, k.brk * .05 - ((k.boost > 0 || k.rocketT > 0) ? .035 : 0))) - (k.pitchV || 0)) * Math.min(1, 8 * dt)); k.mesh.rotation.x = k.pitchV; }
       const sc = (k.shrink > 0 ? .5 : 1) * k.size; k.mesh.scale.setScalar(k.mesh.scale.x + (sc - k.mesh.scale.x) * Math.min(1, 8*dt));
       { const bm = k.mesh.userData.body && k.mesh.userData.body.material; if (bm && bm.emissive) bm.emissive.setHSL(k.starT > 0 ? (T * 2) % 1 : 0, 1, k.starT > 0 ? .5 : 0); }
       if (!k.plantMesh) { k.plantMesh = new THREE.Mesh(new THREE.SphereGeometry(1.3, 12, 10), new THREE.MeshStandardMaterial({ color: 0x2e8b2e })); k.plantMesh.position.set(0, 1.4, 3.6); k.mesh.add(k.plantMesh); }
