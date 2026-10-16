@@ -3,7 +3,7 @@ import { createFx } from './fx.js';
 import { createAudio } from './audio.js';
 import { itemIcon, fixItemImgs } from './sprites.js';
 import { initMenus } from './menu.js';
-import { PAINT, computeStats, randomLoadout } from './roster.js';
+import { PAINT, computeStats, randomLoadout, getKart, getWheel } from './roster.js';
 import { buildKart } from './karts3d.js';
 import { createGarage } from './garage.js';
 import { initGarageUI } from './garageui.js';
@@ -592,6 +592,21 @@ function emitKartFx(k, dt) {
   while (k.aS >= 1) { k.aS--; const p = rear(Math.random() < .5 ? -1 : 1); pfx.smoke.emit(p.x, p.y + .5, p.z, R(-1, 1), R(1, 3), R(-1, 1), .9, .8, 3.2, k.drifting ? 0xdddddd : themeAt(k.idx).ground, .5, k.drifting ? 0xffffff : themeAt(k.idx).ground, 0); }
   while (k.aP >= 1) { k.aP--; const p = rear(Math.random() < .5 ? -1 : 1), hex = k.driftT > 1.2 ? 0xff8a00 : 0x4fc3ff; pfx.glow.emit(p.x, p.y + .5, p.z, R(-4, 4) - f.x * 4, R(2, 6), R(-4, 4) - f.z * 4, .35, .45, .05, hex, 1, hex, 0); }
   while (k.aF >= 1) { k.aF--; const p = k.pos.clone().addScaledVector(f, -2.3); pfx.glow.emit(p.x, p.y + .9, p.z, -f.x * R(6, 12) + R(-1, 1), R(-.5, 1), -f.z * R(6, 12) + R(-1, 1), .3, 1.1, .2, k.rocketT > 0 ? 0x6fd0ff : 0xffb040, 1, 0xff3000, 0); }
+  // engine fx per kart type: flickering exhaust flames, stack flames, smoke, antenna sparks
+  { const K = getKart(k.lo.kart), Wh = getWheel(k.lo.wheel), L = K.l / 2, base = .45 + Wh.r * .6, id = K.id, thr = Math.min(1, sp / 30), run = state !== 'idle' && !k.finished ? 1 : .6;
+    const ex = id === 'standard' ? [[.6, -L - .85, base + .45, 'f']] : id === 'hotrod' ? [[.5, -L - 1.3, base + .45, 'F']] : id === 'tank' ? [[.7, -L - .2, base + 1.1, 's']] : id === 'cruiser' ? [[.5, -L - .5, base + .15, 'p']] : [];
+    k.aE = (k.aE || 0) + (10 + 45 * thr + (k.boost > 0 ? 80 : 0)) * run * dt; const nE = Math.floor(k.aE); k.aE -= nE;
+    for (let n = 0; n < nE; n++) for (const [sx, sz, sy, kind] of ex) for (const side of (id === 'tank' || id === 'cruiser' ? [1] : [-1, 1])) {
+      const p = k.pos.clone().addScaledVector(f, sz).addScaledVector(l, side * sx), bv = R(3, 8) * (.5 + thr + (k.boost > 0 ? 1 : 0));
+      if (kind === 'f' || kind === 'F') {
+        const big = kind === 'F' || k.boost > 0; pfx.glow.emit(p.x, p.y + sy, p.z, -f.x * bv + R(-.6, .6), R(-.3, .8), -f.z * bv + R(-.6, .6), R(.12, big ? .34 : .22), big ? .7 : .45, .05, 0xffd060, .9, 0xff2a00, 0);
+        if (Math.random() < .35) pfx.smoke.emit(p.x, p.y + sy, p.z, -f.x * 2 + R(-.5, .5), R(.5, 1.5), -f.z * 2 + R(-.5, .5), R(.5, .9), .4, 1.6, 0x555555, .35, 0x222222, 0);
+      } else if (kind === 's') pfx.smoke.emit(p.x, p.y + sy, p.z, -f.x * 1.5 + R(-.4, .4), R(1.5, 3), -f.z * 1.5 + R(-.4, .4), R(.9, 1.5), .5, 2.2, 0x2a2a2a, .55, 0x111111, 0);
+      else pfx.smoke.emit(p.x, p.y + sy, p.z, -f.x * 1.2, R(.3, .8), -f.z * 1.2, R(.4, .7), .3, 1.1, 0x888888, .25, 0x444444, 0);
+    }
+    if (id === 'hotrod') { k.aH = (k.aH || 0) + 14 * dt; while (k.aH >= 1) { k.aH--; const sx = Math.random() < .5 ? -.32 : .32, sz = L * .55 + R(-.4, .4), p = k.pos.clone().addScaledVector(f, sz).addScaledVector(l, sx); pfx.glow.emit(p.x, p.y + base + 1.35, p.z, R(-.3, .3), R(1.5, 3), R(-.3, .3), R(.15, .3), .22, .03, 0xffc040, .8, 0xff3000, 0); } }
+    if (id === 'bumper' && Math.random() < 6 * dt) { const p = k.pos.clone().addScaledVector(f, -.95); const hx = 0x7fd8ff; for (let i = 0; i < 4; i++) pfx.glow.emit(p.x, p.y + base + K.h + 2.0, p.z, R(-3, 3), R(1, 4), R(-3, 3), R(.1, .25), .12, .02, hx, 1, hx, 0); }
+  }
   while (k.aT >= 1) { k.aT--; const hex = new THREE.Color().setHSL(Math.random(), 1, .6).getHex(); pfx.glow.emit(k.pos.x + R(-1.5, 1.5), k.pos.y + R(.5, 3), k.pos.z + R(-1.5, 1.5), R(-2, 2), R(1, 4), R(-2, 2), .6, .6, .1, hex, 1, hex, 0); }
 }
 
